@@ -666,6 +666,125 @@ Recommendation reason answers:
 
 - Why should the user care?
 
+## Community Contribution Model
+
+AIWatch should be maintainable by the community, but public contributions must never go live automatically.
+
+Accepted contribution types:
+
+- recommended sources.
+- source metadata fixes.
+- category or tag suggestions.
+- event merge or association suggestions.
+- correction reports for wrong summaries, wrong main sources, or duplicate events.
+- documentation and self-hosting improvements.
+
+Contribution states:
+
+- submitted.
+- triaged.
+- approved.
+- rejected.
+- applied.
+
+Public users can submit suggestions, but only selected authors, moderators, or admins can approve and publish them.
+
+Every contribution should store:
+
+- contributor account or anonymous fingerprint.
+- target object type: source, event, post, report, config, documentation.
+- proposed change.
+- reason.
+- reviewer.
+- review status.
+- review note.
+- created_at.
+- reviewed_at.
+
+GitHub contributions are welcome, but repository changes should follow the same rule:
+
+- Pull requests can update public code, documentation, source seed files, or example configuration.
+- Pull requests must not include real API keys, cookies, access tokens, private crawler credentials, or production database dumps.
+- Data changes that affect the live site still require backend review before production import.
+
+## Admin Console
+
+The project needs a private admin console for operation and moderation. It must not be shown in the public site navigation.
+
+Admin console users:
+
+- owner: full system access.
+- admin: source, event, report, user, and settings maintenance.
+- selected author: source review, expert scoring, B-level direct-push, event correction.
+- moderator: comments, contribution review, duplicate reports.
+- readonly operator: monitoring only.
+
+Admin console capabilities:
+
+- monitor crawler health, queue status, failed jobs, and API errors.
+- approve, pause, remove, and edit sources.
+- review community source recommendations.
+- inspect posts before or after event creation.
+- correct event merges, associations, and main source selection.
+- review scoring breakdowns and promotion history.
+- approve expert direct-push actions.
+- manage daily, weekly, and monthly reports.
+- moderate comments.
+- inspect audit logs.
+- manage public Skill endpoint health.
+
+Security expectations:
+
+- Admin routes are not linked from the public UI.
+- Admin access requires login.
+- Production owner account is created through a controlled setup flow, not hardcoded into the repository.
+- Sensitive admin actions require audit logging.
+- V1 can use simple role-based access control; fine-grained enterprise permissions are deferred.
+
+## Open Source And Self-Hosting
+
+AIWatch should be downloadable and self-hostable.
+
+The public repository may include:
+
+- application source code.
+- database migrations.
+- public documentation.
+- the product spec.
+- seed examples for sources.
+- example environment files such as `.env.example`.
+- local development setup instructions.
+- public Skill template.
+
+The public repository must not include:
+
+- real API keys.
+- OAuth secrets.
+- cookies.
+- session secrets.
+- production database URLs.
+- production crawler credentials.
+- private source lists that should not be public.
+- user data exports.
+- production logs containing personal or secret data.
+
+Configuration rules:
+
+- All secrets must come from environment variables or a local ignored config file.
+- The repository should include `.env.example`, not `.env`.
+- Local installation should work with mock/sample data when no paid crawler/API credentials are configured.
+- Optional integrations such as X, Zhihu, Reddit, and GitHub should fail closed with clear setup messages when credentials are missing.
+- The hosted public service and self-hosted instances should use the same codebase, but different runtime configuration.
+
+Self-hosting success criteria:
+
+- A new maintainer can clone the repository.
+- They can install dependencies.
+- They can run migrations.
+- They can start the web app locally.
+- They can load sample sources/events without private credentials.
+- They can configure their own API keys locally without committing them.
+
 ## Audit Requirements
 
 Audit logs are required for:
@@ -676,6 +795,10 @@ Audit logs are required for:
 - expert direct-push to B.
 - expert weighted like/star.
 - manual promotion override.
+- community contribution review and application.
+- admin role changes.
+- report publish, unpublish, or correction.
+- secret-related configuration checks, without storing secret values.
 
 Audit fields:
 
@@ -697,10 +820,14 @@ V1 is successful when:
 - Selected events are based on deterministic formulas, not opaque LLM judgment.
 - Source directory is public, clickable, and explainable.
 - Admins can approve and maintain sources.
+- Community users can suggest sources or corrections, but changes require review before going live.
+- A private admin console can monitor crawling, moderation, scoring, reports, and audit logs.
 - Experts can direct-push B with audit logs.
 - Daily report is generated from events at 08:00.
 - AIWatch Skill can be installed by agents and fetch selected items without an API key.
 - Old selected events retain their selected identity but naturally fall in ranking unless new signals arrive.
+- The repository can be shared publicly without real API keys or private production configuration.
+- The project can be self-hosted with sample data and local environment configuration.
 
 ## Open Implementation Decisions
 
@@ -710,5 +837,7 @@ V1 is successful when:
 - Exact rate-limit values.
 - Exact admin permission model.
 - Initial 80-120 source list.
+- Exact contribution review workflow in GitHub versus in-app backend.
+- Exact local installation command and sample dataset format.
 
 These decisions should be made during implementation planning, not expanded in this product spec.
