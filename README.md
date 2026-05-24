@@ -80,5 +80,13 @@ bun run test:integration         # 集成:真实 Postgres 跑通整条脊柱
 - `/_admin` 显示晋级 breakdown(等级/分数/门槛/窗口/排名,可解释、可追溯)
 - 校验:10 条 golden 单测 + 6 条真实 Postgres 集成测试
 
-**接下来(后续 slice):** 公共 Skill 只读 API(今日/本周/本月精选)、日报/周报/月报、贡献流、评论、专家加权、更多连接器(RSSHub/GitHub/Reddit…)、中文全文检索、完整 RBAC 与审计日志、Playwright E2E。
+**Slice 2(公共只读 API + Agent Skill)已完成并验证。** 无需 API key 的只读端点 + 可被 Agent 安装的 `aiwatch-hot` Skill(决策 13):
+
+- `GET /api/public/items`:`mode=selected|all`、语义窗口 `since=today|week|month|all`(服务端解析,客户端不算日期边界)、`level/category/q` 过滤、keyset 游标分页(`take` 默认 20、上限 50,无全量导出)
+- `src/db/queries/public-items.ts`:keyset 分页查询,服务端搜索(Slice 2 用 ILIKE,FTS 留待检索 slice)、只暴露公共契约(snake_case),不泄露评分 breakdown/provenance
+- 防护:CDN 缓存为主(`s-maxage`/`stale-while-revalidate`,selected 比 all 缓存更久)+ 每实例 per-IP 令牌桶(abuse-grade,无 Redis)
+- `GET /aiwatch-skill/SKILL.md`(静态、长缓存、不内嵌任何 feed 数据)+ `/aiwatch-skill` 安装页
+- 校验:11 条单测(query 解析 + 令牌桶)+ 7 条真实 Postgres 集成测试
+
+**接下来(后续 slice):** 日报/周报/月报(及 `/api/public/daily`、`/dailies` 端点)、贡献流、评论、专家加权、更多连接器(RSSHub/GitHub/Reddit…)、中文全文检索、完整 RBAC 与审计日志、Playwright E2E。
 
