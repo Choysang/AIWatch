@@ -231,6 +231,60 @@ a {
   color: var(--ink-soft);
 }
 
+/* --- reports --- */
+.report-section {
+  margin-bottom: 2.4rem;
+}
+.report-section-title {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  margin: 0 0 1rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--line);
+  letter-spacing: -0.01em;
+}
+.report-empty-section {
+  color: var(--ink-faint);
+  font-size: 0.9rem;
+  margin: 0;
+}
+.report-archive {
+  margin-top: 2.5rem;
+  border-top: 1px solid var(--line);
+  padding-top: 1.2rem;
+}
+.report-archive ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+.report-archive a {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--accent);
+}
+.report-archive a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.masthead nav {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.95rem;
+}
+.masthead nav a {
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+.masthead nav a:hover {
+  color: var(--accent);
+}
+
 /* --- admin --- */
 .admin-table {
   width: 100%;

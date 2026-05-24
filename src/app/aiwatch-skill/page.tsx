@@ -50,6 +50,12 @@ export default function SkillInstallPage() {
           <li>
             <code>GET /api/public/items?mode=all</code> — 全部动态（按时间）
           </li>
+          <li>
+            <code>GET /api/public/daily</code> — 最新 AI 日报（含三节正文）
+          </li>
+          <li>
+            <code>GET /api/public/dailies?take=N</code> — 近期日报列表
+          </li>
         </ul>
         <p className="note" style={{ border: 0, margin: 0 }}>
           摘要由 LLM 生成，请以 <code>url</code> 原文为权威来源。

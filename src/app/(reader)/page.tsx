@@ -2,6 +2,7 @@
 // (reader) is a route group, so this renders at "/". Dynamic: it reads the DB per
 // request and degrades to a setup hint if the DB isn't reachable yet.
 
+import Link from "next/link";
 import { listRecentEvents, type EventCard as EventCardData } from "@/db/queries/feed";
 import { messages } from "@/i18n";
 import { EventCard } from "./event-card";
@@ -30,7 +31,10 @@ export default async function HomePage() {
             <span className="accent-dot">.</span>
           </h1>
         </div>
-        <span className="tagline">{m.tagline}</span>
+        <nav>
+          <span className="tagline">{m.tagline}</span>
+          <Link href="/reports">{m.nav.reports}</Link>
+        </nav>
       </header>
 
       <h2 className="section-intro" style={{ fontWeight: 600, color: "var(--ink)" }}>

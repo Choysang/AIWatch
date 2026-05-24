@@ -6,6 +6,7 @@
 import { MockConnector } from "@/connectors/mock";
 import { db, pool } from "@/db/client";
 import { checkPromotion } from "@/db/jobs/check-promotion";
+import { generateDailyReport } from "@/db/jobs/generate-report";
 import type { DueSource } from "@/db/queries/sources";
 import { sources } from "@/db/schema";
 import { processSource } from "@/pipeline/process-source";
@@ -59,6 +60,12 @@ async function main(): Promise<void> {
   const promotion = await checkPromotion();
   // eslint-disable-next-line no-console -- script output
   console.log("[seed] promotion:", promotion);
+
+  // Assemble today's daily report so /reports and /api/public/daily have content.
+  const report = await generateDailyReport();
+  // eslint-disable-next-line no-console -- script output
+  console.log("[seed] daily report:", report);
+
   // eslint-disable-next-line no-console -- script output
   console.log("[seed] demo data ready. Start the app: bun run dev");
   await pool.end();

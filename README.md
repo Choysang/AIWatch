@@ -88,5 +88,15 @@ bun run test:integration         # 集成:真实 Postgres 跑通整条脊柱
 - `GET /aiwatch-skill/SKILL.md`(静态、长缓存、不内嵌任何 feed 数据)+ `/aiwatch-skill` 安装页
 - 校验:11 条单测(query 解析 + 令牌桶)+ 7 条真实 Postgres 集成测试
 
-**接下来(后续 slice):** 日报/周报/月报(及 `/api/public/daily`、`/dailies` 端点)、贡献流、评论、专家加权、更多连接器(RSSHub/GitHub/Reddit…)、中文全文检索、完整 RBAC 与审计日志、Playwright E2E。
+**Slice 3(报告:日报/周报/月报)已完成并验证。** 报告完全由事件确定性拼装,LLM 不做任何编辑决策;按 APP_TZ 日历键寻址(决策 E):
+
+- `src/core/time.ts`:APP_TZ 日历日 ↔ UTC 区间换算(DST 安全),`/api/public/daily/{date}` 用 `YYYY-MM-DD`
+- `src/reports/build-report.ts` 纯拼装器:三节(今日聚焦 / 值得关注 / 昨日跟进),滚动窗口(日报 24h),golden 测试覆盖
+- `src/db/jobs/generate-report.ts`:加载窗口事件 → 拼装 → 按 `(kind, report_date)` upsert;日报自动发布,周/月报落为 `draft` 待审(规范)
+- 公共只读端点:`GET /api/public/daily`、`/api/public/daily/{date}`、`/api/public/dailies`(仅返回已发布日报;长缓存)
+- reader:`/reports`(最新一期 + 历史)、`/reports/{date}`;`/_admin` 报告列表(类型/日期/状态)
+- worker:08:00 日报、周一 08:00 周报草稿、每月 1 日 08:00 月报草稿(worker 以 `TZ=APP_TZ` 运行)
+- 校验:16 条单测(时间换算 + 拼装器)+ 8 条真实 Postgres 集成测试
+
+**接下来(后续 slice):** 贡献流、评论、专家加权、更多连接器(RSSHub/GitHub/Reddit…)、中文全文检索、完整 RBAC 与审计日志、Playwright E2E。
 

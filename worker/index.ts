@@ -6,6 +6,11 @@ import { run } from "graphile-worker";
 import { checkPromotionTask } from "./tasks/check-promotion";
 import { crawlSource } from "./tasks/crawl-source";
 import { enqueueDueSources } from "./tasks/enqueue-due-sources";
+import {
+  generateDailyReportTask,
+  generateMonthlyReportTask,
+  generateWeeklyReportTask,
+} from "./tasks/generate-report";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -16,13 +21,24 @@ async function main(): Promise<void> {
   const runner = await run({
     connectionString,
     concurrency: Number(process.env.WORKER_CONCURRENCY ?? 4),
-    // Coarse cron: enqueue due sources every minute (per-source frequency is enforced by
-    // getDueSources, not crontab lines); run the B/A/S tournament every 5 minutes.
-    crontab: ["* * * * * enqueue-due-sources", "*/5 * * * * check-promotion"].join("\n"),
+    // Coarse cron (worker runs with TZ=APP_TZ, decision E): enqueue due sources every
+    // minute (per-source frequency is enforced by getDueSources, not crontab lines); run
+    // the B/A/S tournament every 5 minutes; assemble the daily report at 08:00, the weekly
+    // draft Monday 08:00, and the monthly draft on the 1st at 08:00.
+    crontab: [
+      "* * * * * enqueue-due-sources",
+      "*/5 * * * * check-promotion",
+      "0 8 * * * generate-daily-report",
+      "0 8 * * 1 generate-weekly-report",
+      "0 8 1 * * generate-monthly-report",
+    ].join("\n"),
     taskList: {
       "crawl-source": crawlSource,
       "enqueue-due-sources": enqueueDueSources,
       "check-promotion": checkPromotionTask,
+      "generate-daily-report": generateDailyReportTask,
+      "generate-weekly-report": generateWeeklyReportTask,
+      "generate-monthly-report": generateMonthlyReportTask,
     },
   });
 

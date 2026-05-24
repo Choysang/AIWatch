@@ -8,6 +8,7 @@ export const zh = {
   nav: {
     dynamics: "全部动态",
     selected: "精选",
+    reports: "日报",
   },
   home: {
     heading: "全部 AI 动态",
@@ -26,6 +27,31 @@ export const zh = {
     B: "当日精选",
     A: "本周精选",
     S: "本月精选",
+  },
+  report: {
+    kind: {
+      daily: "日报",
+      weekly: "周报",
+      monthly: "月报",
+    },
+    sections: {
+      today_focus: "今日聚焦",
+      worth_watching: "值得关注",
+      yesterday_followup: "昨日跟进",
+    },
+    counts: {
+      focus: "聚焦",
+      watching: "关注",
+      followup: "跟进",
+    },
+    heading: "AI 日报",
+    subheading: "基于事件、确定性生成的每日精选。每天 08:00（APP_TZ）出一期。",
+    empty: "暂无日报。运行 worker 或执行 bun run db:seed:demo 后生成。",
+    emptySection: "本节暂无内容。",
+    latest: "最新一期",
+    archive: "历史日报",
+    notFound: "未找到该日期的日报。",
+    why: "为什么重要",
   },
   category: {
     label: "分类",
@@ -58,5 +84,18 @@ export const zh = {
       promotedAt: "晋级时间",
     },
     noPromotions: "暂无精选事件。运行 worker 或 db:seed:demo 后再看。",
+    reports: "报告 (日报/周报/月报)",
+    reportColumns: {
+      kind: "类型",
+      date: "日期",
+      status: "状态",
+      summary: "摘要",
+      generatedAt: "生成时间",
+    },
+    reportStatus: {
+      draft: "草稿",
+      published: "已发布",
+    },
+    noReports: "暂无报告。运行 worker 或 db:seed:demo 后再看。",
   },
 } as const;

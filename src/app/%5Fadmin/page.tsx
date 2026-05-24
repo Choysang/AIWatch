@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { formatDateTime } from "@/app/_lib/format";
 import { getSession, isConsoleRole } from "@/app/_lib/session";
 import { listPromotedEvents, type PromotedEventRow } from "@/db/queries/promotions";
+import { listRecentReports, type AdminReportRow } from "@/db/queries/public-reports";
 import { listSourceHealth, type SourceHealthRow } from "@/db/queries/sources";
 import { messages } from "@/i18n";
 
@@ -25,9 +26,14 @@ export default async function AdminPage() {
     );
   }
 
-  const [rows, promoted] = await Promise.all([listSourceHealth(), listPromotedEvents()]);
+  const [rows, promoted, reports] = await Promise.all([
+    listSourceHealth(),
+    listPromotedEvents(),
+    listRecentReports(),
+  ]);
   const c = messages.admin.columns;
   const pc = messages.admin.promotionColumns;
+  const rc = messages.admin.reportColumns;
 
   return (
     <main className="page">
@@ -111,6 +117,40 @@ export default async function AdminPage() {
                     : "—"}
                 </td>
                 <td>{formatDateTime(ev.promotedAt)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      <h2 style={{ fontFamily: "var(--font-serif)", marginTop: "3rem" }}>
+        {messages.admin.reports}
+      </h2>
+      {reports.length === 0 ? (
+        <div className="empty">{messages.admin.noReports}</div>
+      ) : (
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>{rc.kind}</th>
+              <th>{rc.date}</th>
+              <th>{rc.status}</th>
+              <th>{rc.summary}</th>
+              <th>{rc.generatedAt}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reports.map((r: AdminReportRow) => (
+              <tr key={`${r.kind}-${r.date}`}>
+                <td>{messages.report.kind[r.kind]}</td>
+                <td style={{ fontVariantNumeric: "tabular-nums" }}>{r.date}</td>
+                <td>
+                  <span className={`pill ${r.status === "published" ? "healthy" : "degraded"}`}>
+                    {messages.admin.reportStatus[r.status]}
+                  </span>
+                </td>
+                <td style={{ color: "var(--ink-faint)", maxWidth: 280 }}>{r.summary ?? ""}</td>
+                <td>{formatDateTime(r.generatedAt)}</td>
               </tr>
             ))}
           </tbody>

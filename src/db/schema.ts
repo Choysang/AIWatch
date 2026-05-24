@@ -6,6 +6,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  date,
   index,
   integer,
   interval,
@@ -40,6 +41,8 @@ export const eventRelationEnum = pgEnum("event_relation", ["same_event", "relate
 export const triggerReasonEnum = pgEnum("trigger_reason", [
   "initial", "official_update", "major_correction", "new_evidence", "manual_rejudge",
 ]);
+export const reportKindEnum = pgEnum("report_kind", ["daily", "weekly", "monthly"]);
+export const reportStatusEnum = pgEnum("report_status", ["draft", "published"]);
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 
@@ -205,6 +208,32 @@ export const eventScores = pgTable(
   (t) => [index("es_event_idx").on(t.eventId, t.computedAt)],
 );
 
+// --- reports (daily/weekly/monthly; assembled deterministically from events) ---
+// Calendar-keyed in APP_TZ (decision E): unique per (kind, report_date). `content` holds
+// the assembled ReportContent jsonb (sections); regenerating a date upserts in place.
+// Daily auto-publishes; weekly/monthly land as `draft` for review (spec).
+export const reports = pgTable(
+  "reports",
+  {
+    id: text("id").primaryKey(),
+    kind: reportKindEnum("kind").notNull(),
+    reportDate: date("report_date", { mode: "string" }).notNull(),
+    appTz: text("app_tz").notNull(),
+    status: reportStatusEnum("status").notNull().default("draft"),
+    title: text("title").notNull(),
+    summary: text("summary"),
+    content: jsonb("content").notNull(),
+    reportConfigVersion: text("report_config_version").notNull(),
+    scoringConfigVersion: text("scoring_config_version").notNull(),
+    generatedAt: ts("generated_at").notNull().defaultNow(),
+    publishedAt: ts("published_at"),
+  },
+  (t) => [
+    uniqueIndex("reports_kind_date_uq").on(t.kind, t.reportDate),
+    index("reports_kind_status_date_idx").on(t.kind, t.status, t.reportDate),
+  ],
+);
+
 // better-auth tables live in auth-schema.ts; re-export so drizzle-kit emits their
 // migrations from this single schema entrypoint (drizzle.config points here).
 export { account, session, user, verification } from "./auth-schema";
@@ -216,4 +245,5 @@ export const schema = {
   eventPosts,
   eventJudgments,
   eventScores,
+  reports,
 };
