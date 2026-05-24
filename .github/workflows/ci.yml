@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.21
+      - run: bun install --frozen-lockfile
+      - name: Typecheck
+        run: bun run typecheck
+      - name: Unit tests
+        run: bun test src
+      - name: Build
+        run: bun run build
+        env:
+          BETTER_AUTH_SECRET: ci-build-secret-not-used-but-32-chars-long
+          BETTER_AUTH_URL: http://localhost:3000
+
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: aiwatch
+          POSTGRES_PASSWORD: aiwatch
+          POSTGRES_DB: aiwatch
+        ports:
+          - "5432:5432"
+        options: >-
+          --health-cmd "pg_isready -U aiwatch -d aiwatch"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Set, so the integration suite uses this service instead of booting embedded pg.
+      DATABASE_URL: postgres://aiwatch:aiwatch@localhost:5432/aiwatch
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.21
+      - run: bun install --frozen-lockfile
+      - name: Apply migrations
+        run: bun run db:migrate
+      - name: Integration tests (real Postgres)
+        run: bun test tests/integration

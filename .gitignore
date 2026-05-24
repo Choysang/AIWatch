@@ -1,0 +1,37 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next
+/out
+
+# env (commit .env.example only)
+.env
+.env.local
+.env.*.local
+
+# build / cache
+/dist
+/build
+*.tsbuildinfo
+
+# test artifacts
+/coverage
+/playwright-report
+/test-results
+
+# logs / os
+*.log
+.DS_Store
+
+# local tooling / editor config (not part of the project)
+.serena/
+.claude/
+.idea/
+.vscode/
+
+# NOTE: bun.lock IS committed (locked decision: bun.lock is the only lockfile).
+# Do not ignore it. Other lockfiles are banned from commits.
+package-lock.json
+pnpm-lock.yaml
+yarn.lock

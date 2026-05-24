@@ -1,0 +1,53 @@
+{
+  "name": "aiwatch",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.2.21",
+  "engines": {
+    "bun": ">=1.2.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "worker": "bun run worker/index.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed:demo": "bun run scripts/seed-demo.ts",
+    "db:seed:empty-owner": "bun run scripts/setup-owner.ts",
+    "setup:owner": "bun run scripts/setup-owner.ts",
+    "test": "bun test src",
+    "test:integration": "bun test tests/integration",
+    "test:worker": "bun test tests/integration/worker",
+    "e2e": "playwright test",
+    "typecheck": "tsc --noEmit",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "better-auth": "^1.1.0",
+    "drizzle-orm": "^0.38.0",
+    "fast-xml-parser": "^4.5.0",
+    "graphile-worker": "^0.16.6",
+    "next": "^15.1.0",
+    "pg": "^8.13.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "ulid": "^2.3.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.11.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "bun-types": "^1.2.0",
+    "drizzle-kit": "^0.30.0",
+    "embedded-postgres": "16.13.0-beta.17",
+    "typescript": "^5.7.0"
+  },
+  "trustedDependencies": [
+    "@embedded-postgres/windows-x64"
+  ]
+}
