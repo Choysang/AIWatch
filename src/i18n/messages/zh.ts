@@ -47,5 +47,16 @@ export const zh = {
     },
     empty: "暂无来源。",
     loginRequired: "需要登录后访问。",
+    promotions: "精选晋级 (B/A/S)",
+    promotionColumns: {
+      title: "事件",
+      level: "等级",
+      score: "晋级分",
+      threshold: "门槛",
+      window: "窗口(天)",
+      rank: "窗口内排名",
+      promotedAt: "晋级时间",
+    },
+    noPromotions: "暂无精选事件。运行 worker 或 db:seed:demo 后再看。",
   },
 } as const;

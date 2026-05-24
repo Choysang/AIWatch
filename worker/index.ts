@@ -3,6 +3,7 @@
 // and runs its own migrations on start. Never imports src/app.
 
 import { run } from "graphile-worker";
+import { checkPromotionTask } from "./tasks/check-promotion";
 import { crawlSource } from "./tasks/crawl-source";
 import { enqueueDueSources } from "./tasks/enqueue-due-sources";
 
@@ -15,12 +16,13 @@ async function main(): Promise<void> {
   const runner = await run({
     connectionString,
     concurrency: Number(process.env.WORKER_CONCURRENCY ?? 4),
-    // Coarse cron: enqueue due sources once a minute. Per-source frequency is enforced
-    // by getDueSources (next_fetch_at), not by many crontab lines.
-    crontab: "* * * * * enqueue-due-sources",
+    // Coarse cron: enqueue due sources every minute (per-source frequency is enforced by
+    // getDueSources, not crontab lines); run the B/A/S tournament every 5 minutes.
+    crontab: ["* * * * * enqueue-due-sources", "*/5 * * * * check-promotion"].join("\n"),
     taskList: {
       "crawl-source": crawlSource,
       "enqueue-due-sources": enqueueDueSources,
+      "check-promotion": checkPromotionTask,
     },
   });
 

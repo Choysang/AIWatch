@@ -33,6 +33,16 @@ export function getPool(): pg.Pool {
   return realPool!;
 }
 
+// Closes the pool and clears the singleton so a later getDb() re-reads DATABASE_URL.
+// Used by integration tests that swap databases between files in one process.
+export async function resetDb(): Promise<void> {
+  // Clear the singleton first so a later getDb() re-inits even if the close below is slow.
+  const pool = realPool;
+  realPool = null;
+  realDb = null;
+  if (pool) await pool.end();
+}
+
 // Lazy proxies preserve the `db` / `pool` import API used across the codebase while
 // deferring connection until the first property access. Methods are bound to the real
 // instance so Drizzle's internal `this` stays correct.

@@ -72,4 +72,13 @@ bun run test:integration         # 集成:真实 Postgres 跑通整条脊柱
 
 校验:`bun test src`(单元)、`bun run test:integration`(真实 Postgres)、`bun run typecheck`、`bun run build` 均通过。
 
-**接下来(后续 slice):** B/A/S 晋级锦标赛(raw SQL in `db/jobs`)、日报/周报/月报、公共 Skill 只读 API、贡献流、评论、专家加权、更多连接器(RSSHub/GitHub/Reddit…)、中文全文检索、完整 RBAC 与审计日志、Playwright E2E。
+**Slice 1(B/A/S 晋级锦标赛)已完成并验证。** 确定性晋级跑通,只用 Slice 0 信号(`promotion_score = base_score`;专家/评论/引用等留待后续 slice):
+
+- `src/scoring/promotion.ts` 纯函数锦标赛(门槛 + 滚动窗口 + slot 上限 + S→A→B 级联),golden 测试覆盖
+- `src/db/jobs/check-promotion.ts`:加载候选 → 跑锦标赛 → 写 `selected_level/label/promoted_at/selected_breakdown`(只此一处写,绝不降级)
+- worker 每 5 分钟跑 `check-promotion`;`db:seed:demo` 也会跑一次,首页直接看到精选标签
+- `/_admin` 显示晋级 breakdown(等级/分数/门槛/窗口/排名,可解释、可追溯)
+- 校验:10 条 golden 单测 + 6 条真实 Postgres 集成测试
+
+**接下来(后续 slice):** 公共 Skill 只读 API(今日/本周/本月精选)、日报/周报/月报、贡献流、评论、专家加权、更多连接器(RSSHub/GitHub/Reddit…)、中文全文检索、完整 RBAC 与审计日志、Playwright E2E。
+

@@ -17,6 +17,11 @@ export type Platform =
 
 export type SourceLevel = "L1" | "L2" | "L3" | "L4" | "L5";
 
+/** Selected level on an event. `none` = not selected; B/A/S are daily/weekly/monthly. */
+export type SelectedLevel = "none" | "B" | "A" | "S";
+/** The promotable tiers (excludes `none`). */
+export type PromotedLevel = "B" | "A" | "S";
+
 export interface PublicMetrics {
   likes?: number;
   reposts?: number;

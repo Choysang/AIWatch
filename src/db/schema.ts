@@ -127,6 +127,9 @@ export const events = pgTable(
     rankScore: real("rank_score"),
     selectedLevel: selectedLevelEnum("selected_level").notNull().default("none"),
     selectedLabel: text("selected_label"),
+    // Explainable promotion snapshot, written ONLY by the promotion job (decision: selected
+    // level/why is deterministic + auditable). Holds version, score, threshold, window, rank.
+    selectedBreakdown: jsonb("selected_breakdown"),
     publishedAt: ts("published_at"),
     promotedAt: ts("promoted_at"),
     lastStrongSignalAt: ts("last_strong_signal_at"),

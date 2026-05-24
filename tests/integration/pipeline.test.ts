@@ -13,7 +13,7 @@ let pgHandle: PgHandle;
 // Dynamic imports AFTER DATABASE_URL is set keep module load order honest even though
 // the db client is lazy; getDb() returns the real (un-proxied) instance for assertions.
 let getDb: typeof import("@/db/client").getDb;
-let getPool: typeof import("@/db/client").getPool;
+let resetDb: typeof import("@/db/client").resetDb;
 let schema: typeof import("@/db/schema");
 let processSource: typeof import("@/pipeline/process-source").processSource;
 let listRecentEvents: typeof import("@/db/queries/feed").listRecentEvents;
@@ -31,7 +31,7 @@ beforeAll(async () => {
     process.env.DATABASE_URL = pgHandle.connectionString;
   }
 
-  ({ getDb, getPool } = await import("@/db/client"));
+  ({ getDb, resetDb } = await import("@/db/client"));
   schema = await import("@/db/schema");
   ({ processSource } = await import("@/pipeline/process-source"));
   ({ listRecentEvents } = await import("@/db/queries/feed"));
@@ -61,10 +61,14 @@ function withTimeout(p: Promise<unknown> | undefined, ms: number): Promise<unkno
 }
 
 afterAll(async () => {
-  // Close pool clients before stopping Postgres so idle connections don't error on teardown.
+  // Close + clear the db singleton before stopping Postgres so (a) idle connections don't
+  // error on teardown and (b) the next test file re-inits against its own database.
   // Each step is time-boxed so a slow/stuck shutdown can never hang the whole suite.
-  await withTimeout(getPool?.().end(), 10_000);
+  await withTimeout(resetDb?.(), 10_000);
   await withTimeout(pgHandle?.stop(), 15_000);
+  // Only clear the env we set, so a later test file boots its own embedded pg (and a
+  // CI-provided DATABASE_URL, where pgHandle is undefined, is left intact).
+  if (pgHandle) delete process.env.DATABASE_URL;
 }, 60_000); // Postgres graceful shutdown can exceed Bun's default 5s hook timeout.
 
 const dueSource = {

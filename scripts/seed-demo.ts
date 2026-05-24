@@ -5,6 +5,7 @@
 
 import { MockConnector } from "@/connectors/mock";
 import { db, pool } from "@/db/client";
+import { checkPromotion } from "@/db/jobs/check-promotion";
 import type { DueSource } from "@/db/queries/sources";
 import { sources } from "@/db/schema";
 import { processSource } from "@/pipeline/process-source";
@@ -53,6 +54,11 @@ async function main(): Promise<void> {
     // eslint-disable-next-line no-console -- script output
     console.log(`[seed] ${s.name}:`, summary);
   }
+
+  // Run the B/A/S tournament so the demo homepage shows real selected badges.
+  const promotion = await checkPromotion();
+  // eslint-disable-next-line no-console -- script output
+  console.log("[seed] promotion:", promotion);
   // eslint-disable-next-line no-console -- script output
   console.log("[seed] demo data ready. Start the app: bun run dev");
   await pool.end();

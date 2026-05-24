@@ -6,6 +6,7 @@
 import { redirect } from "next/navigation";
 import { formatDateTime } from "@/app/_lib/format";
 import { getSession, isConsoleRole } from "@/app/_lib/session";
+import { listPromotedEvents, type PromotedEventRow } from "@/db/queries/promotions";
 import { listSourceHealth, type SourceHealthRow } from "@/db/queries/sources";
 import { messages } from "@/i18n";
 
@@ -24,8 +25,9 @@ export default async function AdminPage() {
     );
   }
 
-  const rows = await listSourceHealth();
+  const [rows, promoted] = await Promise.all([listSourceHealth(), listPromotedEvents()]);
   const c = messages.admin.columns;
+  const pc = messages.admin.promotionColumns;
 
   return (
     <main className="page">
@@ -67,6 +69,48 @@ export default async function AdminPage() {
                 <td>{formatDateTime(row.nextFetchAt)}</td>
                 <td>{row.failureCount}</td>
                 <td style={{ color: "var(--ink-faint)", maxWidth: 240 }}>{row.lastError ?? ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      <h2 style={{ fontFamily: "var(--font-serif)", marginTop: "3rem" }}>
+        {messages.admin.promotions}
+      </h2>
+      {promoted.length === 0 ? (
+        <div className="empty">{messages.admin.noPromotions}</div>
+      ) : (
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>{pc.title}</th>
+              <th>{pc.level}</th>
+              <th>{pc.score}</th>
+              <th>{pc.threshold}</th>
+              <th>{pc.window}</th>
+              <th>{pc.rank}</th>
+              <th>{pc.promotedAt}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {promoted.map((ev: PromotedEventRow) => (
+              <tr key={ev.id}>
+                <td style={{ maxWidth: 320 }}>{ev.title}</td>
+                <td>
+                  <span className={`badge ${ev.selectedLevel}`}>
+                    {ev.selectedLabel ?? ev.selectedLevel}
+                  </span>
+                </td>
+                <td>{ev.breakdown ? ev.breakdown.promotionScore.toFixed(1) : "—"}</td>
+                <td>{ev.breakdown?.threshold ?? "—"}</td>
+                <td>{ev.breakdown?.windowDays ?? "—"}</td>
+                <td>
+                  {ev.breakdown
+                    ? `${ev.breakdown.rankInWindow} / ${ev.breakdown.slotLimit}`
+                    : "—"}
+                </td>
+                <td>{formatDateTime(ev.promotedAt)}</td>
               </tr>
             ))}
           </tbody>
