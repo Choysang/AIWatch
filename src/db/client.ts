@@ -8,6 +8,8 @@ import pg from "pg";
 import * as schema from "./schema";
 
 export type DB = NodePgDatabase<typeof schema>;
+/** The transaction handle passed to `db.transaction(async (tx) => ...)`. */
+export type Tx = Parameters<Parameters<DB["transaction"]>[0]>[0];
 
 let realPool: pg.Pool | null = null;
 let realDb: DB | null = null;

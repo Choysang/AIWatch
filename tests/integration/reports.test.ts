@@ -135,7 +135,9 @@ describe("generateReport (daily) + public read (real Postgres)", () => {
     await seedDay();
     await generateReport("daily", NOW);
     const report = await getLatestDaily();
-    const s1 = section(report!, "today_focus").items.find((i) => i.id === "s1") as { url: string };
+    const s1 = section(report!, "today_focus").items.find((i) => i.id === "s1") as unknown as {
+      url: string;
+    };
     expect(s1.url).toBe("https://openai.com/x");
   });
 

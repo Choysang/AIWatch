@@ -6,10 +6,29 @@
 import { redirect } from "next/navigation";
 import { formatDateTime } from "@/app/_lib/format";
 import { getSession, isConsoleRole } from "@/app/_lib/session";
+import { listAuditLogs, type AuditRow } from "@/db/queries/audit";
+import { listContributions, type ContributionRow } from "@/db/queries/contributions";
 import { listPromotedEvents, type PromotedEventRow } from "@/db/queries/promotions";
 import { listRecentReports, type AdminReportRow } from "@/db/queries/public-reports";
 import { listSourceHealth, type SourceHealthRow } from "@/db/queries/sources";
 import { messages } from "@/i18n";
+import type { ContributionStatus } from "@/contributions/types";
+import type { ReviewAction } from "@/contributions/review";
+
+// Actions offered per status, matching the review state machine (src/contributions/review.ts).
+// `apply` is only meaningful for source recommendations (the only auto-appliable kind in V1).
+const ACTIONS_BY_STATUS: Record<ContributionStatus, ReviewAction[]> = {
+  submitted: ["triage", "approve", "reject"],
+  triaged: ["approve", "reject"],
+  approved: ["apply", "reject"],
+  rejected: [],
+  applied: [],
+};
+
+function availableActions(row: ContributionRow): ReviewAction[] {
+  const actions = ACTIONS_BY_STATUS[row.status];
+  return actions.filter((a) => (a === "apply" ? row.kind === "source_recommendation" : true));
+}
 
 export const dynamic = "force-dynamic";
 
@@ -26,14 +45,18 @@ export default async function AdminPage() {
     );
   }
 
-  const [rows, promoted, reports] = await Promise.all([
+  const [rows, promoted, reports, contributions, audit] = await Promise.all([
     listSourceHealth(),
     listPromotedEvents(),
     listRecentReports(),
+    listContributions(),
+    listAuditLogs(),
   ]);
   const c = messages.admin.columns;
   const pc = messages.admin.promotionColumns;
   const rc = messages.admin.reportColumns;
+  const cc = messages.admin.contributionColumns;
+  const ac = messages.admin.auditColumns;
 
   return (
     <main className="page">
@@ -151,6 +174,95 @@ export default async function AdminPage() {
                 </td>
                 <td style={{ color: "var(--ink-faint)", maxWidth: 280 }}>{r.summary ?? ""}</td>
                 <td>{formatDateTime(r.generatedAt)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      <h2 style={{ fontFamily: "var(--font-serif)", marginTop: "3rem" }}>
+        {messages.admin.contributions}
+      </h2>
+      {contributions.length === 0 ? (
+        <div className="empty">{messages.admin.noContributions}</div>
+      ) : (
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>{cc.kind}</th>
+              <th>{cc.target}</th>
+              <th>{cc.status}</th>
+              <th>{cc.reason}</th>
+              <th>{cc.contributor}</th>
+              <th>{cc.createdAt}</th>
+              <th>{cc.actions}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {contributions.map((row: ContributionRow) => (
+              <tr key={row.id}>
+                <td>{messages.admin.contributionKind[row.kind]}</td>
+                <td style={{ color: "var(--ink-faint)" }}>
+                  {row.targetType}
+                  {row.targetId ? ` · ${row.targetId}` : ""}
+                </td>
+                <td>
+                  <span className={`pill ${row.status === "applied" ? "healthy" : "degraded"}`}>
+                    {messages.admin.contributionStatus[row.status]}
+                  </span>
+                </td>
+                <td style={{ color: "var(--ink-faint)", maxWidth: 280 }}>{row.reason ?? ""}</td>
+                <td style={{ color: "var(--ink-faint)" }}>
+                  {row.contributorUserId ??
+                    (row.contributorFingerprint
+                      ? `${messages.admin.contributionAnon} · ${row.contributorFingerprint.slice(0, 8)}`
+                      : messages.admin.contributionAnon)}
+                </td>
+                <td>{formatDateTime(row.createdAt)}</td>
+                <td>
+                  <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+                    {availableActions(row).map((action) => (
+                      <form key={action} method="post" action={`/api/_admin/contributions/${row.id}`}>
+                        <input type="hidden" name="action" value={action} />
+                        <button type="submit" className="admin-action">
+                          {messages.admin.contributionActions[action]}
+                        </button>
+                      </form>
+                    ))}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      <h2 style={{ fontFamily: "var(--font-serif)", marginTop: "3rem" }}>{messages.admin.audit}</h2>
+      {audit.length === 0 ? (
+        <div className="empty">{messages.admin.noAudit}</div>
+      ) : (
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>{ac.action}</th>
+              <th>{ac.actor}</th>
+              <th>{ac.target}</th>
+              <th>{ac.reason}</th>
+              <th>{ac.createdAt}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {audit.map((row: AuditRow) => (
+              <tr key={row.id}>
+                <td>{row.action}</td>
+                <td style={{ color: "var(--ink-faint)" }}>
+                  {row.actorId ?? messages.admin.auditSystemActor}
+                </td>
+                <td style={{ color: "var(--ink-faint)" }}>
+                  {row.targetType ? `${row.targetType}${row.targetId ? ` · ${row.targetId}` : ""}` : ""}
+                </td>
+                <td style={{ color: "var(--ink-faint)", maxWidth: 280 }}>{row.reason ?? ""}</td>
+                <td>{formatDateTime(row.createdAt)}</td>
               </tr>
             ))}
           </tbody>

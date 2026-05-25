@@ -43,6 +43,16 @@ export const triggerReasonEnum = pgEnum("trigger_reason", [
 ]);
 export const reportKindEnum = pgEnum("report_kind", ["daily", "weekly", "monthly"]);
 export const reportStatusEnum = pgEnum("report_status", ["draft", "published"]);
+export const contributionTargetEnum = pgEnum("contribution_target", [
+  "source", "event", "post", "report", "config", "documentation",
+]);
+export const contributionKindEnum = pgEnum("contribution_kind", [
+  "source_recommendation", "source_metadata_fix", "tag_category_suggestion",
+  "merge_association_suggestion", "correction_report", "documentation",
+]);
+export const contributionStatusEnum = pgEnum("contribution_status", [
+  "submitted", "triaged", "approved", "rejected", "applied",
+]);
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 
@@ -234,6 +244,57 @@ export const reports = pgTable(
   ],
 );
 
+// --- contributions (decision 14: public submit -> review -> apply; DB is live truth) ---
+// Public users submit suggestions; nothing goes live automatically (spec). On `applied`,
+// the review job writes the DB target plus an audit_logs row. Contributor is either an
+// account (contributor_user_id) or an anonymous fingerprint — never trusted as identity.
+export const contributions = pgTable(
+  "contributions",
+  {
+    id: text("id").primaryKey(),
+    kind: contributionKindEnum("kind").notNull(),
+    targetType: contributionTargetEnum("target_type").notNull(),
+    targetId: text("target_id"), // existing object the change concerns, if any
+    proposedChange: jsonb("proposed_change").notNull(),
+    reason: text("reason"),
+    contributorUserId: text("contributor_user_id"),
+    contributorFingerprint: text("contributor_fingerprint"),
+    contributorContact: text("contributor_contact"),
+    status: contributionStatusEnum("status").notNull().default("submitted"),
+    reviewerId: text("reviewer_id"),
+    reviewNote: text("review_note"),
+    appliedTargetId: text("applied_target_id"), // object created/updated on apply
+    createdAt: ts("created_at").notNull().defaultNow(),
+    reviewedAt: ts("reviewed_at"),
+  },
+  (t) => [
+    index("contrib_status_idx").on(t.status, t.createdAt),
+    index("contrib_target_idx").on(t.targetType, t.targetId),
+  ],
+);
+
+// --- audit_logs (append-only; spec: Audit Requirements) ---
+// before/after capture the change; secret values are never stored (decision: secret-
+// related config checks log the check, not the secret).
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: text("id").primaryKey(),
+    action: text("action").notNull(),
+    actorId: text("actor_id"), // null = system/automated
+    targetType: text("target_type"),
+    targetId: text("target_id"),
+    before: jsonb("before"),
+    after: jsonb("after"),
+    reason: text("reason"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("audit_created_idx").on(t.createdAt),
+    index("audit_target_idx").on(t.targetType, t.targetId),
+  ],
+);
+
 // better-auth tables live in auth-schema.ts; re-export so drizzle-kit emits their
 // migrations from this single schema entrypoint (drizzle.config points here).
 export { account, session, user, verification } from "./auth-schema";
@@ -246,4 +307,6 @@ export const schema = {
   eventJudgments,
   eventScores,
   reports,
+  contributions,
+  auditLogs,
 };

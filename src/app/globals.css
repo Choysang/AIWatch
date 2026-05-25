@@ -324,6 +324,20 @@ a {
   color: oklch(50% 0.12 30);
   background: oklch(95% 0.05 30);
 }
+.admin-action {
+  font: inherit;
+  font-size: 0.74rem;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper-raised);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.admin-action:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
 
 .login-card {
   max-width: 360px;
