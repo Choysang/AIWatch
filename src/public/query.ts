@@ -9,6 +9,8 @@ export type SemanticWindow = "today" | "week" | "month" | "all";
 
 export const DEFAULT_TAKE = 20;
 export const MAX_TAKE = 50;
+/** Cap on distinct tag filters per request (keeps the array-overlap query bounded). */
+export const MAX_TAGS = 10;
 
 const WINDOW_DAYS: Record<Exclude<SemanticWindow, "all">, number> = {
   today: 1,
@@ -27,6 +29,8 @@ export interface PublicQuery {
   since: SemanticWindow;
   category?: string;
   q?: string;
+  /** Exact tag filter (matches events carrying ANY of these tags). */
+  tags?: string[];
   level?: PromotedLevel;
   take: number;
   cursor?: Cursor;
@@ -61,6 +65,18 @@ export function decodeCursor(raw: string | null): Cursor | undefined {
   return undefined;
 }
 
+/** Parse a comma-separated `tags` param into a trimmed, de-duped, capped list (or undefined). */
+export function parseTags(raw: string | null): string[] | undefined {
+  if (!raw) return undefined;
+  const seen = new Set<string>();
+  for (const part of raw.split(",")) {
+    const tag = part.trim();
+    if (tag) seen.add(tag);
+    if (seen.size >= MAX_TAGS) break;
+  }
+  return seen.size ? [...seen] : undefined;
+}
+
 /** Window start as a Date, or null for `all` (no time bound). */
 export function windowStart(since: SemanticWindow, now: Date): Date | null {
   if (since === "all") return null;
@@ -83,12 +99,14 @@ export function parsePublicQuery(params: URLSearchParams): PublicQuery {
 
   const category = params.get("category")?.trim() || undefined;
   const q = params.get("q")?.trim() || undefined;
+  const tags = parseTags(params.get("tags"));
 
   return {
     mode,
     since,
     category,
     q,
+    tags,
     level,
     take: clampTake(params.get("take")),
     cursor: decodeCursor(params.get("cursor")),

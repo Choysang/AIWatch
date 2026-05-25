@@ -15,6 +15,31 @@ export const zh = {
     subheading: "按时间排序的全部动态；精选内容稀缺且可解释。",
     empty: "暂无动态。先运行 worker 抓取，或执行 bun run db:seed:demo 载入演示数据。",
   },
+  search: {
+    placeholder: "搜索标题、摘要、来源或标签…",
+    submit: "搜索",
+    modeLabel: "范围",
+    mode: {
+      all: "全部动态",
+      selected: "精选",
+    },
+    windowLabel: "时间",
+    window: {
+      today: "今天",
+      week: "本周",
+      month: "本月",
+      all: "全部",
+    },
+    levelLabel: "等级",
+    level: {
+      all: "全部",
+      B: "当日",
+      A: "本周",
+      S: "本月",
+    },
+    clear: "清除筛选",
+    empty: "没有符合条件的动态，试试调整关键词或筛选条件。",
+  },
   card: {
     qualityScore: "质量分",
     recommendationReason: "推荐理由",

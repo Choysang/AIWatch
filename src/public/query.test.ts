@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   DEFAULT_TAKE,
+  MAX_TAGS,
   MAX_TAKE,
   decodeCursor,
   encodeCursor,
@@ -40,6 +41,23 @@ describe("parsePublicQuery", () => {
     const q = parse("category=%20模型%20&q=%20gpt%20");
     expect(q.category).toBe("模型");
     expect(q.q).toBe("gpt");
+  });
+
+  test("parses comma-separated tags, trimming and dropping blanks", () => {
+    const q = parse("tags=%20模型%20,,开源,");
+    expect(q.tags).toEqual(["模型", "开源"]);
+  });
+
+  test("dedupes repeated tags and caps the count", () => {
+    expect(parse("tags=a,a,b").tags).toEqual(["a", "b"]);
+    const many = Array.from({ length: 20 }, (_, i) => `t${i}`).join(",");
+    expect(parse(`tags=${many}`).tags).toHaveLength(MAX_TAGS);
+  });
+
+  test("omits tags when empty or whitespace-only", () => {
+    expect(parse("").tags).toBeUndefined();
+    expect(parse("tags=%20").tags).toBeUndefined();
+    expect(parse("tags=,,").tags).toBeUndefined();
   });
 });
 

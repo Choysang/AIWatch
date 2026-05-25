@@ -11,6 +11,7 @@ let getDb: typeof import("@/db/client").getDb;
 let resetDb: typeof import("@/db/client").resetDb;
 let schema: typeof import("@/db/schema");
 let listPublicItems: typeof import("@/db/queries/public-items").listPublicItems;
+let searchEvents: typeof import("@/db/queries/feed").searchEvents;
 let parsePublicQuery: typeof import("@/public/query").parsePublicQuery;
 
 const SOURCE_ID = "src_pub";
@@ -32,6 +33,7 @@ beforeAll(async () => {
   ({ getDb, resetDb } = await import("@/db/client"));
   schema = await import("@/db/schema");
   ({ listPublicItems } = await import("@/db/queries/public-items"));
+  ({ searchEvents } = await import("@/db/queries/feed"));
   ({ parsePublicQuery } = await import("@/public/query"));
 
   await migrate(getDb(), { migrationsFolder: "src/db/migrations" });
@@ -108,6 +110,18 @@ describe("listPublicItems (real Postgres)", () => {
     expect(res.items.map((i) => i.id)).toEqual(["m"]);
   });
 
+  test("tags filter matches events carrying ANY of the requested tags (overlap)", async () => {
+    await insertEvent({ id: "g1", title: "模型发布", tags: ["模型", "开源"], level: "B", promotedAt: ago(1), publishedAt: ago(1) });
+    await insertEvent({ id: "g2", title: "开源工具", tags: ["开源"], level: "B", promotedAt: ago(1), publishedAt: ago(1) });
+    await insertEvent({ id: "g3", title: "无标签", tags: ["产品"], level: "B", promotedAt: ago(1), publishedAt: ago(1) });
+
+    const single = await listPublicItems(query("mode=selected&since=week&tags=模型"), NOW);
+    expect(single.items.map((i) => i.id).sort()).toEqual(["g1"]);
+
+    const overlap = await listPublicItems(query("mode=selected&since=week&tags=模型,产品"), NOW);
+    expect(overlap.items.map((i) => i.id).sort()).toEqual(["g1", "g3"]);
+  });
+
   test("server-side q matches title, tags, and source name", async () => {
     await insertEvent({ id: "t1", title: "GPT 新模型", level: "B", promotedAt: ago(1), publishedAt: ago(1) });
     await insertEvent({ id: "t2", title: "无关", tags: ["gpt-tag"], level: "B", promotedAt: ago(1), publishedAt: ago(1) });
@@ -148,6 +162,33 @@ describe("listPublicItems (real Postgres)", () => {
 
     expect(seen).toEqual(["c0", "c1", "c2", "c3", "c4"]);
     expect(new Set(seen).size).toBe(5); // no overlap
+  });
+
+  test("searchEvents (reader feed) applies q + tags + window + level filters", async () => {
+    await insertEvent({ id: "f1", title: "GPT 模型", tags: ["模型"], level: "S", promotedAt: ago(1), publishedAt: ago(1) });
+    await insertEvent({ id: "f2", title: "开源发布", tags: ["开源"], level: "B", promotedAt: ago(2), publishedAt: ago(2) });
+    await insertEvent({ id: "f3", title: "旧闻", tags: ["模型"], level: "S", promotedAt: ago(40), publishedAt: ago(40) });
+    await insertEvent({ id: "f4", title: "未选", level: "none", publishedAt: ago(0.5) });
+
+    // selected mode + week window excludes the unselected (f4) and the out-of-window (f3).
+    const selected = await searchEvents({ mode: "selected", since: "week" }, 30, NOW);
+    expect(selected.map((e) => e.id)).toEqual(["f1", "f2"]); // promoted desc: f1 (1d) before f2 (2d)
+
+    // level filter narrows to S.
+    const sOnly = await searchEvents({ mode: "selected", since: "month", level: "S" }, 30, NOW);
+    expect(sOnly.map((e) => e.id)).toEqual(["f1"]); // f3 is outside the 30d month window
+
+    // tag filter.
+    const byTag = await searchEvents({ mode: "selected", since: "week", tags: ["开源"] }, 30, NOW);
+    expect(byTag.map((e) => e.id)).toEqual(["f2"]);
+
+    // q matches title.
+    const byQ = await searchEvents({ mode: "selected", since: "week", q: "gpt" }, 30, NOW);
+    expect(byQ.map((e) => e.id)).toEqual(["f1"]);
+
+    // all mode ignores selection and includes f4.
+    const all = await searchEvents({ mode: "all", since: "all" }, 30, NOW);
+    expect(all.map((e) => e.id)).toContain("f4");
   });
 
   test("GET /api/public/items route returns JSON with CDN cache headers", async () => {

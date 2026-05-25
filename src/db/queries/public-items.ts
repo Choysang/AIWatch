@@ -2,7 +2,7 @@
 // export. Powers GET /api/public/items in both `selected` and `all` modes. Search is
 // server-side (decision: agents must not fetch-and-grep); Slice 2 uses ILIKE, FTS later.
 
-import { and, desc, eq, ne, sql, type SQL } from "drizzle-orm";
+import { and, arrayOverlaps, desc, eq, ne, sql, type SQL } from "drizzle-orm";
 import { db as defaultDb, type DB } from "@/db/client";
 import { events, posts, sources } from "@/db/schema";
 import type { PublicItem, PublicItemsResponse } from "@/public/item";
@@ -68,6 +68,10 @@ export async function listPublicItems(
   const start = windowStart(q.since, now);
   if (start) conds.push(sql`${sortKey} >= ${start}`);
   if (q.category) conds.push(eq(events.category, q.category));
+  if (q.tags?.length) {
+    // Array overlap: event carries ANY of the requested tags.
+    conds.push(arrayOverlaps(events.tags, q.tags));
+  }
   if (q.q) {
     const like = `%${q.q}%`;
     conds.push(
