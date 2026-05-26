@@ -43,6 +43,13 @@
       "when": 1779766152475,
       "tag": "0005_long_scarlet_spider",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779808907385,
+      "tag": "0006_broad_whistler",
+      "breakpoints": true
     }
   ]
 }

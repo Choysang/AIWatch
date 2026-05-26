@@ -54,6 +54,13 @@ export const contributionStatusEnum = pgEnum("contribution_status", [
   "submitted", "triaged", "approved", "rejected", "applied",
 ]);
 export const reactionKindEnum = pgEnum("reaction_kind", ["like", "star"]);
+export const commentCategoryEnum = pgEnum("comment_category", [
+  "praise", "criticism", "handson", "supplement", "controversy",
+  "low_value", "unclassified",
+]);
+export const commentClassificationEnum = pgEnum("comment_classification", [
+  "valid", "low_value",
+]);
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 
@@ -306,6 +313,35 @@ export const eventReactions = pgTable(
   ],
 );
 
+// --- event_comments (Slice 9: comments and follow-up) ---
+// Comments are centered on the event, not the post (spec). Identity follows the same
+// XOR shape as event_reactions: userId XOR fingerprint, enforced by CHECK + partial
+// unique indexes in the migration (drizzle can't model COALESCE-based uniqueness).
+// classification is deterministic (src/comments/classifier.ts), not LLM — the spec
+// lists explicit low-value rules. isExpert is snapshotted from user.role == "expert"
+// at insert time so the "expert views" section can filter without joining user.
+// bodyHash dedupes identical re-submissions (same identity + same text = no-op).
+export const eventComments = pgTable(
+  "event_comments",
+  {
+    id: text("id").primaryKey(),
+    eventId: text("event_id").notNull().references(() => events.id),
+    userId: text("user_id"),
+    fingerprint: text("fingerprint"),
+    body: text("body").notNull(),
+    bodyHash: text("body_hash").notNull(),
+    category: commentCategoryEnum("category").notNull().default("unclassified"),
+    classification: commentClassificationEnum("classification").notNull().default("valid"),
+    isExpert: boolean("is_expert").notNull().default(false),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("event_comments_event_idx").on(t.eventId, t.createdAt),
+    index("event_comments_user_idx").on(t.userId),
+    index("event_comments_fingerprint_idx").on(t.fingerprint),
+  ],
+);
+
 // --- audit_logs (append-only; spec: Audit Requirements) ---
 // before/after capture the change; secret values are never stored (decision: secret-
 // related config checks log the check, not the secret).
@@ -342,5 +378,6 @@ export const schema = {
   reports,
   contributions,
   eventReactions,
+  eventComments,
   auditLogs,
 };
