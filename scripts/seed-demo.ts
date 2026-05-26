@@ -10,6 +10,7 @@ import { generateDailyReport } from "@/db/jobs/generate-report";
 import type { DueSource } from "@/db/queries/sources";
 import { sources } from "@/db/schema";
 import { processSource } from "@/pipeline/process-source";
+import { tierFetchFrequency } from "@/sources/tiers";
 
 interface DemoSource {
   id: string;
@@ -39,6 +40,7 @@ async function main(): Promise<void> {
         sourceType: s.sourceType,
         connectorType: "mock",
         url: s.url,
+        fetchFrequency: tierFetchFrequency(s.level),
       })
       .onConflictDoNothing({ target: sources.id });
 

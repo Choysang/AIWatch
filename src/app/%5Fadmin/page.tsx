@@ -81,6 +81,7 @@ export default async function AdminPage() {
               <th>{c.nextFetch}</th>
               <th>{c.failures}</th>
               <th>{c.lastError}</th>
+              <th>{c.review}</th>
             </tr>
           </thead>
           <tbody>
@@ -98,6 +99,18 @@ export default async function AdminPage() {
                 <td>{formatDateTime(row.nextFetchAt)}</td>
                 <td>{row.failureCount}</td>
                 <td style={{ color: "var(--ink-faint)", maxWidth: 240 }}>{row.lastError ?? ""}</td>
+                <td>
+                  {row.reviewReason ? (
+                    <span className="pill paused" title={formatDateTime(row.reviewSuggestedAt)}>
+                      {messages.admin.reviewSuggest}：
+                      {messages.admin.reviewReason[
+                        row.reviewReason as keyof typeof messages.admin.reviewReason
+                      ] ?? row.reviewReason}
+                    </span>
+                  ) : (
+                    ""
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

@@ -95,8 +95,14 @@ export const zh = {
       nextFetch: "下次抓取",
       failures: "连续失败",
       lastError: "最近错误",
+      review: "复核",
     },
     empty: "暂无来源。",
+    reviewSuggest: "建议复核",
+    reviewReason: {
+      no_contribution_60d: "60天无精选贡献",
+      low_selected_rate_30d: "30天精选率偏低",
+    },
     loginRequired: "需要登录后访问。",
     promotions: "精选晋级 (B/A/S)",
     promotionColumns: {

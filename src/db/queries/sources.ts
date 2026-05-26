@@ -108,6 +108,8 @@ export interface SourceHealthRow {
   nextFetchAt: Date | null;
   failureCount: number;
   lastError: string | null;
+  reviewSuggestedAt: Date | null;
+  reviewReason: string | null;
 }
 
 export async function listSourceHealth(db: DB = defaultDb): Promise<SourceHealthRow[]> {
@@ -124,6 +126,8 @@ export async function listSourceHealth(db: DB = defaultDb): Promise<SourceHealth
       nextFetchAt: sources.nextFetchAt,
       failureCount: sources.failureCount,
       lastError: sources.lastError,
+      reviewSuggestedAt: sources.reviewSuggestedAt,
+      reviewReason: sources.reviewReason,
     })
     .from(sources)
     .orderBy(asc(sources.name));

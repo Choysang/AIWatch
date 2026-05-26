@@ -29,6 +29,13 @@
       "when": 1779675712610,
       "tag": "0003_wooden_paibok",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1779727984108,
+      "tag": "0004_remarkable_kree",
+      "breakpoints": true
     }
   ]
 }

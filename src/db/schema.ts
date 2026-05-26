@@ -78,6 +78,11 @@ export const sources = pgTable(
     failureCount: integer("failure_count").notNull().default(0),
     healthStatus: healthStatusEnum("health_status").notNull().default("healthy"),
     lastError: text("last_error"),
+    // Pause-suggestion flag (decision 9): the suggest-source-review job sets these when a
+    // source stops contributing; nothing pauses automatically — an admin confirms. Cleared
+    // (back to null) by the same job once the source recovers.
+    reviewSuggestedAt: ts("review_suggested_at"),
+    reviewReason: text("review_reason"),
     createdAt: ts("created_at").notNull().defaultNow(),
     updatedAt: ts("updated_at").notNull().defaultNow(),
   },

@@ -1,14 +1,18 @@
 // Connector registry: maps a source's connector_type to a code connector.
-// Slice 0 wires mock + rss. Hard-tier (rsshub/reddit/github/...) land in later slices
-// and fail closed with a clear message until implemented.
+// Wired: mock + rss + rsshub (hard tier). Remaining hard-tier types (reddit/github/...)
+// land in later slices and fail closed with a clear message until implemented.
 
 import { MockConnector } from "./mock";
 import { RssConnector } from "./rss";
+import { RsshubConnector } from "./rsshub";
 import type { ConnectorType, SourceConnector } from "./types";
 
 const registry: Partial<Record<ConnectorType, SourceConnector>> = {
   mock: new MockConnector(),
   rss: new RssConnector(),
+  // RSSHub reads RSSHUB_BASE_URL lazily at fetch time, so a single shared instance is fine;
+  // it fails closed (per source) when the base URL is unset.
+  rsshub: new RsshubConnector(),
 };
 
 export function getConnector(type: ConnectorType): SourceConnector {

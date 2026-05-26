@@ -11,6 +11,7 @@ import {
   generateMonthlyReportTask,
   generateWeeklyReportTask,
 } from "./tasks/generate-report";
+import { suggestSourceReviewTask } from "./tasks/suggest-source-review";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -24,13 +25,15 @@ async function main(): Promise<void> {
     // Coarse cron (worker runs with TZ=APP_TZ, decision E): enqueue due sources every
     // minute (per-source frequency is enforced by getDueSources, not crontab lines); run
     // the B/A/S tournament every 5 minutes; assemble the daily report at 08:00, the weekly
-    // draft Monday 08:00, and the monthly draft on the 1st at 08:00.
+    // draft Monday 08:00, and the monthly draft on the 1st at 08:00; flag low-contribution
+    // sources for human review daily at 08:30 (after the day's report is in).
     crontab: [
       "* * * * * enqueue-due-sources",
       "*/5 * * * * check-promotion",
       "0 8 * * * generate-daily-report",
       "0 8 * * 1 generate-weekly-report",
       "0 8 1 * * generate-monthly-report",
+      "30 8 * * * suggest-source-review",
     ].join("\n"),
     taskList: {
       "crawl-source": crawlSource,
@@ -39,6 +42,7 @@ async function main(): Promise<void> {
       "generate-daily-report": generateDailyReportTask,
       "generate-weekly-report": generateWeeklyReportTask,
       "generate-monthly-report": generateMonthlyReportTask,
+      "suggest-source-review": suggestSourceReviewTask,
     },
   });
 
