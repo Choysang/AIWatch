@@ -1,12 +1,18 @@
-// POST /api/events/[id]/reactions — public user-feedback endpoint (Slice 7).
+// POST /api/events/[id]/reactions — public user-feedback endpoint (Slice 7/8).
 //
 // Body: { kind: "like" | "star", op: "add" | "remove" }
-// Identity = logged-in user session OR anonymous salted IP+UA fingerprint (XOR).
-// Idempotent: add when already present (or remove when absent) returns current counts
-// without error. Returns { likeCount, starCount }. Rate-limited per-IP.
+// Identity precedence (Slice 8): logged-in session > signed `rid` cookie > salted IP+UA
+// fingerprint fallback. The cookie path is preferred because per-IP+UA collapses every
+// anonymous reader behind the same NAT into one identity. We *do not* mint the cookie
+// here on POST — that happens on the SSR reader page (so a returning reader who blocks
+// cookies still gets a stable-per-session fingerprint, but a cookie-enabled reader gets
+// a stable-per-device identity from the moment they load the feed).
+// Idempotent: add when present (or remove when absent) returns current counts.
+// Rate-limited per-IP.
 
 import { z, ZodError } from "zod";
 import { getSession } from "@/app/_lib/session";
+import { READER_ID_COOKIE, verifyReaderId } from "@/auth/reader-id";
 import { fingerprint } from "@/contributions/fingerprint";
 import {
   addReaction,
@@ -21,6 +27,17 @@ const bodySchema = z.object({
   kind: z.enum(["like", "star"]),
   op: z.enum(["add", "remove"]),
 });
+
+/** Parse a Cookie header for a single named cookie. Returns the raw value or null. */
+function readCookie(req: Request, name: string): string | null {
+  const header = req.headers.get("cookie");
+  if (!header) return null;
+  const prefix = `${name}=`;
+  for (const part of header.split(/;\s*/)) {
+    if (part.startsWith(prefix)) return part.slice(prefix.length);
+  }
+  return null;
+}
 
 export async function POST(
   req: Request,
@@ -53,7 +70,7 @@ export async function POST(
     return jsonError(400, err instanceof ZodError ? "invalid_body" : "invalid_body");
   }
 
-  // Identity: prefer session; fall back to anonymous fingerprint. Never trust client.
+  // Identity precedence: session → rid cookie → IP+UA fingerprint.
   let userId: string | null = null;
   try {
     const session = await getSession();
@@ -61,7 +78,13 @@ export async function POST(
   } catch {
     userId = null;
   }
-  const fp = userId ? null : fingerprint(ip, req.headers.get("user-agent") ?? "");
+
+  let fp: string | null = null;
+  if (!userId) {
+    const ridRaw = readCookie(req, READER_ID_COOKIE);
+    const rid = await verifyReaderId(ridRaw);
+    fp = rid ?? fingerprint(ip, req.headers.get("user-agent") ?? "");
+  }
 
   try {
     const result =

@@ -46,6 +46,11 @@ export const zh = {
     source: "来源",
     original: "原文链接",
     summaryNote: "摘要由 LLM 生成，请以原文为准。",
+    like: "有用",
+    liked: "已标记有用",
+    star: "深读",
+    starred: "已收藏",
+    reactionError: "操作失败，请稍后再试。",
   },
   selectedLabel: {
     none: "",

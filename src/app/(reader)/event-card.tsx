@@ -1,13 +1,23 @@
 // Presentational event card (spec: UI Content Card). Pure render from an EventCard;
 // no data loading here. Answers "what happened?" (summary) and "why care?" (reason).
+// Slice 8: hosts the ReactionButtons client island (likes/stars). The viewer's reacted
+// state arrives as props from the SSR page so the first render isn't shifted by a
+// client-side fetch.
 
 import type { EventCard as EventCardData } from "@/db/queries/feed";
 import { messages } from "@/i18n";
 import { formatDateTime } from "@/app/_lib/format";
+import { ReactionButtons } from "./reaction-buttons";
 
 const MAX_TAGS = 4;
 
-export function EventCard({ event }: { event: EventCardData }) {
+interface EventCardProps {
+  event: EventCardData;
+  liked?: boolean;
+  starred?: boolean;
+}
+
+export function EventCard({ event, liked = false, starred = false }: EventCardProps) {
   const m = messages.card;
   const level = event.selectedLevel;
   const selectedLabel = event.selectedLabel ?? messages.selectedLabel[level];
@@ -67,6 +77,13 @@ export function EventCard({ event }: { event: EventCardData }) {
             <span className="max">/100</span>
           </span>
         )}
+        <ReactionButtons
+          eventId={event.id}
+          initialLikeCount={event.likeCount}
+          initialStarCount={event.starCount}
+          initialLiked={liked}
+          initialStarred={starred}
+        />
       </div>
     </article>
   );

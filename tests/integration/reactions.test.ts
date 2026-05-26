@@ -320,6 +320,62 @@ describe("event reactions + rank-score recompute (real Postgres)", () => {
     expect(old.rankScore!).toBeGreaterThan(fresh.rankScore!);
   });
 
+  test("getViewerReactions returns liked/starred per event for the viewer", async () => {
+    const sourceId = await seedSource();
+    await seedEvent({ id: "evt_v1", sourceId, publishedAt: NOW, baseScore: 50 });
+    await seedEvent({ id: "evt_v2", sourceId, publishedAt: NOW, baseScore: 50 });
+    await seedEvent({ id: "evt_v3", sourceId, publishedAt: NOW, baseScore: 50 });
+
+    // Viewer (cookie identity) likes evt_v1 + stars evt_v2; another reader stars evt_v3.
+    await reactions.addReaction({
+      eventId: "evt_v1",
+      kind: "like",
+      identity: { userId: null, fingerprint: "rid_viewer" },
+    });
+    await reactions.addReaction({
+      eventId: "evt_v2",
+      kind: "star",
+      identity: { userId: null, fingerprint: "rid_viewer" },
+    });
+    await reactions.addReaction({
+      eventId: "evt_v3",
+      kind: "star",
+      identity: { userId: null, fingerprint: "rid_other" },
+    });
+
+    const viewerMap = await reactions.getViewerReactions(
+      ["evt_v1", "evt_v2", "evt_v3"],
+      { userId: null, fingerprint: "rid_viewer" },
+    );
+    expect(viewerMap.get("evt_v1")).toEqual({ liked: true, starred: false });
+    expect(viewerMap.get("evt_v2")).toEqual({ liked: false, starred: true });
+    expect(viewerMap.get("evt_v3")).toBeUndefined(); // belongs to another identity
+  });
+
+  test("getViewerReactions returns empty when identity is null", async () => {
+    const sourceId = await seedSource();
+    await seedEvent({ id: "evt_anon_only", sourceId, publishedAt: NOW, baseScore: 50 });
+    await reactions.addReaction({
+      eventId: "evt_anon_only",
+      kind: "like",
+      identity: { userId: null, fingerprint: "rid_x" },
+    });
+
+    const empty = await reactions.getViewerReactions(
+      ["evt_anon_only"],
+      { userId: null, fingerprint: null },
+    );
+    expect(empty.size).toBe(0);
+  });
+
+  test("getViewerReactions short-circuits on empty event list", async () => {
+    const empty = await reactions.getViewerReactions(
+      [],
+      { userId: null, fingerprint: "rid_any" },
+    );
+    expect(empty.size).toBe(0);
+  });
+
   test("recomputeRankScores skips events without a current_score_id", async () => {
     const sourceId = await seedSource();
     await getDb().insert(schema.events).values({

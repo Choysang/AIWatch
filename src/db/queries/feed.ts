@@ -26,6 +26,8 @@ export interface EventCard {
   authorHandle: string | null;
   url: string | null;
   media: unknown;
+  likeCount: number;
+  starCount: number;
 }
 
 // Shared card projection so every reader feed query returns the same shape.
@@ -47,6 +49,8 @@ const cardColumns = {
   authorName: posts.authorName,
   authorHandle: posts.authorHandle,
   url: posts.url,
+  likeCount: events.likeCount,
+  starCount: events.starCount,
 } as const;
 
 /** Most recent events first (All AI Dynamics default sort). */

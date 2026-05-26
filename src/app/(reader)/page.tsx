@@ -2,9 +2,16 @@
 // (reader) is a route group, so this renders at "/". Filters live in the URL (URL-as-state),
 // resolved server-side via parsePublicQuery, then fetched with searchEvents. Dynamic: it reads
 // the DB per request and degrades to a setup hint if the DB isn't reachable yet.
+//
+// Slice 8: hydrates the viewer's reaction state (liked/starred per event) using either
+// the session user id or the signed `rid` cookie that middleware planted on first visit.
 
+import { cookies } from "next/headers";
 import Link from "next/link";
+import { getSession } from "@/app/_lib/session";
+import { READER_ID_COOKIE, verifyReaderId } from "@/auth/reader-id";
 import { searchEvents, type EventCard as EventCardData } from "@/db/queries/feed";
+import { getViewerReactions } from "@/db/queries/reactions";
 import { messages } from "@/i18n";
 import { parsePublicQuery, type PublicQuery } from "@/public/query";
 import { EventCard } from "./event-card";
@@ -48,9 +55,35 @@ async function loadEvents(query: PublicQuery): Promise<{ events: EventCardData[]
   }
 }
 
+async function loadViewerReactions(
+  eventIds: string[],
+): Promise<Map<string, { liked: boolean; starred: boolean }>> {
+  if (eventIds.length === 0) return new Map();
+  let userId: string | null = null;
+  try {
+    const session = await getSession();
+    userId = (session?.user as { id?: string } | undefined)?.id ?? null;
+  } catch {
+    userId = null;
+  }
+  let fingerprint: string | null = null;
+  if (!userId) {
+    const ck = await cookies();
+    const raw = ck.get(READER_ID_COOKIE)?.value;
+    fingerprint = await verifyReaderId(raw);
+  }
+  if (!userId && !fingerprint) return new Map();
+  try {
+    return await getViewerReactions(eventIds, { userId, fingerprint });
+  } catch {
+    return new Map();
+  }
+}
+
 export default async function HomePage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const query = toQuery(await searchParams);
   const { events } = await loadEvents(query);
+  const reactions = await loadViewerReactions(events.map((e) => e.id));
   const m = messages;
   const isFiltered = Boolean(query.q || query.tags?.length || query.level || query.mode === "selected");
 
@@ -80,9 +113,10 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <div className="empty">{isFiltered ? m.search.empty : m.home.empty}</div>
       ) : (
         <div className="feed">
-          {events.map((event) => (
-            <EventCard key={event.id} event={event} />
-          ))}
+          {events.map((event) => {
+            const r = reactions.get(event.id) ?? { liked: false, starred: false };
+            return <EventCard key={event.id} event={event} liked={r.liked} starred={r.starred} />;
+          })}
         </div>
       )}
 

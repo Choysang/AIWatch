@@ -8,7 +8,7 @@
 // Denormalized counts on events.{likeCount,starCount} are maintained transactionally
 // with the row insert/delete so reads can stay flat.
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { newId } from "@/core/ids";
 import { db as defaultDb, type DB, type Tx } from "@/db/client";
 import { eventReactions, events } from "@/db/schema";
@@ -181,4 +181,42 @@ export async function getReactionCounts(
   db: DB = defaultDb,
 ): Promise<ReactionCounts> {
   return readCounts(db as unknown as Tx, eventId);
+}
+
+/**
+ * Per-event reaction state for the current viewer (Slice 8). Returns a map keyed by
+ * event id containing { liked, starred } booleans. Empty input or null identity short-
+ * circuits to an empty map so the SSR feed render doesn't pay for a query when there's
+ * no one to look up.
+ */
+export async function getViewerReactions(
+  eventIds: string[],
+  identity: ReactionIdentity,
+  db: DB = defaultDb,
+): Promise<Map<string, { liked: boolean; starred: boolean }>> {
+  const out = new Map<string, { liked: boolean; starred: boolean }>();
+  if (eventIds.length === 0) return out;
+  const hasUser = identity.userId !== null && identity.userId !== "";
+  const hasFp = identity.fingerprint !== null && identity.fingerprint !== "";
+  if (!hasUser && !hasFp) return out;
+
+  const idCond = hasUser
+    ? eq(eventReactions.userId, identity.userId!)
+    : eq(eventReactions.fingerprint, identity.fingerprint!);
+
+  const rows = await db
+    .select({
+      eventId: eventReactions.eventId,
+      kind: eventReactions.kind,
+    })
+    .from(eventReactions)
+    .where(and(inArray(eventReactions.eventId, eventIds), idCond));
+
+  for (const r of rows) {
+    const cur = out.get(r.eventId) ?? { liked: false, starred: false };
+    if (r.kind === "like") cur.liked = true;
+    if (r.kind === "star") cur.starred = true;
+    out.set(r.eventId, cur);
+  }
+  return out;
 }

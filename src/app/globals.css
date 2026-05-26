@@ -285,6 +285,66 @@ a {
   font-size: 0.8rem;
 }
 
+/* reactions — opinionated toggles, not generic icon buttons */
+.reactions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.4rem;
+}
+.reaction {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.18rem 0.65rem;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 120ms ease;
+}
+.reaction:hover:not(:disabled) {
+  border-color: var(--ink-soft);
+  color: var(--ink);
+}
+.reaction:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.reaction:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.reaction:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+.reaction.on {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-weak);
+}
+.reaction.on:nth-child(2) {
+  color: var(--gold);
+  border-color: var(--gold);
+  background: oklch(96% 0.06 85);
+}
+.reaction .count {
+  min-width: 1ch;
+}
+.reaction-error {
+  color: var(--accent);
+  font-size: 0.8rem;
+  margin-left: 0.4rem;
+}
+
 .badge {
   font-size: 0.74rem;
   font-weight: 700;
