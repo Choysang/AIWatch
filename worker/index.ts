@@ -11,6 +11,7 @@ import {
   generateMonthlyReportTask,
   generateWeeklyReportTask,
 } from "./tasks/generate-report";
+import { recomputeRankScoresTask } from "./tasks/recompute-rank-scores";
 import { suggestSourceReviewTask } from "./tasks/suggest-source-review";
 
 const connectionString = process.env.DATABASE_URL;
@@ -26,10 +27,13 @@ async function main(): Promise<void> {
     // minute (per-source frequency is enforced by getDueSources, not crontab lines); run
     // the B/A/S tournament every 5 minutes; assemble the daily report at 08:00, the weekly
     // draft Monday 08:00, and the monthly draft on the 1st at 08:00; flag low-contribution
-    // sources for human review daily at 08:30 (after the day's report is in).
+    // sources for human review daily at 08:30 (after the day's report is in); recompute
+    // rank scores every 15 minutes so band transitions + accumulated likes/stars
+    // gradually re-rank events without re-running the LLM.
     crontab: [
       "* * * * * enqueue-due-sources",
       "*/5 * * * * check-promotion",
+      "*/15 * * * * recompute-rank-scores",
       "0 8 * * * generate-daily-report",
       "0 8 * * 1 generate-weekly-report",
       "0 8 1 * * generate-monthly-report",
@@ -43,6 +47,7 @@ async function main(): Promise<void> {
       "generate-weekly-report": generateWeeklyReportTask,
       "generate-monthly-report": generateMonthlyReportTask,
       "suggest-source-review": suggestSourceReviewTask,
+      "recompute-rank-scores": recomputeRankScoresTask,
     },
   });
 

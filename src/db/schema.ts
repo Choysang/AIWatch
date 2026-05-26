@@ -53,6 +53,7 @@ export const contributionKindEnum = pgEnum("contribution_kind", [
 export const contributionStatusEnum = pgEnum("contribution_status", [
   "submitted", "triaged", "approved", "rejected", "applied",
 ]);
+export const reactionKindEnum = pgEnum("reaction_kind", ["like", "star"]);
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 
@@ -143,6 +144,10 @@ export const events = pgTable(
     currentScoreId: text("current_score_id"),
     qualityScore: smallint("quality_score"),
     rankScore: real("rank_score"),
+    // Denormalized reaction counts. Source of truth = event_reactions; these are
+    // maintained transactionally by addReaction/removeReaction (Slice 7).
+    likeCount: integer("like_count").notNull().default(0),
+    starCount: integer("star_count").notNull().default(0),
     selectedLevel: selectedLevelEnum("selected_level").notNull().default("none"),
     selectedLabel: text("selected_label"),
     // Explainable promotion snapshot, written ONLY by the promotion job (decision: selected
@@ -278,6 +283,29 @@ export const contributions = pgTable(
   ],
 );
 
+// --- event_reactions (user feedback: likes + stars; Slice 7) ---
+// Identity = either userId (logged-in) OR contributorFingerprint (anonymous, salted
+// truncated sha256 of IP+UA — never trusted as identity, only as a soft dedupe key).
+// Uniqueness is enforced by a partial unique index per-identity-kind (see migration);
+// drizzle's uniqueIndex builder doesn't model COALESCE so we keep the table-level
+// constraint with a regular index here and define the partial unique indexes in SQL.
+export const eventReactions = pgTable(
+  "event_reactions",
+  {
+    id: text("id").primaryKey(),
+    eventId: text("event_id").notNull().references(() => events.id),
+    kind: reactionKindEnum("kind").notNull(),
+    userId: text("user_id"),
+    fingerprint: text("fingerprint"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("event_reactions_event_kind_idx").on(t.eventId, t.kind),
+    index("event_reactions_user_idx").on(t.userId),
+    index("event_reactions_fingerprint_idx").on(t.fingerprint),
+  ],
+);
+
 // --- audit_logs (append-only; spec: Audit Requirements) ---
 // before/after capture the change; secret values are never stored (decision: secret-
 // related config checks log the check, not the secret).
@@ -313,5 +341,6 @@ export const schema = {
   eventScores,
   reports,
   contributions,
+  eventReactions,
   auditLogs,
 };
