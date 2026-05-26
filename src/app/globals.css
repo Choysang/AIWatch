@@ -345,6 +345,149 @@ a {
   margin-left: 0.4rem;
 }
 
+/* detail link on each feed card — quiet sibling of the score/reactions */
+.detail-link {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+.detail-link:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* event detail card — slightly more breathing room than feed cards */
+.card-detail {
+  padding: clamp(1.25rem, 0.8rem + 1.2vw, 2rem);
+  margin-bottom: 2.5rem;
+}
+.card-detail h2 {
+  font-size: clamp(1.4rem, 1.05rem + 1.4vw, 2rem);
+  line-height: 1.25;
+}
+
+/* comments section */
+.comments {
+  border-top: 1px solid var(--line);
+  padding-top: 1.75rem;
+  margin-top: 1rem;
+}
+.comments h2 {
+  font-family: var(--font-serif);
+  font-size: 1.4rem;
+  margin: 0 0 1.25rem;
+}
+.comments h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 1.75rem 0 0.75rem;
+}
+.comments-empty {
+  color: var(--ink-faint);
+  font-style: italic;
+}
+.comment-block ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.comment-item {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+}
+.comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  margin-bottom: 0.3rem;
+}
+.badge.expert {
+  background: var(--gold);
+}
+.comment-body {
+  margin: 0;
+  color: var(--ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* composer */
+.comment-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.comment-composer textarea {
+  width: 100%;
+  min-height: 4.5rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font: inherit;
+  color: var(--ink);
+  background: var(--paper-raised);
+  resize: vertical;
+}
+.comment-composer textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+.composer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+.composer-actions button {
+  background: var(--ink);
+  color: var(--paper-raised);
+  border: none;
+  border-radius: 999px;
+  padding: 0.45rem 1.2rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, transform 120ms ease;
+}
+.composer-actions button:hover:not(:disabled) {
+  background: var(--accent);
+}
+.composer-actions button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.composer-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.composer-error {
+  color: var(--accent);
+  font-size: 0.85rem;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
 .badge {
   font-size: 0.74rem;
   font-weight: 700;

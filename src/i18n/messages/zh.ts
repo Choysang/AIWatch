@@ -51,6 +51,27 @@ export const zh = {
     star: "深读",
     starred: "已收藏",
     reactionError: "操作失败，请稍后再试。",
+    detail: "查看详情",
+  },
+  detail: {
+    backToFeed: "返回动态",
+    notFound: "未找到该事件。",
+  },
+  comments: {
+    heading: "讨论",
+    sections: {
+      expertViews: "专家观点",
+      highQuality: "高质量讨论",
+      latest: "最新评论",
+    },
+    expertBadge: "专家",
+    empty: "暂无评论。",
+    composerPlaceholder: "分享你的实测、佐证或反驳…",
+    submit: "发表评论",
+    submitting: "发表中…",
+    submitError: "发表失败，请稍后再试。",
+    flaggedLowValue: "该评论被自动判定为低质量（标题复述/广告/纯立场），未公开展示。",
+    bodyEmpty: "评论内容不能为空。",
   },
   selectedLabel: {
     none: "",

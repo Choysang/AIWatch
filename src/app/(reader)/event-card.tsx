@@ -4,6 +4,7 @@
 // state arrives as props from the SSR page so the first render isn't shifted by a
 // client-side fetch.
 
+import Link from "next/link";
 import type { EventCard as EventCardData } from "@/db/queries/feed";
 import { messages } from "@/i18n";
 import { formatDateTime } from "@/app/_lib/format";
@@ -84,6 +85,9 @@ export function EventCard({ event, liked = false, starred = false }: EventCardPr
           initialLiked={liked}
           initialStarred={starred}
         />
+        <Link className="detail-link" href={`/events/${encodeURIComponent(event.id)}`}>
+          {m.detail} →
+        </Link>
       </div>
     </article>
   );
