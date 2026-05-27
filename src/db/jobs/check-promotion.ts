@@ -1,7 +1,13 @@
 // Promotion job (decision 7/D: bulk recompute + tournament live in db/jobs). Loads
-// candidate events with their current base_score, runs the deterministic tournament
-// (scoring/promotion), and persists B/A/S decisions. selected_level/label/promoted_at/
-// selected_breakdown are written ONLY here. Never downgrades an already-selected event.
+// candidate events with their current base_score AND promotion_score, runs the
+// deterministic tournament (scoring/promotion), and persists B/A/S decisions.
+// selected_level/label/promoted_at/selected_breakdown are written ONLY here. Never
+// downgrades an already-selected event.
+//
+// Scoring Integrity slice: B-tier still gates on base_score (entry tier — reader/expert
+// signal hasn't accumulated yet). A and S gate on promotion_score, which mixes expert
+// value + comment quality + citation quality into base. expert_direct_push bypasses B's
+// score threshold per spec (the lever that lets curators rescue under-scored items).
 
 import { eq, sql } from "drizzle-orm";
 import { db as defaultDb, type DB } from "@/db/client";
@@ -21,11 +27,13 @@ export interface PromotionResult {
 export interface SelectedBreakdown {
   promotionConfigVersion: string;
   level: PromotedLevel;
+  baseScore: number;
   promotionScore: number;
   threshold: number;
   windowDays: number;
   rankInWindow: number;
   slotLimit: number;
+  directPushed: boolean;
   computedAt: string;
 }
 
@@ -40,6 +48,9 @@ export async function checkPromotion(
 
   // Candidate set: events with a current score whose effective time is within the widest
   // window. The pure tournament re-filters per tier, so this is just a bound on rows read.
+  // promotion_score may be null for events that predate the recompute job — fall back to
+  // base_score so they can still B-qualify (and never A/S since promotion_score is null,
+  // not equal to base, when missing).
   const rows = await db
     .select({
       id: events.id,
@@ -47,6 +58,8 @@ export async function checkPromotion(
       createdAt: events.createdAt,
       currentLevel: events.selectedLevel,
       baseScore: eventScores.baseScore,
+      promotionScore: eventScores.promotionScore,
+      directPushAt: events.expertDirectPushAt,
     })
     .from(events)
     .innerJoin(eventScores, eq(eventScores.id, events.currentScoreId))
@@ -54,31 +67,37 @@ export async function checkPromotion(
 
   const candidates: PromotionCandidate[] = rows.map((r) => ({
     id: r.id,
-    promotionScore: r.baseScore,
+    baseScore: r.baseScore,
+    promotionScore: r.promotionScore ?? r.baseScore,
     publishedAt: r.publishedAt ?? r.createdAt,
     currentLevel: r.currentLevel,
+    directPushAt: r.directPushAt ?? null,
   }));
 
   const decisions = computePromotions(candidates, now, config);
-  const currentById = new Map(rows.map((r) => [r.id, r.currentLevel]));
+  const rowById = new Map(rows.map((r) => [r.id, r]));
 
   const applied: Record<PromotedLevel, number> = { B: 0, A: 0, S: 0 };
   let upgraded = 0;
 
   await db.transaction(async (tx) => {
     for (const d of decisions) {
-      const current = currentById.get(d.id) ?? "none";
+      const row = rowById.get(d.id);
+      if (!row) continue;
+      const current = row.currentLevel;
       if (levelRank(d.level) < levelRank(current)) continue; // never downgrade
       const isUpgrade = levelRank(d.level) > levelRank(current);
 
       const breakdown: SelectedBreakdown = {
         promotionConfigVersion: p.version,
         level: d.level,
-        promotionScore: d.promotionScore,
+        baseScore: row.baseScore,
+        promotionScore: row.promotionScore ?? row.baseScore,
         threshold: d.threshold,
         windowDays: d.windowDays,
         rankInWindow: d.rankInWindow,
         slotLimit: d.slotLimit,
+        directPushed: d.directPushed === true,
         computedAt: now.toISOString(),
       };
 

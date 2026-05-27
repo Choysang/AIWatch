@@ -19,6 +19,7 @@ const EXPECTED: Record<Capability, Role[]> = {
   "contribution.apply": ["selected_author", "admin", "owner"],
   "contribution.applySensitive": ["admin", "owner"],
   "source.moderate": ["selected_author", "admin", "owner"],
+  "event.directPush": ["expert", "moderator", "selected_author", "admin", "owner"],
   "audit.view": ["moderator", "selected_author", "admin", "owner", "readonly_operator"],
 };
 

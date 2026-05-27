@@ -213,9 +213,33 @@ describe("checkPromotion (real Postgres)", () => {
 
     expect(ev.label).toBe("本月精选");
     const b = ev.breakdown as Record<string, unknown>;
-    expect(b.promotionConfigVersion).toBe("promotion-v1");
+    expect(b.promotionConfigVersion).toBe("promotion-v2");
     expect(b.level).toBe("S");
     expect(b.threshold).toBe(94);
     expect(b.rankInWindow).toBe(1);
+    expect(b.baseScore).toBe(95);
+    expect(b.promotionScore).toBe(95);
+    expect(b.directPushed).toBe(false);
+  });
+
+  test("expert direct-push forces B regardless of base_score", async () => {
+    await insertScoredEvent({ id: "push_me", baseScore: 60, publishedAt: ago(0.3) });
+    // Stamp the direct-push flag directly (the API route is tested separately).
+    await getDb()
+      .update(schema.events)
+      .set({ expertDirectPushAt: NOW, expertDirectPushBy: "tester" })
+      .where(eq(schema.events.id, "push_me"));
+
+    await checkPromotion(NOW, getDb());
+    expect(await levelOf("push_me")).toBe("B");
+
+    const ev = (
+      await getDb()
+        .select({ breakdown: schema.events.selectedBreakdown })
+        .from(schema.events)
+        .where(eq(schema.events.id, "push_me"))
+    )[0]!;
+    const b = ev.breakdown as Record<string, unknown>;
+    expect(b.directPushed).toBe(true);
   });
 });
