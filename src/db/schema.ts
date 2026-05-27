@@ -122,6 +122,13 @@ export const posts = pgTable(
     publishedAt: ts("published_at"),
     fetchedAt: ts("fetched_at").notNull().defaultNow(),
     initialRelevanceStatus: relevanceStatusEnum("initial_relevance_status").notNull().default("pending"),
+    // Spec § 11 LLM: "malformed marks the post `judge_failed`, never silently defaulted".
+    // Non-null = the cold_judge step failed for this post and no event was created. The
+    // value is a short machine-readable reason (provider_error / schema_invalid / no_key).
+    // A later slice can retry by clearing this field; for now it just blocks event creation
+    // and is reported on the admin dashboard.
+    judgeError: text("judge_error"),
+    judgeFailedAt: ts("judge_failed_at"),
     createdAt: ts("created_at").notNull().defaultNow(),
   },
   (t) => [

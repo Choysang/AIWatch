@@ -30,6 +30,10 @@ beforeAll(async () => {
     pgHandle = await startEmbeddedPostgres();
     process.env.DATABASE_URL = pgHandle.connectionString;
   }
+  // Pipeline now fails closed when no real LLM key is configured (Scoring Integrity slice).
+  // The spine test verifies the stub provenance specifically, so opt into stub fallback
+  // for the duration of this test file.
+  process.env.LLM_STUB_FALLBACK = "1";
 
   ({ getDb, resetDb } = await import("@/db/client"));
   schema = await import("@/db/schema");
@@ -69,6 +73,7 @@ afterAll(async () => {
   // Only clear the env we set, so a later test file boots its own embedded pg (and a
   // CI-provided DATABASE_URL, where pgHandle is undefined, is left intact).
   if (pgHandle) delete process.env.DATABASE_URL;
+  delete process.env.LLM_STUB_FALLBACK;
 }, 60_000); // Postgres graceful shutdown can exceed Bun's default 5s hook timeout.
 
 const dueSource = {
