@@ -17,6 +17,14 @@ export interface PromotionConfig {
   labels: Record<PromotedLevel, string>;
 }
 
+/** promotion_score weights (spec § Scoring System). Sum to 1 by contract. */
+export interface PromotionScoreWeights {
+  base: number;
+  expert: number;
+  citation: number;
+  comment: number;
+}
+
 export interface ScoringConfig {
   version: string;
   baseWeights: BaseWeights;
@@ -28,6 +36,10 @@ export interface ScoringConfig {
   };
   /** Cold-start expert value when no expert has acted (0=negative, 50=no signal, 100=strong positive). */
   expertValueNeutral: number;
+  /** Neutral baseline for citation_quality_score when citations are not tracked yet. */
+  citationQualityNeutral: number;
+  /** Neutral baseline for comment_quality_score when no valid comments exist. */
+  commentQualityNeutral: number;
 
   // --- Proposed defaults; used in later slices, calibrate with real data. ---
   gradeFloors: { B: number; A: number; S: number };
@@ -36,6 +48,7 @@ export interface ScoringConfig {
   freshnessHalfLifeDays: number;
 
   promotion: PromotionConfig;
+  promotionScoreWeights: PromotionScoreWeights;
 }
 
 export const scoringConfig: ScoringConfig = {
@@ -66,25 +79,44 @@ export const scoringConfig: ScoringConfig = {
     defaultSaturation: 1000,
   },
   expertValueNeutral: 50,
+  citationQualityNeutral: 50,
+  commentQualityNeutral: 50,
 
   gradeFloors: { B: 75, A: 86, S: 94 },
   slotLimits: { dailyB: 20, weeklyA: 12, monthlyS: 5 },
   decayHalfLifeDays: { B: 3, A: 10, S: 30 },
   freshnessHalfLifeDays: 2,
 
-  // Slice 1 promotion tournament. Uses Slice 0 signals only (promotion_score =
-  // base_score); the full formula's expert/citation/comment terms land in later slices.
+  // Promotion tournament (Slice 1). B-tier uses base_score directly (spec § B/daily: "score >= 75
+  // or expert direct-push"); A/S use promotion_score (Scoring Integrity slice) which composes
+  // base + expert + citation + comment.
   promotion: {
-    version: "promotion-v1",
+    version: "promotion-v2",
     thresholds: { B: 75, A: 86, S: 94 },
     slots: { B: 20, A: 12, S: 5 },
     windowDays: { B: 1, A: 7, S: 30 },
     labels: { B: "当日精选", A: "本周精选", S: "本月精选" },
   },
+
+  // promotion_score = base*0.55 + expert*0.20 + citation*0.15 + comment*0.10 (spec § Scoring).
+  // Weights sum to 1 (asserted below). When a signal is absent the aggregator returns the
+  // matching `*Neutral` value so a B-tier event with no comments/citations doesn't collapse.
+  promotionScoreWeights: { base: 0.55, expert: 0.2, citation: 0.15, comment: 0.1 },
 };
 
 // Invariant: base weights must sum to 1 (deterministic-scoring contract). Fail fast.
 const weightSum = Object.values(scoringConfig.baseWeights).reduce((a, b) => a + b, 0);
 if (Math.abs(weightSum - 1) > 1e-9) {
   throw new Error(`[${scoringConfig.version}] base weights must sum to 1, got ${weightSum}`);
+}
+
+// Same invariant for promotion-score weights (spec § Scoring System).
+const promoWeightSum = Object.values(scoringConfig.promotionScoreWeights).reduce(
+  (a, b) => a + b,
+  0,
+);
+if (Math.abs(promoWeightSum - 1) > 1e-9) {
+  throw new Error(
+    `[${scoringConfig.version}] promotion-score weights must sum to 1, got ${promoWeightSum}`,
+  );
 }

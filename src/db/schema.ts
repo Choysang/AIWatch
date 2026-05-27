@@ -151,6 +151,17 @@ export const events = pgTable(
     currentScoreId: text("current_score_id"),
     qualityScore: smallint("quality_score"),
     rankScore: real("rank_score"),
+    // Highest promotion_score ever observed for this event. Display_score decays toward
+    // grade_floor[level] from peak_score (spec § Display score formula). Initialized at first
+    // promotion and only ratchets upward — strong signals re-arming the peak is the explicit
+    // anti-decay lever. Null = never promoted, so decay logic short-circuits to qualityScore.
+    peakScore: real("peak_score"),
+    // Expert direct-push to B-tier (spec § B / daily selected — "score >= 75, or certified
+    // expert direct-push"). Stamped by the admin/expert console; the promotion job treats this
+    // flag as an automatic B qualifier regardless of base_score. expertDirectPushBy points at
+    // user.id for audit (paired with an audit_logs row written transactionally with the flag).
+    expertDirectPushAt: ts("expert_direct_push_at"),
+    expertDirectPushBy: text("expert_direct_push_by"),
     // Denormalized reaction counts. Source of truth = event_reactions; these are
     // maintained transactionally by addReaction/removeReaction (Slice 7).
     likeCount: integer("like_count").notNull().default(0),

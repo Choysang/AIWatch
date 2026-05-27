@@ -3,7 +3,8 @@
 // JS property names, so they must match better-auth's model fields exactly.
 // Re-exported from db/schema.ts so drizzle-kit emits migrations for them.
 
-import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { boolean, pgTable, real, text, timestamp } from "drizzle-orm/pg-core";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 
@@ -15,6 +16,17 @@ export const user = pgTable("user", {
   image: text("image"),
   // RBAC role (decision 10): user, expert, moderator, selected_author, admin, owner, readonly_operator.
   role: text("role").notNull().default("user"),
+  // Expert domains the user is certified for (spec § Auth and RBAC). Drives weighted likes/stars
+  // and comment-quality aggregation. Empty array = user has not been certified in any domain even
+  // when role === "expert" — that's a config error surfaced by the console rather than a runtime
+  // crash. Domains are free-text strings agreed in the console; matching to event.category is
+  // case-insensitive and exact (no fuzzy match in V1).
+  expertDomain: text("expert_domain").array().notNull().default(sql`'{}'::text[]`),
+  // Multiplier applied to this expert's actions (star, like, comment) before aggregation. 1.0 =
+  // a freshly certified expert; admins raise it for high-signal experts. Non-experts keep 1.0
+  // but the aggregator only counts their actions when role !== "user" anyway, so this column is
+  // a no-op for them. Strong but not absolute (spec: "Expert weight is strong but not absolute").
+  expertWeight: real("expert_weight").notNull().default(1.0),
   createdAt: ts("created_at").notNull().defaultNow(),
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
