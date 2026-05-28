@@ -172,6 +172,14 @@ export async function addComment(
       isExpert,
     });
 
+    // Expert valid comment is a strong signal: reset the display-score decay clock.
+    if (isExpert && verdict.classification === "valid") {
+      await tx
+        .update(events)
+        .set({ lastStrongSignalAt: new Date() })
+        .where(eq(events.id, args.eventId));
+    }
+
     const inserted = await findExisting(tx, args.eventId, args.identity, bodyHash);
     if (!inserted) throw new Error("comment insert lost its row");
     return inserted;

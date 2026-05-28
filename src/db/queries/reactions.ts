@@ -132,6 +132,15 @@ export async function addReaction(
       )
       .where(eq(events.id, args.eventId));
 
+    // A named-user star (bookmark) is a strong-signal: reset the display-score decay clock.
+    // Anonymous fingerprints and plain likes are excluded — too low-intent to anchor decay.
+    if (args.kind === "star" && args.identity.userId) {
+      await tx
+        .update(events)
+        .set({ lastStrongSignalAt: new Date() })
+        .where(eq(events.id, args.eventId));
+    }
+
     return readCounts(tx, args.eventId);
   });
 }

@@ -16,6 +16,8 @@ let recompute: typeof import("@/db/jobs/recompute-promotion-scores").recomputePr
 let directPush: typeof import("@/db/jobs/direct-push").directPushEvent;
 let DirectPushForbiddenError: typeof import("@/db/jobs/direct-push").DirectPushForbiddenError;
 let checkPromotion: typeof import("@/db/jobs/check-promotion").checkPromotion;
+let addReaction: typeof import("@/db/queries/reactions").addReaction;
+let addComment: typeof import("@/db/queries/comments").addComment;
 
 const SOURCE_ID = "src_scoring_int";
 const NOW = new Date("2026-05-27T12:00:00Z");
@@ -52,6 +54,8 @@ beforeAll(async () => {
   directPush = directModule.directPushEvent;
   DirectPushForbiddenError = directModule.DirectPushForbiddenError;
   ({ checkPromotion } = await import("@/db/jobs/check-promotion"));
+  ({ addReaction } = await import("@/db/queries/reactions"));
+  ({ addComment } = await import("@/db/queries/comments"));
 
   await migrate(getDb(), { migrationsFolder: "src/db/migrations" });
   await getDb()
@@ -380,5 +384,94 @@ describe("checkPromotion + direct-push (real Postgres)", () => {
     )[0]!;
     expect(ev.level).toBe("A");
     expect((ev.breakdown as Record<string, unknown>).promotionScore as number).toBeGreaterThanOrEqual(86);
+  });
+});
+
+describe("signal updates last_strong_signal_at (real Postgres)", () => {
+  async function readLastSig(eventId: string): Promise<Date> {
+    const row = (
+      await getDb()
+        .select({ lastSig: schema.events.lastStrongSignalAt })
+        .from(schema.events)
+        .where(eq(schema.events.id, eventId))
+    )[0]!;
+    return row.lastSig!;
+  }
+
+  test("named-user star resets last_strong_signal_at", async () => {
+    await seedScoredEvent({ id: "star_named", baseScore: 80 });
+    await seedExpertUser({ id: "u_star_named", role: "user" });
+    const before = await readLastSig("star_named");
+
+    await addReaction(
+      { eventId: "star_named", kind: "star", identity: { userId: "u_star_named", fingerprint: null } },
+      getDb(),
+    );
+
+    const after = await readLastSig("star_named");
+    expect(after.getTime()).toBeGreaterThan(before.getTime());
+  });
+
+  test("anonymous star does NOT reset last_strong_signal_at", async () => {
+    await seedScoredEvent({ id: "star_anon", baseScore: 80 });
+    const before = await readLastSig("star_anon");
+
+    await addReaction(
+      { eventId: "star_anon", kind: "star", identity: { userId: null, fingerprint: "fp_anon_test_001" } },
+      getDb(),
+    );
+
+    const after = await readLastSig("star_anon");
+    expect(after.getTime()).toBe(before.getTime());
+  });
+
+  test("plain like does NOT reset last_strong_signal_at", async () => {
+    await seedScoredEvent({ id: "like_named", baseScore: 80 });
+    await seedExpertUser({ id: "u_liker", role: "user" });
+    const before = await readLastSig("like_named");
+
+    await addReaction(
+      { eventId: "like_named", kind: "like", identity: { userId: "u_liker", fingerprint: null } },
+      getDb(),
+    );
+
+    const after = await readLastSig("like_named");
+    expect(after.getTime()).toBe(before.getTime());
+  });
+
+  test("expert valid comment resets last_strong_signal_at", async () => {
+    await seedScoredEvent({ id: "cmt_expert", baseScore: 80 });
+    await seedExpertUser({ id: "u_cmt_expert", role: "expert" });
+    const before = await readLastSig("cmt_expert");
+
+    await addComment(
+      {
+        eventId: "cmt_expert",
+        body: "The architectural decision here is interesting — combining attention routing with sparse activations reduces compute significantly while preserving model quality.",
+        identity: { userId: "u_cmt_expert", fingerprint: null },
+      },
+      getDb(),
+    );
+
+    const after = await readLastSig("cmt_expert");
+    expect(after.getTime()).toBeGreaterThan(before.getTime());
+  });
+
+  test("non-expert valid comment does NOT reset last_strong_signal_at", async () => {
+    await seedScoredEvent({ id: "cmt_reader", baseScore: 80 });
+    await seedExpertUser({ id: "u_cmt_reader", role: "user" });
+    const before = await readLastSig("cmt_reader");
+
+    await addComment(
+      {
+        eventId: "cmt_reader",
+        body: "The architectural decision here is interesting — combining attention routing with sparse activations reduces compute significantly while preserving model quality.",
+        identity: { userId: "u_cmt_reader", fingerprint: null },
+      },
+      getDb(),
+    );
+
+    const after = await readLastSig("cmt_reader");
+    expect(after.getTime()).toBe(before.getTime());
   });
 });

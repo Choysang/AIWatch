@@ -11,6 +11,7 @@ import {
   generateMonthlyReportTask,
   generateWeeklyReportTask,
 } from "./tasks/generate-report";
+import { recomputePromotionScoresTask } from "./tasks/recompute-promotion-scores";
 import { recomputeRankScoresTask } from "./tasks/recompute-rank-scores";
 import { suggestSourceReviewTask } from "./tasks/suggest-source-review";
 
@@ -25,13 +26,15 @@ async function main(): Promise<void> {
     concurrency: Number(process.env.WORKER_CONCURRENCY ?? 4),
     // Coarse cron (worker runs with TZ=APP_TZ, decision E): enqueue due sources every
     // minute (per-source frequency is enforced by getDueSources, not crontab lines); run
-    // the B/A/S tournament every 5 minutes; assemble the daily report at 08:00, the weekly
-    // draft Monday 08:00, and the monthly draft on the 1st at 08:00; flag low-contribution
-    // sources for human review daily at 08:30 (after the day's report is in); recompute
-    // rank scores every 15 minutes so band transitions + accumulated likes/stars
-    // gradually re-rank events without re-running the LLM.
+    // the B/A/S tournament every 5 minutes; recompute promotion_score (expert signals +
+    // comment quality) every 10 minutes so the tournament always uses fresh composite
+    // scores; recompute rank scores every 15 minutes so band transitions + accumulated
+    // likes/stars gradually re-rank events without re-running the LLM; assemble reports
+    // at 08:00 (daily), Monday 08:00 (weekly), 1st 08:00 (monthly); flag low-contribution
+    // sources for human review daily at 08:30 (after the day's report is in).
     crontab: [
       "* * * * * enqueue-due-sources",
+      "*/10 * * * * recompute-promotion-scores",
       "*/5 * * * * check-promotion",
       "*/15 * * * * recompute-rank-scores",
       "0 8 * * * generate-daily-report",
@@ -42,6 +45,7 @@ async function main(): Promise<void> {
     taskList: {
       "crawl-source": crawlSource,
       "enqueue-due-sources": enqueueDueSources,
+      "recompute-promotion-scores": recomputePromotionScoresTask,
       "check-promotion": checkPromotionTask,
       "generate-daily-report": generateDailyReportTask,
       "generate-weekly-report": generateWeeklyReportTask,
