@@ -42,8 +42,11 @@ bun run worker                   # 终端 2: 长驻 Bun worker (graphile-worker)
 ## 关键原则
 
 - **确定性优先**:LLM 只产出不可变结构化输入;确定性代码/SQL 算出所有派生分。调权重 = 重跑,不重新推理。
-- 评分权重在 `src/scoring/config.ts`(config-as-code,`scoring_config_version` 版本戳)。每条 score 盖 config/prompt/model 版本 + breakdown 快照。
-- **Source 是数据**(DB 行,后台 CRUD/启停);**Connector 是代码**;订阅控制启用。
+- 评分由两个独立信号合成:`base_score`(LLM 维度 → 确定性合成,代表“内容质量”)与 `promotion_score`(`base_score` × 时间衰减 + 来源等级 + 读者强信号 like/star/expert-comment + 专家加权)。`base_score` 不被读者信号污染;`promotion_score` 是 A/S 晋级的唯一闸口,且每 `RECOMPUTE_PROMOTION_SCORE_INTERVAL`(默认 5 分钟)由 `recompute-promotion-scores` 重算。
+- 评分权重在 `src/scoring/config.ts`(config-as-code,`scoring_config_version` 版本戳)。每条 score 盖 config/prompt/model 版本 + breakdown 快照;LLM 路由版本戳为 `routing-v2`(`src/llm/routing.ts`)。
+- **LLM 失败闭合(fail-closed)**:`cold_judge` 走真实 provider(`OpenAICompatibleProvider`,默认路由 OpenAI/DeepSeek);缺 key 或响应不合 schema 时,事件标记 `judge_failed`(原因 `no_key` / `bad_payload` / `provider_error`),不沉默降级到 stub。要在开发期使用 stub,显式设 `LLM_STUB_FALLBACK=1`。Anthropic / Google 适配器尚未实现,instantiate 时也会失败闭合。
+- **专家直推**(`expert direct-push`):专家身份用户可以直接将事件推为 B 级,绕过门槛但仍写入 `selected_breakdown.reason="direct_push"` 与审计记录。A / S 仍走 `promotion_score` 闸口。
+- **Source 是数据**(DB 行,后台 CRUD/启停);**Connector 是代码**;订阅控制启用。已落地连接器:`mock` / `rss` / `rsshub`(硬层);其余硬层连接器(github / hn / youtube / huggingface / reddit)注册表里失败闭合,等后续 slice。
 - **数据边界**:开源仓库只含代码 + schema + mock 样例;真实信源库 / 事件库 / 评分库是运营资产,不随仓库分发。
 - 时间:DB 存 UTC;`APP_TZ`(默认 `Asia/Shanghai`)管报表/显示/语义解析。
 
@@ -98,5 +101,18 @@ bun run test:integration         # 集成:真实 Postgres 跑通整条脊柱
 - worker:08:00 日报、周一 08:00 周报草稿、每月 1 日 08:00 月报草稿(worker 以 `TZ=APP_TZ` 运行)
 - 校验:16 条单测(时间换算 + 拼装器)+ 8 条真实 Postgres 集成测试
 
-**接下来(后续 slice):** 贡献流、评论、专家加权、更多连接器(RSSHub/GitHub/Reddit…)、中文全文检索、完整 RBAC 与审计日志、Playwright E2E。
+**Slice 4–10 已完成并验证(2026-05-25 → 2026-05-27)。** 围绕读者、专家与运营闭环把脊柱拓宽:
+
+- **Slice 4(社区贡献 + RBAC + 审计)**:`contributions` 工单(推荐来源 / 元数据修正 / 标签建议 / 合并 / 纠错 / 文档)+ capability-based RBAC + append-only `audit_log`,后台分诊/批准/拒绝/应用全链可追溯。
+- **Slice 5(读者检索 + 标签筛选)**:服务端 `q`(标题/摘要/来源/标签 ILIKE)+ `tags` 数组重叠;UI 搜索条 + 筛选 chip;一切走 URL 状态,可分享、可 SSR。
+- **Slice 6(RSSHub 硬层连接器 + 来源复核建议)**:`RsshubConnector` + 来源建议复核(60 天无精选贡献 / 30 天精选率偏低),只建议、不自动停用。
+- **Slice 7(点赞 + 收藏 + 时间分段 rank-score)**:读者反应聚合到 `events.like_count` / `star_count`,时间分段 rank-score(SQL ↔ TS parity,golden 测试)。
+- **Slice 8(读者身份 cookie + 反应 UI)**:匿名读者身份 cookie + 反应按钮乐观切换,失败回滚。
+- **Slice 9(评论 + 低质判别器)**:以事件为粒度的评论 + 确定性低质判别器(标题复述 / 广告 / 纯立场);低质评论入库但不公开展示。
+- **Slice 10(事件详情页 + 评论 UI)**:`/event/{id}` 完整详情 + 评论分区(专家观点 / 高质量讨论 / 最新评论)。
+- **Scoring Integrity slice(2026-05-27)**:`base_score` / `promotion_score` 拆分,A/S 闸口改用 `promotion_score`,`recompute-promotion-scores` 定期重算,真实 LLM provider 上线且 fail-closed(`judge_failed` 状态),专家直推绕过 B 级门槛。
+- **Alignment Closeout(2026-05-28)**:LLM 路由 v2(默认路由只走已实现的 OpenAI 兼容适配器,Anthropic / Google instantiate 失败闭合保留为契约),`recompute-promotion-scores` 不再覆盖前一次 `rank_score`(与 rank-score job 顺序无关),增加 `bun run doctor` 诊断脚本。
+- **读者来源类型筛选(2026-05-28)**:首页 chip 多选 `sourceTypes`(official / employee / expert / kol / media / community / open_source_project),URL 状态,服务端 `inArray` 过滤,集成测试覆盖。
+
+**接下来(后续 slice):** spend_guard(LLM / X API 月度预算,80% 警告、100% fail-closed)、剩余硬层连接器(GitHub / HN / YouTube / HuggingFace / Reddit)、Anthropic / Google 适配器、中文全文检索、Playwright E2E。
 
