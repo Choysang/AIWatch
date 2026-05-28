@@ -43,6 +43,7 @@ async function loadEvents(query: PublicQuery): Promise<{ events: EventCardData[]
         since: query.since,
         q: query.q,
         tags: query.tags,
+        sourceTypes: query.sourceTypes,
         level: query.level,
         category: query.category,
       },

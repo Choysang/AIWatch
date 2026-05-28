@@ -7,6 +7,22 @@ import type { PromotedLevel } from "@/scoring/types";
 export type PublicMode = "selected" | "all";
 export type SemanticWindow = "today" | "week" | "month" | "all";
 
+/**
+ * Reader-facing source-type facet. Mirrors the `source_type` pgEnum on `sources` —
+ * keep in sync if that enum changes. Used for the homepage filter chip group so readers
+ * can scope to e.g. "only official accounts" or "only experts".
+ */
+export const SOURCE_TYPES = [
+  "official",
+  "employee",
+  "expert",
+  "kol",
+  "media",
+  "community",
+  "open_source_project",
+] as const;
+export type SourceType = (typeof SOURCE_TYPES)[number];
+
 export const DEFAULT_TAKE = 20;
 export const MAX_TAKE = 50;
 /** Cap on distinct tag filters per request (keeps the array-overlap query bounded). */
@@ -31,9 +47,16 @@ export interface PublicQuery {
   q?: string;
   /** Exact tag filter (matches events carrying ANY of these tags). */
   tags?: string[];
+  /** Source-type facet (ANY-of). Undefined = no filter. */
+  sourceTypes?: SourceType[];
   level?: PromotedLevel;
   take: number;
   cursor?: Cursor;
+}
+
+const SOURCE_TYPE_SET: ReadonlySet<string> = new Set(SOURCE_TYPES);
+function isSourceType(v: string): v is SourceType {
+  return SOURCE_TYPE_SET.has(v);
 }
 
 function clampTake(raw: string | null): number {
@@ -77,6 +100,17 @@ export function parseTags(raw: string | null): string[] | undefined {
   return seen.size ? [...seen] : undefined;
 }
 
+/** Parse a comma-separated `sourceTypes` param. Unknown values are silently dropped. */
+export function parseSourceTypes(raw: string | null): SourceType[] | undefined {
+  if (!raw) return undefined;
+  const seen = new Set<SourceType>();
+  for (const part of raw.split(",")) {
+    const v = part.trim();
+    if (v && isSourceType(v)) seen.add(v);
+  }
+  return seen.size ? [...seen] : undefined;
+}
+
 /** Window start as a Date, or null for `all` (no time bound). */
 export function windowStart(since: SemanticWindow, now: Date): Date | null {
   if (since === "all") return null;
@@ -100,6 +134,7 @@ export function parsePublicQuery(params: URLSearchParams): PublicQuery {
   const category = params.get("category")?.trim() || undefined;
   const q = params.get("q")?.trim() || undefined;
   const tags = parseTags(params.get("tags"));
+  const sourceTypes = parseSourceTypes(params.get("sourceTypes"));
 
   return {
     mode,
@@ -107,6 +142,7 @@ export function parsePublicQuery(params: URLSearchParams): PublicQuery {
     category,
     q,
     tags,
+    sourceTypes,
     level,
     take: clampTake(params.get("take")),
     cursor: decodeCursor(params.get("cursor")),

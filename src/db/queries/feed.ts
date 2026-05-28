@@ -1,10 +1,10 @@
 // Reader feed query: recent events joined with their main source and main post,
 // shaped for the event card. Read path for the homepage and (later) /api/public/items.
 
-import { and, arrayOverlaps, desc, eq, ne, sql, type SQL } from "drizzle-orm";
+import { and, arrayOverlaps, desc, eq, inArray, ne, sql, type SQL } from "drizzle-orm";
 import { db as defaultDb, type DB } from "@/db/client";
 import { events, posts, sources } from "@/db/schema";
-import type { PublicMode, SemanticWindow } from "@/public/query";
+import type { PublicMode, SemanticWindow, SourceType } from "@/public/query";
 import { windowStart } from "@/public/query";
 import type { PromotedLevel } from "@/scoring/types";
 
@@ -70,6 +70,7 @@ export interface FeedFilter {
   since: SemanticWindow;
   q?: string;
   tags?: string[];
+  sourceTypes?: SourceType[];
   level?: PromotedLevel;
   category?: string;
 }
@@ -100,6 +101,10 @@ export async function searchEvents(
   if (filter.category) conds.push(eq(events.category, filter.category));
   if (filter.tags?.length) {
     conds.push(arrayOverlaps(events.tags, filter.tags));
+  }
+  if (filter.sourceTypes?.length) {
+    // Restrict to events whose main source has one of the requested source_types.
+    conds.push(inArray(sources.sourceType, filter.sourceTypes));
   }
   if (filter.q) {
     const like = `%${filter.q}%`;

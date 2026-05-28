@@ -59,6 +59,22 @@ describe("parsePublicQuery", () => {
     expect(parse("tags=%20").tags).toBeUndefined();
     expect(parse("tags=,,").tags).toBeUndefined();
   });
+
+  test("parses comma-separated sourceTypes, accepting only valid enum values", () => {
+    // Valid values come straight from the sources.source_type enum (decision 7 / spec §6).
+    const q = parse("sourceTypes=official,kol,bogus,%20media%20");
+    expect(q.sourceTypes).toEqual(["official", "kol", "media"]);
+  });
+
+  test("omits sourceTypes when empty or fully invalid", () => {
+    expect(parse("").sourceTypes).toBeUndefined();
+    expect(parse("sourceTypes=").sourceTypes).toBeUndefined();
+    expect(parse("sourceTypes=bogus,nope").sourceTypes).toBeUndefined();
+  });
+
+  test("dedupes repeated sourceTypes", () => {
+    expect(parse("sourceTypes=kol,kol,official").sourceTypes).toEqual(["kol", "official"]);
+  });
 });
 
 describe("cursor codec", () => {

@@ -68,8 +68,18 @@ async function insertEvent(opts: {
   level?: "none" | "B" | "A" | "S";
   promotedAt?: Date | null;
   publishedAt: Date;
+  sourceId?: string;
 }): Promise<void> {
-  const { id, title, category, tags = [], level = "none", promotedAt = null, publishedAt } = opts;
+  const {
+    id,
+    title,
+    category,
+    tags = [],
+    level = "none",
+    promotedAt = null,
+    publishedAt,
+    sourceId = SOURCE_ID,
+  } = opts;
   await getDb().insert(schema.events).values({
     id,
     title,
@@ -79,7 +89,7 @@ async function insertEvent(opts: {
     selectedLabel: level === "none" ? null : level,
     promotedAt,
     publishedAt,
-    mainSourceId: SOURCE_ID,
+    mainSourceId: sourceId,
     qualityScore: 80,
   });
 }
@@ -162,6 +172,43 @@ describe("listPublicItems (real Postgres)", () => {
 
     expect(seen).toEqual(["c0", "c1", "c2", "c3", "c4"]);
     expect(new Set(seen).size).toBe(5); // no overlap
+  });
+
+  test("sourceTypes filter narrows to events whose main source matches ANY of the requested types", async () => {
+    // Seed a second source of a different source_type so the filter has something to discriminate against.
+    const KOL_SOURCE = "src_pub_kol";
+    await getDb()
+      .insert(schema.sources)
+      .values({
+        id: KOL_SOURCE,
+        name: "Karpathy",
+        platform: "x",
+        level: "L1",
+        sourceType: "kol",
+        connectorType: "mock",
+      })
+      .onConflictDoNothing({ target: schema.sources.id });
+
+    await insertEvent({ id: "o1", title: "official launch", level: "B", promotedAt: ago(1), publishedAt: ago(1) });
+    await insertEvent({ id: "o2", title: "official update", level: "B", promotedAt: ago(2), publishedAt: ago(2) });
+    await insertEvent({ id: "k1", title: "kol thread", level: "B", promotedAt: ago(1), publishedAt: ago(1), sourceId: KOL_SOURCE });
+
+    const officialOnly = await listPublicItems(query("mode=selected&since=week&sourceTypes=official"), NOW);
+    expect(officialOnly.items.map((i) => i.id).sort()).toEqual(["o1", "o2"]);
+
+    const kolOnly = await listPublicItems(query("mode=selected&since=week&sourceTypes=kol"), NOW);
+    expect(kolOnly.items.map((i) => i.id)).toEqual(["k1"]);
+
+    const bothFacets = await listPublicItems(query("mode=selected&since=week&sourceTypes=official,kol"), NOW);
+    expect(bothFacets.items.map((i) => i.id).sort()).toEqual(["k1", "o1", "o2"]);
+
+    // Same facet applied through the reader-feed query path.
+    const feedKol = await searchEvents(
+      { mode: "selected", since: "week", sourceTypes: ["kol"] },
+      30,
+      NOW,
+    );
+    expect(feedKol.map((e) => e.id)).toEqual(["k1"]);
   });
 
   test("searchEvents (reader feed) applies q + tags + window + level filters", async () => {
