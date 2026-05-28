@@ -62,6 +62,8 @@ export async function recomputePromotionScores(
       selectedLevel: events.selectedLevel,
       peakScore: events.peakScore,
       baseScore: eventScores.baseScore,
+      // Carried forward so this job is composable with the rank-score job in either order.
+      priorRankScore: eventScores.rankScore,
       currentScoreId: events.currentScoreId,
     })
     .from(events)
@@ -121,9 +123,10 @@ export async function recomputePromotionScores(
         baseScore: r.baseScore,
         qualityScore: result.displayScore,
         promotionScore: result.promotionScore,
-        // rankScore is owned by the rank-score job (Slice 7); preserve it here so this job
-        // is composable with the rank-score job in either order.
-        rankScore: r.baseScore,
+        // rankScore is owned by the rank-score job (Slice 7). Carry the prior value forward
+        // verbatim so the event_scores history doesn't lie about reader rank just because
+        // promotion was recomputed; the rank-score job overwrites it on its own cadence.
+        rankScore: r.priorRankScore,
         displayScore: Math.round(result.displayScore),
         breakdown,
         computedAt: now,

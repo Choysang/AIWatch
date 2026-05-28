@@ -29,6 +29,13 @@
 .claude/
 .idea/
 .vscode/
+.agents/
+.continue/
+.trae/
+# Local IDE/tool skill installs (e.g. react-doctor). The project's own skills
+# live under docs/superpowers/skills (if any); skills/ at the repo root is
+# treated as local tooling.
+/skills/
 
 # NOTE: bun.lock IS committed (locked decision: bun.lock is the only lockfile).
 # Do not ignore it. Other lockfiles are banned from commits.

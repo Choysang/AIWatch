@@ -116,7 +116,7 @@ describe("pipeline spine (real Postgres)", () => {
     const [judgment] = await getDb().select().from(schema.eventJudgments).limit(1);
     expect(judgment!.provider).toBe("stub");
     expect(judgment!.promptVersion).toBe("cold-judge-v1");
-    expect(judgment!.routingConfigVersion).toBe("routing-v1");
+    expect(judgment!.routingConfigVersion).toBe("routing-v2");
     expect(judgment!.triggerReason).toBe("initial");
 
     const [score] = await getDb().select().from(schema.eventScores).limit(1);

@@ -22,7 +22,8 @@
     "test:worker": "bun test tests/integration/worker",
     "e2e": "playwright test",
     "typecheck": "tsc --noEmit",
-    "lint": "next lint"
+    "lint": "next lint",
+    "doctor": "bunx react-doctor@latest"
   },
   "dependencies": {
     "better-auth": "^1.1.0",

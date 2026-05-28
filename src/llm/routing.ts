@@ -34,14 +34,25 @@ export interface RouteConfig {
   temperature: number;
 }
 
-export const routingConfigVersion = "routing-v1";
+// Routing config version: bump when ANY route's provider/model/promptVersion changes so
+// downstream caches (judgments, recomputes) can detect a routing drift.
+export const routingConfigVersion = "routing-v2";
 
+// Default routes only target providers with a real adapter implemented today
+// (openai / deepseek / qwen / openai_compatible — all OpenAI-shape). Anthropic and
+// Google remain in PROVIDER_ENV / LlmProviderName so future routes / overrides can
+// adopt them once dedicated adapters land; until then `instantiateProvider` still
+// fails closed for those names.
 export const llmRouting: Record<LlmTask, RouteConfig> = {
   prefilter: { provider: "deepseek", model: "deepseek-chat", promptVersion: "prefilter-v1", maxInputTokens: 2000, maxOutputTokens: 200, temperature: 0 },
   cold_judge: { provider: "openai", model: "gpt-4.1-mini", promptVersion: "cold-judge-v1", maxInputTokens: 4000, maxOutputTokens: 800, temperature: 0.2 },
   comment_classification: { provider: "deepseek", model: "deepseek-chat", promptVersion: "comment-classify-v1", maxInputTokens: 6000, maxOutputTokens: 1200, temperature: 0 },
-  merge_detection: { provider: "google", model: "gemini-2.5-flash", promptVersion: "merge-v1", maxInputTokens: 4000, maxOutputTokens: 400, temperature: 0 },
-  s_level_review: { provider: "anthropic", model: "claude-sonnet-4-6", promptVersion: "s-review-v1", maxInputTokens: 8000, maxOutputTokens: 1500, temperature: 0.2 },
+  // merge_detection was google/gemini-2.5-flash; route to deepseek until the Google
+  // adapter ships (decision: Alignment-Closeout slice, 2026-05-28).
+  merge_detection: { provider: "deepseek", model: "deepseek-chat", promptVersion: "merge-v1", maxInputTokens: 4000, maxOutputTokens: 400, temperature: 0 },
+  // s_level_review was anthropic/claude-sonnet-4-6; route to openai gpt-4.1 until the
+  // Anthropic adapter ships. S-tier still uses a stronger model than cold_judge.
+  s_level_review: { provider: "openai", model: "gpt-4.1", promptVersion: "s-review-v1", maxInputTokens: 8000, maxOutputTokens: 1500, temperature: 0.2 },
 };
 
 interface ProviderEnv {
@@ -89,7 +100,15 @@ export function resolveProvider(task: LlmTask): LLMProvider | null {
   return null;
 }
 
-function instantiateProvider(name: Exclude<LlmProviderName, "stub">): LLMProvider | null {
+/**
+ * Exported for tests so the fail-closed contract for unimplemented adapters
+ * (anthropic, google) can be asserted without depending on which tasks happen to
+ * route there. Not part of the public LLM contract.
+ * @internal
+ */
+export function instantiateProvider(
+  name: Exclude<LlmProviderName, "stub">,
+): LLMProvider | null {
   const env = PROVIDER_ENV[name];
   const apiKey = process.env[env.key];
   if (!apiKey) return null;
@@ -104,7 +123,9 @@ function instantiateProvider(name: Exclude<LlmProviderName, "stub">): LLMProvide
       return new OpenAICompatibleProvider({ name, baseUrl, apiKey });
     }
     // Anthropic + Google have non-OpenAI-shape APIs; their dedicated adapters land in a
-    // follow-up. Returning null fails closed instead of silently downgrading to stub.
+    // follow-up. Returning null fails closed instead of silently downgrading to stub —
+    // even though no default route currently targets these two, an env override or a
+    // future route would still hit this guard.
     case "anthropic":
     case "google":
       return null;

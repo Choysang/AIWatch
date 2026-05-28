@@ -58,12 +58,29 @@ describe("resolveProvider — fail-closed semantics", () => {
     expect(p?.name).toBe("openai");
   });
 
-  test("anthropic + google routes return null today (adapter follow-up) even with key", async () => {
+  test("anthropic + google adapters still fail closed even with key configured", async () => {
+    // No default route currently targets anthropic/google (Alignment-Closeout slice
+    // moved s_level_review and merge_detection onto implemented OpenAI-shape adapters),
+    // but the instantiate path must still refuse to silently downgrade if someone
+    // overrides a route or adds a new task pointing at these providers.
     process.env.ANTHROPIC_API_KEY = "anth-test";
     process.env.GOOGLE_API_KEY = "g-test";
+    const { instantiateProvider } = await freshRouting();
+    expect(instantiateProvider("anthropic")).toBeNull();
+    expect(instantiateProvider("google")).toBeNull();
+  });
+
+  test("default routes for s_level_review + merge_detection resolve to a real provider", async () => {
+    // Guards against silently re-routing back to anthropic/google before adapters ship.
+    process.env.OPENAI_API_KEY = "sk-test";
+    process.env.DEEPSEEK_API_KEY = "ds-test";
     const { resolveProvider } = await freshRouting();
-    expect(resolveProvider("s_level_review")).toBeNull();
-    expect(resolveProvider("merge_detection")).toBeNull();
+    const sLevel = resolveProvider("s_level_review");
+    const merge = resolveProvider("merge_detection");
+    if (!sLevel || !merge) throw new Error("expected both routes to resolve to a provider");
+    // Both names live in the OpenAI-shape adapter family.
+    expect(["openai", "deepseek", "qwen", "openai_compatible"]).toContain(sLevel.name);
+    expect(["openai", "deepseek", "qwen", "openai_compatible"]).toContain(merge.name);
   });
 
   test("providerConfigured reflects env presence", async () => {
