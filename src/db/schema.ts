@@ -404,6 +404,22 @@ export const llmSpendLedger = pgTable(
   (t) => [index("llm_spend_month_idx").on(t.monthKey)],
 );
 
+// --- feedback (anonymous reader feedback) ---
+// Low-stakes inbox: anyone can submit, no account required. `contact` is optional and
+// reader-supplied; `fingerprint` is a salted per-IP+UA hash kept only for abuse triage and
+// never displayed. Append-only; triaged out-of-band (no public read path).
+export const feedback = pgTable(
+  "feedback",
+  {
+    id: text("id").primaryKey(),
+    body: text("body").notNull(),
+    contact: text("contact"),
+    fingerprint: text("fingerprint"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("feedback_created_idx").on(t.createdAt)],
+);
+
 // better-auth tables live in auth-schema.ts; re-export so drizzle-kit emits their
 // migrations from this single schema entrypoint (drizzle.config points here).
 export { account, session, user, verification } from "./auth-schema";
@@ -421,4 +437,5 @@ export const schema = {
   eventComments,
   auditLogs,
   llmSpendLedger,
+  feedback,
 };

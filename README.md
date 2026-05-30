@@ -115,5 +115,7 @@ bun run test:integration         # 集成:真实 Postgres 跑通整条脊柱
 - **读者来源类型筛选(2026-05-28)**:首页 chip 多选 `sourceTypes`(official / employee / expert / kol / media / community / open_source_project),URL 状态,服务端 `inArray` 过滤,集成测试覆盖。
 - **spend_guard(2026-05-30)**:LLM 月度预算闸口。`src/llm/pricing.ts` 按厂商**每百万 token** 价目表算成本(`costForUsage`),`src/llm/budget.ts` 给出 ok/warn/block 分档(<80% / ≥80% / ≥100%)。provider 现在回传 `{ value, usage }`,真实调用后把成本写入 append-only `llm_spend_ledger`(按 UTC `month_key` 分桶);每次 `cold_judge` 真实调用**前**先查当月累计(`checkLlmBudget`):100% fail-closed → 该 post 标记 `judge_failed`(原因 `budget_exceeded`),不发起调用、不创建事件;80% 仅告警。cap=0 表示关闭(全新安装默认不拦)。stub / 未定价模型不入账。X API 预算位已就绪(`MAX_MONTHLY_X_API_USD`),待 X 连接器落地后接线。
 
+- **Reader 体验 + 前端体检(2026-05-30)**:信息流按 APP_TZ 日历日**吸顶分组 + 按天折叠**(服务端分组,客户端只持有折叠态,事件数据不过 client 边界);新增 `/changelog`(静态数据驱动)、`/about`、`/feedback`(匿名反馈,zod 校验 + 每 IP 令牌桶 + `feedback` 表)。搜索沿用 Postgres `ILIKE`,**大小写不敏感**(`mimo` / `MiMo` 命中同一批结果),并加集成测试锁定。跑了一轮 `react-doctor`:补 `useSearchParams` 的 `<Suspense>` 边界、`role=status`→`<output>`、按 tz 缓存 `Intl`、补齐各页 metadata、去掉 JSX 文案里的破折号。
+
 **接下来(后续 slice):** 剩余硬层连接器(GitHub / HN / YouTube / HuggingFace / Reddit)、Anthropic / Google 适配器、中文全文检索、Playwright E2E。
 

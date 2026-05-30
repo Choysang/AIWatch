@@ -9,6 +9,9 @@ export const zh = {
     dynamics: "全部动态",
     selected: "精选",
     reports: "日报",
+    changelog: "更新日志",
+    about: "关于",
+    feedback: "反馈",
   },
   home: {
     heading: "全部 AI 动态",
@@ -116,6 +119,40 @@ export const zh = {
   },
   category: {
     label: "分类",
+  },
+  changelog: {
+    heading: "更新日志",
+    subheading: "用户能感知到的大变化都会写在这里：新功能、调整、下线。",
+    empty: "暂无更新记录。",
+    type: {
+      feature: "新功能",
+      improvement: "优化",
+      fix: "修复",
+      removed: "下线",
+    },
+  },
+  about: {
+    heading: "关于 AIWatch",
+    intro: "AIWatch 是一个中文 AI 热点精选项目：爬取 → LLM 结构化判断 → 确定性评分/晋级 → reader / admin / 公共 Skill。",
+    paragraphs: [
+      "我们相信 AI 热点应当稀缺且可解释。LLM 只产出不可变的结构化输入，所有派生分数由确定性代码与 SQL 算出——调权重等于重跑，而不是重新推理。",
+      "精选不是越多越好。每天真正值得看的内容有限，我们宁可少推、把理由讲清楚，也不靠堆量刷屏。",
+      "信源覆盖持续补充：官方、员工、专家、KOL、媒体、社区与开源项目都在范围内，并欢迎社区提报新信源。",
+    ],
+    openSourceNote: "本仓库为开源骨架,只含代码 + schema + mock 样例;真实信源库 / 事件库 / 评分库是运营资产,不随仓库分发。",
+  },
+  feedback: {
+    heading: "反馈",
+    subheading: "bug、想法、吐槽、希望加什么功能都欢迎。可匿名提交,不强制留联系方式。",
+    placeholder: "想说什么直接说…",
+    contactLabel: "联系方式(可选)",
+    contactPlaceholder: "邮箱 / 微信 / 任意方式,方便我们回复(可留空)",
+    submit: "提交反馈",
+    submitting: "提交中…",
+    success: "已收到,谢谢你的反馈!",
+    error: "提交失败,请稍后再试。",
+    empty: "反馈内容不能为空。",
+    another: "再提交一条",
   },
   admin: {
     title: "管理控制台",

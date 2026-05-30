@@ -15,6 +15,8 @@ import { searchEvents, type EventCard as EventCardData } from "@/db/queries/feed
 import { getViewerReactions } from "@/db/queries/reactions";
 import { messages } from "@/i18n";
 import { parsePublicQuery, type PublicQuery } from "@/public/query";
+import { dayKey, formatDayHeading } from "@/app/_lib/format";
+import { DaySection } from "./day-section";
 import { EventCard } from "./event-card";
 import { SearchBar } from "./search-bar";
 
@@ -62,6 +64,29 @@ async function loadEvents(query: PublicQuery): Promise<{ events: EventCardData[]
   }
 }
 
+interface DayGroup {
+  key: string;
+  heading: string;
+  items: EventCardData[];
+}
+
+/** Group an already-sorted feed into contiguous day buckets (APP_TZ calendar day). The
+ *  feed arrives sorted by effective time, so a single pass keeps each day contiguous. */
+function groupByDay(events: EventCardData[]): DayGroup[] {
+  const groups: DayGroup[] = [];
+  for (const event of events) {
+    const when = event.publishedAt ?? event.promotedAt ?? null;
+    const key = dayKey(when);
+    const last = groups[groups.length - 1];
+    if (last && last.key === key) {
+      last.items.push(event);
+    } else {
+      groups.push({ key, heading: formatDayHeading(when), items: [event] });
+    }
+  }
+  return groups;
+}
+
 async function loadViewerReactions(
   eventIds: string[],
 ): Promise<Map<string, { liked: boolean; starred: boolean }>> {
@@ -106,6 +131,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <nav>
           <span className="tagline">{m.tagline}</span>
           <Link href="/reports">{m.nav.reports}</Link>
+          <Link href="/changelog">{m.nav.changelog}</Link>
+          <Link href="/about">{m.nav.about}</Link>
+          <Link href="/feedback">{m.nav.feedback}</Link>
         </nav>
       </header>
 
@@ -124,10 +152,14 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <div className="empty">{isFiltered ? m.search.empty : m.home.empty}</div>
       ) : (
         <div className="feed">
-          {events.map((event) => {
-            const r = reactions.get(event.id) ?? { liked: false, starred: false };
-            return <EventCard key={event.id} event={event} liked={r.liked} starred={r.starred} />;
-          })}
+          {groupByDay(events).map((group) => (
+            <DaySection key={group.key} heading={group.heading} count={group.items.length}>
+              {group.items.map((event) => {
+                const r = reactions.get(event.id) ?? { liked: false, starred: false };
+                return <EventCard key={event.id} event={event} liked={r.liked} starred={r.starred} />;
+              })}
+            </DaySection>
+          ))}
         </div>
       )}
 

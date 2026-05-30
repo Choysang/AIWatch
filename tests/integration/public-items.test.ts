@@ -141,6 +141,19 @@ describe("listPublicItems (real Postgres)", () => {
     expect(ids).toEqual(["t1", "t2"]); // t3 has no gpt; source "OpenAI Blog" doesn't match "gpt"
   });
 
+  test("server-side q is case-insensitive (brand/model names match any casing)", async () => {
+    // Regression lock for the case-insensitive search guarantee: ILIKE folds case, so a
+    // reader typing mimo / MiMo / MIMO finds the same event titled "MiMo".
+    await insertEvent({ id: "mimo", title: "MiMo 7B 发布", level: "B", promotedAt: ago(1), publishedAt: ago(1) });
+    for (const term of ["mimo", "MiMo", "MIMO"]) {
+      const res = await listPublicItems(query(`mode=selected&since=week&q=${term}`), NOW);
+      expect(res.items.map((i) => i.id)).toEqual(["mimo"]);
+    }
+    // searchEvents (the homepage feed path) folds case the same way.
+    const feed = await searchEvents({ mode: "selected", since: "week", q: "mimo" }, 20, NOW);
+    expect(feed.map((e) => e.id)).toEqual(["mimo"]);
+  });
+
   test("all mode returns every event by effective time, ignoring selection", async () => {
     await insertEvent({ id: "a1", title: "newest", publishedAt: ago(0.1) });
     await insertEvent({ id: "a2", title: "middle", level: "S", promotedAt: ago(1), publishedAt: ago(1) });

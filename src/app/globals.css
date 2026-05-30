@@ -179,6 +179,61 @@ a {
 /* --- feed --- */
 .feed {
   display: grid;
+  gap: 2rem;
+}
+
+/* --- day grouping (sticky header + collapse) --- */
+.day-group {
+  display: grid;
+  gap: 1.25rem;
+}
+.day-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  /* Tinted paper so cards scrolling underneath don't bleed through the header. */
+  background: linear-gradient(var(--paper) 70%, oklch(98.5% 0.006 95 / 0));
+  padding: 0.5rem 0 0.35rem;
+  margin: 0;
+}
+.day-toggle {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+}
+.day-caret {
+  color: var(--ink-faint);
+  font-size: 0.85em;
+  transform: translateY(-1px);
+}
+.day-date {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+}
+.day-count {
+  margin-left: auto;
+  color: var(--ink-faint);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+.day-count::before {
+  content: "";
+}
+.day-toggle:hover .day-date {
+  color: var(--accent);
+}
+.day-items {
+  display: grid;
   gap: 1.25rem;
 }
 
@@ -565,6 +620,8 @@ a {
 }
 .masthead nav {
   display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
   gap: 1rem;
   font-size: 0.95rem;
 }
@@ -666,4 +723,137 @@ a {
   color: var(--accent);
   font-size: 0.85rem;
   margin-top: 0.8rem;
+}
+
+/* --- changelog --- */
+.changelog {
+  list-style: none;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 1.75rem;
+}
+.changelog-entry {
+  border-left: 2px solid var(--line);
+  padding: 0 0 0 1.25rem;
+}
+.changelog-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-bottom: 0.3rem;
+}
+.changelog-date {
+  color: var(--ink-faint);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+.changelog-badge {
+  font-size: 0.72rem;
+  border-radius: 999px;
+  padding: 0.05rem 0.6rem;
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+}
+.changelog-badge.feature {
+  color: oklch(48% 0.13 150);
+  background: oklch(95% 0.05 150);
+}
+.changelog-badge.improvement {
+  color: var(--b);
+  background: oklch(95% 0.04 250);
+}
+.changelog-badge.fix {
+  color: var(--accent);
+  background: var(--accent-weak);
+}
+.changelog-badge.removed {
+  color: var(--ink-faint);
+  background: oklch(95% 0 0);
+}
+.changelog-title {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  margin: 0 0 0.4rem;
+}
+.changelog-body {
+  color: var(--ink-soft);
+  margin: 0.3rem 0;
+}
+
+/* --- about --- */
+.about {
+  max-width: 64ch;
+}
+.about-intro {
+  font-size: 1.1rem;
+  color: var(--ink);
+}
+.about p {
+  color: var(--ink-soft);
+}
+.about-cta {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+.about-cta:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* --- feedback --- */
+.feedback-form {
+  display: grid;
+  gap: 0.4rem;
+  max-width: 600px;
+}
+.feedback-form textarea,
+.feedback-form input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+  background: var(--paper);
+}
+.feedback-form label {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  margin-top: 0.6rem;
+}
+.feedback-form .composer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  margin-top: 0.8rem;
+}
+.feedback-form .composer-actions button {
+  padding: 0.5rem 1.1rem;
+  background: var(--ink);
+  color: var(--paper-raised);
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.feedback-form .composer-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.feedback-done {
+  max-width: 600px;
+  display: grid;
+  gap: 0.9rem;
+  justify-items: start;
+}
+.feedback-done button {
+  padding: 0.45rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-raised);
+  font: inherit;
+  cursor: pointer;
 }
