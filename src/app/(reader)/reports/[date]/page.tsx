@@ -10,6 +10,16 @@ import { ReportView } from "../report-view";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ date: string }>;
+}): Promise<{ title: string }> {
+  const { date } = await params;
+  const suffix = isCalendarDate(date) ? date : "";
+  return { title: `${messages.report.heading}${suffix ? ` ${suffix}` : ""} · ${messages.appName}` };
+}
+
 export default async function ReportByDatePage({
   params,
 }: {

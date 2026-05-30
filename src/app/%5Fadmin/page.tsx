@@ -15,6 +15,12 @@ import { messages } from "@/i18n";
 import type { ContributionStatus } from "@/contributions/types";
 import type { ReviewAction } from "@/contributions/review";
 
+// Admin console: titled for the operator, but never indexed (unlinked from public nav).
+export const metadata = {
+  title: `管理后台 · ${messages.appName}`,
+  robots: { index: false, follow: false },
+};
+
 // Actions offered per status, matching the review state machine (src/contributions/review.ts).
 // `apply` is only meaningful for source recommendations (the only auto-appliable kind in V1).
 const ACTIONS_BY_STATUS: Record<ContributionStatus, ReviewAction[]> = {

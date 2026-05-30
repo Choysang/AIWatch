@@ -36,25 +36,25 @@ export default function SkillInstallPage() {
         <h2 style={{ fontFamily: "var(--font-serif)" }}>只读端点</h2>
         <ul>
           <li>
-            <code>GET /api/public/items?mode=selected&amp;since=today</code> — 今日精选
+            <code>GET /api/public/items?mode=selected&amp;since=today</code>：今日精选
           </li>
           <li>
-            <code>GET /api/public/items?mode=selected&amp;since=week</code> — 本周精选
+            <code>GET /api/public/items?mode=selected&amp;since=week</code>：本周精选
           </li>
           <li>
-            <code>GET /api/public/items?mode=selected&amp;since=month</code> — 本月精选
+            <code>GET /api/public/items?mode=selected&amp;since=month</code>：本月精选
           </li>
           <li>
-            <code>GET /api/public/items?q=关键词</code> — 关键词搜索（服务端）
+            <code>GET /api/public/items?q=关键词</code>：关键词搜索（服务端）
           </li>
           <li>
-            <code>GET /api/public/items?mode=all</code> — 全部动态（按时间）
+            <code>GET /api/public/items?mode=all</code>：全部动态（按时间）
           </li>
           <li>
-            <code>GET /api/public/daily</code> — 最新 AI 日报（含三节正文）
+            <code>GET /api/public/daily</code>：最新 AI 日报（含三节正文）
           </li>
           <li>
-            <code>GET /api/public/dailies?take=N</code> — 近期日报列表
+            <code>GET /api/public/dailies?take=N</code>：近期日报列表
           </li>
         </ul>
         <p className="note" style={{ border: 0, margin: 0 }}>

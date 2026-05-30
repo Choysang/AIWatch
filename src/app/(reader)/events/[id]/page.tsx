@@ -20,6 +20,25 @@ export const dynamic = "force-dynamic";
 
 const MAX_TAGS_DETAIL = 8;
 
+// Per-event title/description so shares and crawlers see the actual event, not a generic
+// page title. Degrades to the app name if the event is gone or the DB is unreachable.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<{ title: string; description?: string }> {
+  try {
+    const { id } = await params;
+    const event = await getEventDetail(id);
+    if (event) {
+      return { title: `${event.title} · ${messages.appName}`, description: event.summary ?? undefined };
+    }
+  } catch {
+    // fall through to the generic title
+  }
+  return { title: messages.appName };
+}
+
 async function loadViewerIdentity(): Promise<{
   userId: string | null;
   fingerprint: string | null;

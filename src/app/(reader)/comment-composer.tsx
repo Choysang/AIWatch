@@ -73,11 +73,7 @@ export function CommentComposer({ eventId }: CommentComposerProps) {
         disabled={isPending}
       />
       <div className="composer-actions">
-        {state.error && (
-          <span className="composer-error" role="status">
-            {state.error}
-          </span>
-        )}
+        {state.error && <output className="composer-error">{state.error}</output>}
         <button type="submit" disabled={isPending || state.body.trim().length === 0}>
           {isPending ? m.submitting : m.submit}
         </button>

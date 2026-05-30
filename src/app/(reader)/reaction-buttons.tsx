@@ -124,11 +124,7 @@ export function ReactionButtons({
         <span aria-hidden="true">{state.starred ? "★" : "☆"}</span>
         <span className="count">{state.starCount}</span>
       </button>
-      {error && (
-        <span className="reaction-error" role="status">
-          {error}
-        </span>
-      )}
+      {error && <output className="reaction-error">{error}</output>}
     </div>
   );
 }

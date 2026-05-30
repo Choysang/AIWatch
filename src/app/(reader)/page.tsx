@@ -8,6 +8,7 @@
 
 import { cookies } from "next/headers";
 import Link from "next/link";
+import { Suspense } from "react";
 import { getSession } from "@/app/_lib/session";
 import { READER_ID_COOKIE, verifyReaderId } from "@/auth/reader-id";
 import { searchEvents, type EventCard as EventCardData } from "@/db/queries/feed";
@@ -18,6 +19,11 @@ import { EventCard } from "./event-card";
 import { SearchBar } from "./search-bar";
 
 export const dynamic = "force-dynamic";
+
+export const metadata = {
+  title: `${messages.home.heading} · ${messages.appName}`,
+  description: messages.home.subheading,
+};
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -108,7 +114,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       </h2>
       <p className="section-intro">{m.home.subheading}</p>
 
-      <SearchBar />
+      {/* SearchBar reads useSearchParams; a Suspense boundary keeps that from opting the
+          whole page out of server rendering (Next.js CSR-bailout). */}
+      <Suspense fallback={<section className="search" aria-hidden="true" />}>
+        <SearchBar />
+      </Suspense>
 
       {events.length === 0 ? (
         <div className="empty">{isFiltered ? m.search.empty : m.home.empty}</div>

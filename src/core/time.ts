@@ -7,18 +7,47 @@ export const APP_TZ = process.env.APP_TZ ?? "Asia/Shanghai";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+// Intl.DateTimeFormat construction allocates dozens of objects per call; these helpers run
+// on every report-window resolution. Memoize one formatter per timezone (the only varying
+// option) so the cost is paid once per tz, not once per call.
+const offsetFormatters = new Map<string, Intl.DateTimeFormat>();
+function offsetFormatter(tz: string): Intl.DateTimeFormat {
+  let f = offsetFormatters.get(tz);
+  if (!f) {
+    f = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      hourCycle: "h23",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+    offsetFormatters.set(tz, f);
+  }
+  return f;
+}
+
+const calendarFormatters = new Map<string, Intl.DateTimeFormat>();
+function calendarFormatter(tz: string): Intl.DateTimeFormat {
+  let f = calendarFormatters.get(tz);
+  if (!f) {
+    // en-CA renders ISO-style YYYY-MM-DD.
+    f = new Intl.DateTimeFormat("en-CA", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    calendarFormatters.set(tz, f);
+  }
+  return f;
+}
+
 /** Offset in ms such that wallclock = utc + offset, for `tz` at instant `date`. */
 function tzOffsetMs(tz: string, date: Date): number {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: tz,
-    hourCycle: "h23",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).formatToParts(date);
+  const parts = offsetFormatter(tz).formatToParts(date);
   const get = (type: string): number => Number(parts.find((p) => p.type === type)!.value);
   const asUtc = Date.UTC(
     get("year"),
@@ -56,13 +85,7 @@ function startOfDayUtc(date: string, tz: string): Date {
 
 /** Calendar date "YYYY-MM-DD" for `instant` rendered in `tz`. */
 export function appCalendarDate(instant: Date, tz: string = APP_TZ): string {
-  // en-CA renders ISO-style YYYY-MM-DD.
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: tz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(instant);
+  const parts = calendarFormatter(tz).formatToParts(instant);
   const get = (type: string): string => parts.find((p) => p.type === type)!.value;
   return `${get("year")}-${get("month")}-${get("day")}`;
 }

@@ -10,6 +10,11 @@ import { ReportView } from "./report-view";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: `${messages.report.heading} · ${messages.appName}`,
+  description: messages.report.subheading,
+};
+
 async function load(): Promise<{ latest: PublicReport | null; archive: PublicReportListItem[] }> {
   try {
     const [latest, archive] = await Promise.all([getLatestDaily(), listDailies(14)]);
@@ -53,7 +58,7 @@ export default async function ReportsPage() {
           <ul>
             {archive.map((r) => (
               <li key={r.date}>
-                <Link href={`/reports/${r.date}`}>{r.date}</Link> — {r.summary}
+                <Link href={`/reports/${r.date}`}>{r.date}</Link>：{r.summary}
               </li>
             ))}
           </ul>
