@@ -15,7 +15,7 @@
 //     row. Caller marks the post judge_failed with reason "schema_invalid".
 
 import { z } from "zod";
-import type { LLMProvider, StructuredGenerateInput } from "./provider";
+import type { LLMProvider, StructuredGenerateInput, StructuredResult } from "./provider";
 
 export class LlmProviderError extends Error {
   constructor(message: string, public readonly cause?: unknown) {
@@ -39,7 +39,7 @@ export class LlmSchemaError extends Error {
 export async function structuredGenerateWithRetry<T>(
   provider: LLMProvider,
   input: StructuredGenerateInput<T>,
-): Promise<T> {
+): Promise<StructuredResult<T>> {
   let lastZodError: z.ZodError | undefined;
   for (let attempt = 1; attempt <= 2; attempt++) {
     const messages =

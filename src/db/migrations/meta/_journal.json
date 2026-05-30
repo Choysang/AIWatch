@@ -64,6 +64,13 @@
       "when": 1779891911264,
       "tag": "0008_judge_failed",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1780132533577,
+      "tag": "0009_cool_black_cat",
+      "breakpoints": true
     }
   ]
 }

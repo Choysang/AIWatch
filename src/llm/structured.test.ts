@@ -2,7 +2,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { z } from "zod";
-import type { LLMProvider, StructuredGenerateInput } from "./provider";
+import type { LLMProvider, StructuredGenerateInput, StructuredResult } from "./provider";
 import {
   LlmProviderError,
   LlmSchemaError,
@@ -15,12 +15,12 @@ function makeProvider(behaviour: (attempt: number) => unknown): LLMProvider {
   let attempt = 0;
   return {
     name: "test",
-    async structuredGenerate<T>(input: StructuredGenerateInput<T>): Promise<T> {
+    async structuredGenerate<T>(input: StructuredGenerateInput<T>): Promise<StructuredResult<T>> {
       attempt++;
       const out = behaviour(attempt);
       if (out instanceof Error) throw out;
-      // Mirror real providers: they validate against the supplied schema.
-      return input.schema.parse(out);
+      // Mirror real providers: they validate against the supplied schema, then report usage.
+      return { value: input.schema.parse(out), usage: { inputTokens: 10, outputTokens: 5 } };
     },
   };
 }
@@ -33,7 +33,8 @@ describe("structuredGenerateWithRetry", () => {
       schema,
       messages: [{ role: "user", content: "x" }],
     });
-    expect(result).toEqual({ score: 80 });
+    expect(result.value).toEqual({ score: 80 });
+    expect(result.usage).toEqual({ inputTokens: 10, outputTokens: 5 });
   });
 
   test("retries once when the first attempt fails schema validation", async () => {
@@ -43,7 +44,7 @@ describe("structuredGenerateWithRetry", () => {
       schema,
       messages: [{ role: "user", content: "x" }],
     });
-    expect(result).toEqual({ score: 90 });
+    expect(result.value).toEqual({ score: 90 });
   });
 
   test("throws LlmSchemaError when both attempts fail schema validation", async () => {
@@ -69,7 +70,7 @@ describe("structuredGenerateWithRetry", () => {
     let calls = 0;
     const provider: LLMProvider = {
       name: "test",
-      async structuredGenerate<T>(_input: StructuredGenerateInput<T>): Promise<T> {
+      async structuredGenerate<T>(_input: StructuredGenerateInput<T>): Promise<StructuredResult<T>> {
         calls++;
         throw new Error("ECONNRESET");
       },

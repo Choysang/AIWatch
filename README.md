@@ -113,6 +113,7 @@ bun run test:integration         # 集成:真实 Postgres 跑通整条脊柱
 - **Scoring Integrity slice(2026-05-27)**:`base_score` / `promotion_score` 拆分,A/S 闸口改用 `promotion_score`,`recompute-promotion-scores` 定期重算,真实 LLM provider 上线且 fail-closed(`judge_failed` 状态),专家直推绕过 B 级门槛。
 - **Alignment Closeout(2026-05-28)**:LLM 路由 v2(默认路由只走已实现的 OpenAI 兼容适配器,Anthropic / Google instantiate 失败闭合保留为契约),`recompute-promotion-scores` 不再覆盖前一次 `rank_score`(与 rank-score job 顺序无关),增加 `bun run doctor` 诊断脚本。
 - **读者来源类型筛选(2026-05-28)**:首页 chip 多选 `sourceTypes`(official / employee / expert / kol / media / community / open_source_project),URL 状态,服务端 `inArray` 过滤,集成测试覆盖。
+- **spend_guard(2026-05-30)**:LLM 月度预算闸口。`src/llm/pricing.ts` 按厂商**每百万 token** 价目表算成本(`costForUsage`),`src/llm/budget.ts` 给出 ok/warn/block 分档(<80% / ≥80% / ≥100%)。provider 现在回传 `{ value, usage }`,真实调用后把成本写入 append-only `llm_spend_ledger`(按 UTC `month_key` 分桶);每次 `cold_judge` 真实调用**前**先查当月累计(`checkLlmBudget`):100% fail-closed → 该 post 标记 `judge_failed`(原因 `budget_exceeded`),不发起调用、不创建事件;80% 仅告警。cap=0 表示关闭(全新安装默认不拦)。stub / 未定价模型不入账。X API 预算位已就绪(`MAX_MONTHLY_X_API_USD`),待 X 连接器落地后接线。
 
-**接下来(后续 slice):** spend_guard(LLM / X API 月度预算,80% 警告、100% fail-closed)、剩余硬层连接器(GitHub / HN / YouTube / HuggingFace / Reddit)、Anthropic / Google 适配器、中文全文检索、Playwright E2E。
+**接下来(后续 slice):** 剩余硬层连接器(GitHub / HN / YouTube / HuggingFace / Reddit)、Anthropic / Google 适配器、中文全文检索、Playwright E2E。
 

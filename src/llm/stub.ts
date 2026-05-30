@@ -1,7 +1,7 @@
 // Deterministic provider for offline dev, demo seed, and CI. No network/model call.
 // Returns a schema-validated fixture (paired with the cold_judge schema in Slice 0).
 
-import type { LLMProvider, StructuredGenerateInput } from "./provider";
+import type { LLMProvider, StructuredGenerateInput, StructuredResult } from "./provider";
 
 export const DEFAULT_JUDGMENT = {
   aiRelevance: 80,
@@ -20,8 +20,9 @@ export class StubLLMProvider implements LLMProvider {
 
   constructor(private readonly fixture: Record<string, unknown> = DEFAULT_JUDGMENT) {}
 
-  async structuredGenerate<T>(input: StructuredGenerateInput<T>): Promise<T> {
+  async structuredGenerate<T>(input: StructuredGenerateInput<T>): Promise<StructuredResult<T>> {
     // Validate the fixture against the caller's schema so the stub honors the contract.
-    return input.schema.parse(this.fixture);
+    // Zero usage: the stub makes no real call, so it costs nothing and never trips a budget.
+    return { value: input.schema.parse(this.fixture), usage: { inputTokens: 0, outputTokens: 0 } };
   }
 }

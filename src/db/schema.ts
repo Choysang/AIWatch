@@ -7,6 +7,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   date,
+  doublePrecision,
   index,
   integer,
   interval,
@@ -382,6 +383,27 @@ export const auditLogs = pgTable(
   ],
 );
 
+// --- llm_spend_ledger (spend_guard) ---
+// Append-only receipt of every priced LLM call. month_to_date sum (per UTC month_key) is
+// the input to the budget gate. UTC, not APP_TZ: vendor billing windows are UTC-defined
+// and never align with APP_TZ. Stub / unpriced calls are not recorded (cost is $0 / unknown).
+export const llmSpendLedger = pgTable(
+  "llm_spend_ledger",
+  {
+    id: text("id").primaryKey(),
+    // "YYYY-MM" UTC bucket — the only key the month-to-date range scan needs.
+    monthKey: text("month_key").notNull(),
+    task: text("task").notNull(), // LlmTask, e.g. "cold_judge"
+    provider: text("provider").notNull(),
+    modelId: text("model_id").notNull(),
+    inputTokens: integer("input_tokens").notNull(),
+    outputTokens: integer("output_tokens").notNull(),
+    costUsd: doublePrecision("cost_usd").notNull(),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("llm_spend_month_idx").on(t.monthKey)],
+);
+
 // better-auth tables live in auth-schema.ts; re-export so drizzle-kit emits their
 // migrations from this single schema entrypoint (drizzle.config points here).
 export { account, session, user, verification } from "./auth-schema";
@@ -398,4 +420,5 @@ export const schema = {
   eventReactions,
   eventComments,
   auditLogs,
+  llmSpendLedger,
 };

@@ -34,6 +34,7 @@ describe("OpenAICompatibleProvider", () => {
       fetch: fakeFetch({
         body: {
           choices: [{ message: { content: JSON.stringify({ score: 90, tag: "ok" }) } }],
+          usage: { prompt_tokens: 1200, completion_tokens: 340 },
         },
       }),
     });
@@ -42,7 +43,23 @@ describe("OpenAICompatibleProvider", () => {
       schema,
       messages: [{ role: "user", content: "test" }],
     });
-    expect(result).toEqual({ score: 90, tag: "ok" });
+    expect(result.value).toEqual({ score: 90, tag: "ok" });
+    expect(result.usage).toEqual({ inputTokens: 1200, outputTokens: 340 });
+  });
+
+  test("reports zero usage when the response omits a usage block", async () => {
+    const provider = new OpenAICompatibleProvider({
+      ...baseConfig,
+      fetch: fakeFetch({
+        body: { choices: [{ message: { content: JSON.stringify({ score: 1, tag: "y" }) } }] },
+      }),
+    });
+    const result = await provider.structuredGenerate({
+      model: "gpt-4.1-mini",
+      schema,
+      messages: [{ role: "user", content: "test" }],
+    });
+    expect(result.usage).toEqual({ inputTokens: 0, outputTokens: 0 });
   });
 
   test("strips ```json fences before parsing", async () => {
@@ -65,7 +82,7 @@ describe("OpenAICompatibleProvider", () => {
       schema,
       messages: [{ role: "user", content: "test" }],
     });
-    expect(result.score).toBe(85);
+    expect(result.value.score).toBe(85);
   });
 
   test("throws on HTTP non-2xx with status in the message", async () => {

@@ -14,7 +14,7 @@
 // the provider stays runtime-agnostic (Node, Bun, edge).
 
 import { z } from "zod";
-import type { LLMProvider, StructuredGenerateInput } from "./provider";
+import type { LLMProvider, StructuredGenerateInput, StructuredResult } from "./provider";
 
 export interface OpenAICompatibleConfig {
   /** Human label stamped on event_judgments.provider. */
@@ -32,6 +32,10 @@ interface ChatCompletionResponse {
     message?: { content?: string | null };
     finish_reason?: string;
   }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+  };
   error?: { message?: string };
 }
 
@@ -56,7 +60,7 @@ export class OpenAICompatibleProvider implements LLMProvider {
     this.fetchImpl = config.fetch ?? fetch;
   }
 
-  async structuredGenerate<T>(input: StructuredGenerateInput<T>): Promise<T> {
+  async structuredGenerate<T>(input: StructuredGenerateInput<T>): Promise<StructuredResult<T>> {
     const url = `${this.baseUrl}/chat/completions`;
     const body = {
       model: input.model,
@@ -105,7 +109,14 @@ export class OpenAICompatibleProvider implements LLMProvider {
         { code: "custom", message: "model output was not valid JSON", path: [] },
       ]);
     }
-    return input.schema.parse(parsed);
+    const value = input.schema.parse(parsed);
+    return {
+      value,
+      usage: {
+        inputTokens: payload.usage?.prompt_tokens ?? 0,
+        outputTokens: payload.usage?.completion_tokens ?? 0,
+      },
+    };
   }
 }
 

@@ -21,6 +21,8 @@ import {
   LlmSchemaError,
   structuredGenerateWithRetry,
 } from "@/llm/structured";
+import { readBudgetCaps } from "@/llm/budget";
+import { checkLlmBudget, recordLlmSpend } from "@/db/queries/llm-spend";
 import { computeBaseScore } from "@/scoring/base-score";
 import { scoringConfig } from "@/scoring/config";
 import { externalHeatScore } from "@/scoring/external-heat";
@@ -40,6 +42,8 @@ export interface ProcessSummary {
   judgeFailedSchema: number;
   /** Subset of `failed`: provider call itself errored (network/upstream/transport). */
   judgeFailedProvider: number;
+  /** Subset of `failed`: the monthly LLM budget was exhausted (spend_guard fail-closed). */
+  judgeFailedBudget: number;
 }
 
 /** Pluggable for tests: produce a validated cold-judge result for a post. */
@@ -59,27 +63,66 @@ function buildJudgePrompt(raw: RawPost): string {
 /** Thrown when the cold_judge route has no usable provider configured. */
 class NoProviderConfiguredError extends Error {}
 
-/** Default judge: route to the configured provider, schema-validated with retry-once.
- *  Fail-closed semantics: when no provider is available we throw NoProviderConfiguredError
- *  rather than silently falling back to stub — the caller marks the post `judge_failed`. */
-async function defaultJudge(raw: RawPost): Promise<ColdJudge> {
-  const route = llmRouting.cold_judge;
-  const provider = resolveProvider("cold_judge");
-  if (!provider) {
-    throw new NoProviderConfiguredError(
-      `[cold_judge] no provider configured for route ${route.provider}`,
-    );
-  }
-  return structuredGenerateWithRetry<ColdJudge>(provider, {
-    model: route.model,
-    schema: coldJudgeSchema,
-    temperature: route.temperature,
-    maxOutputTokens: route.maxOutputTokens,
-    messages: [
-      { role: "system", content: COLD_JUDGE_SYSTEM },
-      { role: "user", content: buildJudgePrompt(raw) },
-    ],
-  });
+/** Thrown when the monthly LLM budget is exhausted (spend_guard fail-closed at 100%). The
+ *  caller marks the post `judge_failed` reason `budget_exceeded` — no event is created and
+ *  no provider call is made, so the cap can't be overshot by an in-flight batch. */
+class BudgetExceededError extends Error {}
+
+/** Default judge: route to the configured provider, schema-validated with retry-once,
+ *  guarded by spend_guard. Fail-closed semantics: when no provider is available, or the
+ *  monthly budget is exhausted, we throw rather than silently degrading — the caller marks
+ *  the post `judge_failed`. A db handle is captured so the budget gate and ledger write
+ *  use the same connection as the rest of the pipeline. */
+function makeDefaultJudge(db: DB): JudgeFn {
+  return async (raw: RawPost): Promise<ColdJudge> => {
+    const route = llmRouting.cold_judge;
+    const provider = resolveProvider("cold_judge");
+    if (!provider) {
+      throw new NoProviderConfiguredError(
+        `[cold_judge] no provider configured for route ${route.provider}`,
+      );
+    }
+    const isStub = provider.name === "stub";
+
+    // Pre-call budget gate: only real (paid) providers consult the ledger; the stub spends
+    // nothing. block => fail closed before the call; warn => proceed but log (no optional
+    // work to shed on this route yet).
+    if (!isStub) {
+      const caps = readBudgetCaps();
+      const { status, monthToDateUsd } = await checkLlmBudget(caps.llmUsd, db);
+      if (status === "block") {
+        throw new BudgetExceededError(
+          `[cold_judge] monthly LLM budget exhausted ($${monthToDateUsd.toFixed(2)} / $${caps.llmUsd}) — failing closed`,
+        );
+      }
+      if (status === "warn") {
+        // eslint-disable-next-line no-console -- worker-side structured logging lands in a later slice
+        console.warn(
+          `[spend_guard] LLM spend $${monthToDateUsd.toFixed(2)} of $${caps.llmUsd} cap (≥80%)`,
+        );
+      }
+    }
+
+    const result = await structuredGenerateWithRetry<ColdJudge>(provider, {
+      model: route.model,
+      schema: coldJudgeSchema,
+      temperature: route.temperature,
+      maxOutputTokens: route.maxOutputTokens,
+      messages: [
+        { role: "system", content: COLD_JUDGE_SYSTEM },
+        { role: "user", content: buildJudgePrompt(raw) },
+      ],
+    });
+
+    // Post-call ledger write: priced models only (recordLlmSpend skips unpriced -> null).
+    if (!isStub) {
+      await recordLlmSpend(
+        { task: "cold_judge", provider: route.provider, model: route.model, usage: result.usage },
+        db,
+      );
+    }
+    return result.value;
+  };
 }
 
 export interface ProcessDeps {
@@ -93,7 +136,7 @@ export async function processSource(
   deps: ProcessDeps = {},
 ): Promise<ProcessSummary> {
   const db = deps.db ?? defaultDb;
-  const judge = deps.judge ?? defaultJudge;
+  const judge = deps.judge ?? makeDefaultJudge(db);
   const route = llmRouting.cold_judge;
 
   const summary: ProcessSummary = {
@@ -106,6 +149,7 @@ export async function processSource(
     judgeFailedNoKey: 0,
     judgeFailedSchema: 0,
     judgeFailedProvider: 0,
+    judgeFailedBudget: 0,
   };
 
   for (const raw of rawPosts) {
@@ -185,6 +229,9 @@ export async function processSource(
       if (error instanceof NoProviderConfiguredError) {
         await markJudgeFailed(db, post.id, "no_key");
         summary.judgeFailedNoKey++;
+      } else if (error instanceof BudgetExceededError) {
+        await markJudgeFailed(db, post.id, "budget_exceeded");
+        summary.judgeFailedBudget++;
       } else if (error instanceof LlmSchemaError) {
         await markJudgeFailed(db, post.id, "schema_invalid");
         summary.judgeFailedSchema++;

@@ -1,8 +1,9 @@
-// Model pricing table for spend_guard (USD per 1k tokens). Source-of-truth is the
-// vendor's public pricing page at the date stamped below — bump the table when prices
-// move. costForUsage() is the pure function the LLM call path will use to write to the
-// spend ledger; it returns null for unpriced models so the caller can decide whether to
-// fail closed or run uncharged (current policy: log + skip the ledger row, don't crash).
+// Model pricing table for spend_guard (USD per 1M tokens — the unit every vendor's
+// public pricing page now quotes). Source-of-truth is the vendor's pricing page at the
+// date stamped below — bump the table when prices move. costForUsage() is the pure
+// function the LLM call path uses to write to the spend ledger; it returns null for
+// unpriced models so the caller can decide whether to fail closed or run uncharged
+// (current policy: log + skip the ledger row, don't crash).
 
 import type { LlmProviderName } from "./routing";
 
@@ -10,22 +11,25 @@ export interface ModelPrice {
   provider: LlmProviderName;
   /** Canonical lowercase model id; lookups are case-insensitive. */
   model: string;
-  inputUsdPer1k: number;
-  outputUsdPer1k: number;
+  /** USD per 1,000,000 input tokens (vendor list price). */
+  inputUsdPer1m: number;
+  /** USD per 1,000,000 output tokens (vendor list price). */
+  outputUsdPer1m: number;
 }
 
-// Snapshot date: 2026-05-28. Update with the provider when a route changes.
+// Snapshot date: 2026-05-28. Prices are USD per 1M tokens, as quoted by each vendor.
+// Update with the provider when a route changes.
 export const KNOWN_MODEL_PRICES: readonly ModelPrice[] = [
   // OpenAI
-  { provider: "openai", model: "gpt-4.1", inputUsdPer1k: 2.0, outputUsdPer1k: 8.0 },
-  { provider: "openai", model: "gpt-4.1-mini", inputUsdPer1k: 0.4, outputUsdPer1k: 1.6 },
-  { provider: "openai", model: "gpt-4o", inputUsdPer1k: 2.5, outputUsdPer1k: 10.0 },
-  { provider: "openai", model: "gpt-4o-mini", inputUsdPer1k: 0.15, outputUsdPer1k: 0.6 },
+  { provider: "openai", model: "gpt-4.1", inputUsdPer1m: 2.0, outputUsdPer1m: 8.0 },
+  { provider: "openai", model: "gpt-4.1-mini", inputUsdPer1m: 0.4, outputUsdPer1m: 1.6 },
+  { provider: "openai", model: "gpt-4o", inputUsdPer1m: 2.5, outputUsdPer1m: 10.0 },
+  { provider: "openai", model: "gpt-4o-mini", inputUsdPer1m: 0.15, outputUsdPer1m: 0.6 },
   // DeepSeek (chat tier)
-  { provider: "deepseek", model: "deepseek-chat", inputUsdPer1k: 0.27, outputUsdPer1k: 1.1 },
+  { provider: "deepseek", model: "deepseek-chat", inputUsdPer1m: 0.27, outputUsdPer1m: 1.1 },
   // Qwen / DashScope (compatible-mode flagship chat tier)
-  { provider: "qwen", model: "qwen-plus", inputUsdPer1k: 0.4, outputUsdPer1k: 1.2 },
-  { provider: "qwen", model: "qwen-max", inputUsdPer1k: 2.4, outputUsdPer1k: 9.6 },
+  { provider: "qwen", model: "qwen-plus", inputUsdPer1m: 0.4, outputUsdPer1m: 1.2 },
+  { provider: "qwen", model: "qwen-max", inputUsdPer1m: 2.4, outputUsdPer1m: 9.6 },
 ] as const;
 
 // Indexed by `${provider}::${model.toLowerCase()}` for O(1) case-insensitive lookup.
@@ -60,5 +64,6 @@ export function costForUsage(
   if (!price) return null;
   const inp = Math.max(0, inputTokens);
   const out = Math.max(0, outputTokens);
-  return (inp * price.inputUsdPer1k) / 1000 + (out * price.outputUsdPer1k) / 1000;
+  const PER_MILLION = 1_000_000;
+  return (inp * price.inputUsdPer1m) / PER_MILLION + (out * price.outputUsdPer1m) / PER_MILLION;
 }
