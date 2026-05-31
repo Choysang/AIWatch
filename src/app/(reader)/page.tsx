@@ -8,17 +8,42 @@
 
 import { cookies } from "next/headers";
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, type CSSProperties } from "react";
 import { getSession } from "@/app/_lib/session";
 import { READER_ID_COOKIE, verifyReaderId } from "@/auth/reader-id";
 import { searchEvents, type EventCard as EventCardData } from "@/db/queries/feed";
 import { getViewerReactions } from "@/db/queries/reactions";
+import { getTopCommentsForEvents } from "@/db/queries/comments";
 import { messages } from "@/i18n";
 import { parsePublicQuery, type PublicQuery } from "@/public/query";
-import { dayKey, formatDayHeading } from "@/app/_lib/format";
+import { dayKey, formatDayHeading, formatTimeOfDay } from "@/app/_lib/format";
+import { modelAccent } from "@/app/_lib/model-accent";
 import { DaySection } from "./day-section";
 import { EventCard } from "./event-card";
+import { ParticleBackground } from "./particle-background";
 import { SearchBar } from "./search-bar";
+import { SpotlightCard } from "./spotlight-card";
+
+// Visual weight of a timeline card (decision: depth/emphasis ∝ curation, not raw size).
+// Promotion level leads; for un-promoted items we fall back to the quality score so a
+// strong-but-unselected item still reads louder than noise. The card then renders a
+// level-tiered subset of fields (reason/comments) to match this weight.
+function effectiveScore(event: EventCardData): number {
+  if (typeof event.qualityScore === "number") return event.qualityScore;
+  const byLevel: Record<EventCardData["selectedLevel"], number> = {
+    S: 90,
+    A: 75,
+    B: 60,
+    none: 45,
+  };
+  return byLevel[event.selectedLevel];
+}
+
+function cardEmphasis(event: EventCardData): "featured" | "standard" | "compact" {
+  if (event.selectedLevel === "S" || event.selectedLevel === "A") return "featured";
+  if (event.selectedLevel === "B") return "standard";
+  return effectiveScore(event) >= 60 ? "standard" : "compact";
+}
 
 export const dynamic = "force-dynamic";
 
@@ -115,12 +140,20 @@ async function loadViewerReactions(
 export default async function HomePage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const query = toQuery(await searchParams);
   const { events } = await loadEvents(query);
-  const reactions = await loadViewerReactions(events.map((e) => e.id));
+  const eventIds = events.map((e) => e.id);
+  const reactions = await loadViewerReactions(eventIds);
+  let topComments = new Map<string, string[]>();
+  try {
+    topComments = await getTopCommentsForEvents(eventIds, 3);
+  } catch {
+    topComments = new Map();
+  }
   const m = messages;
   const isFiltered = Boolean(query.q || query.tags?.length || query.level || query.mode === "selected");
 
   return (
-    <main className="page">
+    <main className="page reader-home">
+      <ParticleBackground />
       <header className="masthead">
         <div>
           <h1>
@@ -156,7 +189,29 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <DaySection key={group.key} heading={group.heading} count={group.items.length}>
               {group.items.map((event) => {
                 const r = reactions.get(event.id) ?? { liked: false, starred: false };
-                return <EventCard key={event.id} event={event} liked={r.liked} starred={r.starred} />;
+                const accent = modelAccent(event);
+                const when = event.publishedAt ?? event.promotedAt ?? null;
+                return (
+                  <div
+                    key={event.id}
+                    className="tl-row"
+                    style={{ "--card-accent": accent.rgb } as CSSProperties}
+                  >
+                    <div className="tl-rail">
+                      <time className="tl-time">{formatTimeOfDay(when)}</time>
+                    </div>
+                    <span className="tl-dot" aria-hidden="true" />
+                    <SpotlightCard accentRgb={accent.rgb} emphasis={cardEmphasis(event)}>
+                      <EventCard
+                        event={event}
+                        liked={r.liked}
+                        starred={r.starred}
+                        accentLabel={accent.label}
+                        topComments={topComments.get(event.id)}
+                      />
+                    </SpotlightCard>
+                  </div>
+                );
               })}
             </DaySection>
           ))}

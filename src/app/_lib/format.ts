@@ -53,3 +53,17 @@ export function formatDayHeading(value: Date | string | null | undefined): strin
   const date = toDate(value);
   return date ? dayHeadingFmt.format(date) : "未知日期";
 }
+
+// --- timeline rail (per-card publish time on the feed) ---
+const timeOfDayFmt = new Intl.DateTimeFormat("zh-CN", {
+  timeZone: APP_TZ,
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
+/** Time-of-day in APP_TZ as "HH:mm" (e.g. "10:24") for the feed timeline rail. */
+export function formatTimeOfDay(value: Date | string | null | undefined): string {
+  const date = toDate(value);
+  return date ? timeOfDayFmt.format(date) : "";
+}

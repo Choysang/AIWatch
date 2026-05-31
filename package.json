@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "next dev",
+    "dev:db": "bun run scripts/dev-postgres.ts",
     "build": "next build",
     "start": "next start",
     "worker": "bun run worker/index.ts",

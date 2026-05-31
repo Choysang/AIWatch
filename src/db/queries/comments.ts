@@ -16,7 +16,7 @@
 // path and returns the existing row so re-submission is idempotent.
 
 import { createHash } from "node:crypto";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { classifyComment, type CommentCategory, type CommentClassification } from "@/comments/classifier";
 import { newId } from "@/core/ids";
 import { db as defaultDb, type DB, type Tx } from "@/db/client";
@@ -234,4 +234,35 @@ export async function listEventComments(
     highQuality: highQuality as CommentRow[],
     latest: latest as CommentRow[],
   };
+}
+
+/**
+ * Batch the top-N valid reader comments for a set of events, for the homepage card
+ * ticker. "Hot" in V1 = most recent valid (event_comments has no vote column yet); a
+ * later slice can re-rank by reaction count. Returns a Map keyed by eventId; events with
+ * no valid comments are simply absent. One indexed scan + JS bucketing keeps it cheap.
+ */
+export async function getTopCommentsForEvents(
+  eventIds: string[],
+  perEvent = 3,
+  db: DB = defaultDb,
+): Promise<Map<string, string[]>> {
+  const result = new Map<string, string[]>();
+  if (eventIds.length === 0) return result;
+
+  const rows = await db
+    .select({ eventId: eventComments.eventId, body: eventComments.body })
+    .from(eventComments)
+    .where(and(inArray(eventComments.eventId, eventIds), eq(eventComments.classification, "valid")))
+    .orderBy(desc(eventComments.createdAt));
+
+  for (const row of rows) {
+    const bucket = result.get(row.eventId);
+    if (bucket) {
+      if (bucket.length < perEvent) bucket.push(row.body);
+    } else {
+      result.set(row.eventId, [row.body]);
+    }
+  }
+  return result;
 }

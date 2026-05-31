@@ -3,19 +3,22 @@
    Tokens first; components compose from them. No utility framework. */
 
 :root {
-  --paper: oklch(98.5% 0.006 95);
-  --paper-raised: oklch(100% 0 0);
-  --ink: oklch(22% 0.02 60);
-  --ink-soft: oklch(45% 0.02 60);
-  --ink-faint: oklch(62% 0.015 60);
-  --line: oklch(89% 0.01 80);
-  --accent: oklch(58% 0.17 32); /* terracotta — used semantically, not decoratively */
-  --accent-weak: oklch(94% 0.04 40);
-  --gold: oklch(72% 0.13 85);
+  /* Unified dark "signal" theme across every surface (reader, reports, admin, auth).
+     Deep blue-black ground, near-white ink, one vivid accent. Components compose from
+     these tokens, so re-theming the whole app happens here. */
+  --paper: oklch(16% 0.014 264);
+  --paper-raised: oklch(21% 0.016 264);
+  --ink: oklch(95% 0.008 250);
+  --ink-soft: oklch(78% 0.018 255);
+  --ink-faint: oklch(62% 0.02 258);
+  --line: oklch(32% 0.02 262);
+  --accent: oklch(70% 0.16 255); /* electric blue — used semantically, not decoratively */
+  --accent-weak: oklch(30% 0.07 258);
+  --gold: oklch(80% 0.13 85);
 
-  --b: oklch(55% 0.12 250);
-  --a: oklch(56% 0.16 300);
-  --s: oklch(58% 0.17 32);
+  --b: oklch(68% 0.15 250);
+  --a: oklch(68% 0.17 300);
+  --s: oklch(68% 0.17 32);
 
   --text-hero: clamp(2rem, 1.3rem + 3.2vw, 3.4rem);
   --text-title: clamp(1.1rem, 0.95rem + 0.7vw, 1.45rem);
@@ -192,7 +195,7 @@ a {
   top: 0;
   z-index: 5;
   /* Tinted paper so cards scrolling underneath don't bleed through the header. */
-  background: linear-gradient(var(--paper) 70%, oklch(98.5% 0.006 95 / 0));
+  background: linear-gradient(var(--paper) 70%, oklch(16% 0.014 264 / 0));
   padding: 0.5rem 0 0.35rem;
   margin: 0;
 }
@@ -315,7 +318,7 @@ a {
 .tag {
   font-size: 0.76rem;
   color: var(--ink-soft);
-  background: oklch(95% 0.01 80);
+  background: oklch(100% 0 0 / 0.05);
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 0.1rem 0.6rem;
@@ -856,4 +859,529 @@ a {
   background: var(--paper-raised);
   font: inherit;
   cursor: pointer;
+}
+
+/* =====================================================================
+   Reader homepage — dark "signal grid" treatment.
+   Scoped under .reader-home so reports / admin / about stay on the warm
+   paper theme. Particle canvas behind, Bento grid of glass cards, each
+   card tinted by its model accent (--card-accent), spotlight follows the
+   cursor (--mx/--my). All motion is compositor-friendly (transform/opacity).
+   ===================================================================== */
+
+.particle-field {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(1200px 820px at 72% -12%, rgba(70, 92, 220, 0.12), transparent 60%),
+    radial-gradient(900px 720px at 8% 112%, rgba(200, 110, 70, 0.08), transparent 55%),
+    #07080b;
+}
+.particle-field canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.reader-home {
+  position: relative;
+  z-index: 1;
+  max-width: 1280px;
+  --rh-text: rgba(236, 239, 247, 0.94);
+  --rh-soft: rgba(178, 188, 214, 0.78);
+  --rh-faint: rgba(142, 152, 180, 0.62);
+  --rh-line: rgba(255, 255, 255, 0.09);
+  --rh-surface: rgba(255, 255, 255, 0.035);
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  color: var(--rh-text);
+}
+
+/* masthead + nav */
+.reader-home .masthead {
+  border-bottom-color: rgba(255, 255, 255, 0.14);
+}
+.reader-home .masthead h1 {
+  color: var(--rh-text);
+}
+.reader-home .masthead .tagline {
+  color: var(--rh-soft);
+}
+.reader-home .accent-dot {
+  color: rgb(77 107 254);
+}
+.reader-home .masthead nav a {
+  color: var(--rh-soft);
+}
+.reader-home .masthead nav a:hover {
+  color: #fff;
+}
+.reader-home .section-intro {
+  color: var(--rh-soft);
+}
+
+/* search + filter chips */
+.reader-home .search-input {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--rh-line);
+  color: var(--rh-text);
+}
+.reader-home .search-input::placeholder {
+  color: var(--rh-faint);
+}
+.reader-home .search-input:focus-visible {
+  border-color: rgb(77 107 254);
+  box-shadow: 0 0 0 3px rgba(77, 107, 254, 0.25);
+}
+.reader-home .search-submit {
+  background: rgba(255, 255, 255, 0.92);
+  color: #0a0b0d;
+}
+.reader-home .search-submit:hover {
+  background: #fff;
+}
+.reader-home .chip {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--rh-line);
+  color: var(--rh-soft);
+}
+.reader-home .chip:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+  color: var(--rh-text);
+}
+.reader-home .chip.is-active {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: transparent;
+  color: #0a0b0d;
+}
+.reader-home .filter-label {
+  color: var(--rh-faint);
+}
+.reader-home .chip-clear {
+  color: rgb(255 132 47);
+}
+
+/* day grouping on dark */
+.reader-home .day-header {
+  background: linear-gradient(#07080b 62%, rgba(7, 8, 11, 0));
+}
+.reader-home .day-toggle {
+  color: var(--rh-text);
+}
+.reader-home .day-date {
+  color: var(--rh-text);
+}
+.reader-home .day-caret,
+.reader-home .day-count {
+  color: var(--rh-faint);
+}
+.reader-home .day-toggle:hover .day-date {
+  color: #fff;
+}
+
+/* --- vertical timeline --- */
+/* Cards stack newest-first down each day; a left rail shows the publish time (HH:mm)
+   with a dot threaded onto a single connector line running through the column. */
+.reader-home .day-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tl-gap);
+  --tl-rail-w: 58px;
+  --tl-gap: 1.1rem;
+}
+/* Day collapse: the flex display above outranks the UA [hidden]{display:none},
+   so the toggle did nothing. Re-assert none when DaySection hides the list. */
+.reader-home .day-items[hidden] {
+  display: none;
+}
+.tl-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--tl-rail-w) 1fr;
+  column-gap: var(--tl-gap);
+}
+/* connector line, centered in the gap between rail and card */
+.tl-row::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--tl-rail-w) + var(--tl-gap) / 2 - 1px);
+  top: 0.45rem;
+  bottom: calc(var(--tl-gap) * -1);
+  width: 2px;
+  background: var(--rh-line);
+}
+.tl-row:last-child::before {
+  bottom: auto;
+  height: 1.1rem;
+}
+.tl-rail {
+  text-align: right;
+  padding-top: 0.25rem;
+}
+.tl-time {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--rh-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tl-dot {
+  position: absolute;
+  left: calc(var(--tl-rail-w) + var(--tl-gap) / 2 - 5px);
+  top: 0.5rem;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgb(var(--card-accent, 126 142 184));
+  box-shadow: 0 0 0 4px rgb(var(--card-accent, 126 142 184) / 0.16);
+  z-index: 1;
+}
+.bento-cell {
+  position: relative;
+  border-radius: 16px;
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.bento-cell:hover {
+  transform: translateY(-2px);
+  z-index: 2;
+}
+/* emphasis by curation: featured (A·S) reads loudest, compact (low) tightens up */
+.tl-featured .card {
+  border-color: rgb(var(--card-accent) / 0.4);
+}
+.tl-compact .card {
+  padding: 0.85rem 1.05rem;
+}
+
+/* glass card surface inside a Bento cell */
+.reader-home .card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 1.15rem 1.25rem;
+  background: var(--rh-surface);
+  border: 1px solid var(--rh-line);
+  border-radius: 16px;
+  box-shadow: none;
+  overflow: hidden;
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  transition: border-color 220ms ease, background 220ms ease;
+}
+.reader-home .card:hover {
+  transform: none; /* lift handled by the cell */
+  box-shadow: none;
+}
+.bento-cell:hover .card {
+  border-color: rgb(var(--card-accent) / 0.5);
+  background: rgba(255, 255, 255, 0.055);
+}
+/* top accent hairline keyed to the model color */
+.reader-home .card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgb(var(--card-accent) / 0.9), transparent 75%);
+}
+
+/* cursor-following spotlight glow */
+.bento-cell .spotlight {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 260ms ease;
+  background: radial-gradient(
+    440px circle at var(--mx, 50%) var(--my, 50%),
+    rgb(var(--card-accent) / 0.18),
+    transparent 62%
+  );
+}
+.bento-cell:hover .spotlight {
+  opacity: 1;
+}
+
+/* monospace model tag + heat readout */
+.card-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.55rem;
+}
+.model-tag {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  color: rgb(var(--card-accent));
+}
+.heat {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--rh-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* card internals on dark */
+.reader-home .card-top {
+  color: var(--rh-faint);
+}
+.reader-home .card-source {
+  color: var(--rh-soft);
+}
+.reader-home .card h2 {
+  color: var(--rh-text);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+.reader-home .card h2 a:hover {
+  text-decoration-color: rgb(var(--card-accent));
+}
+.reader-home .summary {
+  color: var(--rh-soft);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+.reader-home .reason {
+  background: rgb(var(--card-accent) / 0.1);
+  border-left-color: rgb(var(--card-accent) / 0.85);
+  color: var(--rh-soft);
+}
+.reader-home .reason .label {
+  color: rgb(var(--card-accent));
+}
+.reader-home .card-bottom {
+  margin-top: auto;
+  padding-top: 0.6rem;
+}
+.reader-home .tag {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--rh-line);
+  color: var(--rh-soft);
+}
+.reader-home .score .num {
+  color: var(--rh-text);
+}
+.reader-home .score .max {
+  color: var(--rh-faint);
+}
+.reader-home .reaction {
+  border-color: var(--rh-line);
+  color: var(--rh-soft);
+  background: transparent;
+}
+.reader-home .reaction:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.28);
+  color: var(--rh-text);
+}
+.reader-home .detail-link {
+  color: var(--rh-soft);
+}
+.reader-home .detail-link:hover {
+  color: rgb(var(--card-accent));
+  border-bottom-color: rgb(var(--card-accent));
+}
+.reader-home .empty {
+  border-color: var(--rh-line);
+  color: var(--rh-soft);
+}
+.reader-home .note {
+  color: var(--rh-faint);
+  border-top-color: var(--rh-line);
+}
+
+/* emphasis-tiered text density */
+.tl-featured .card h2 {
+  -webkit-line-clamp: 4;
+}
+.tl-featured .summary {
+  -webkit-line-clamp: 6;
+}
+.tl-compact .summary {
+  -webkit-line-clamp: 2;
+}
+
+/* optional card image (rendered only when the event carries media) */
+.card-media {
+  margin: 0.25rem 0 0.6rem;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--rh-line);
+  max-height: 280px;
+}
+.card-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: 280px;
+  object-fit: cover;
+}
+.tl-compact .card-media,
+.tl-compact .card-media img {
+  max-height: 150px;
+}
+
+/* 精选 star on the selected badge */
+.reader-home .badge .star {
+  color: rgb(var(--card-accent));
+  font-size: 0.9em;
+}
+
+/* phone: tighten the rail so cards keep their width */
+@media (max-width: 600px) {
+  .reader-home .day-items {
+    --tl-rail-w: 42px;
+    --tl-gap: 0.75rem;
+  }
+  .reader-home .card {
+    height: auto;
+  }
+  .tl-time {
+    font-size: 0.72rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bento-cell {
+    transition: none;
+  }
+  .bento-cell:hover {
+    transform: none;
+  }
+  .bento-cell .spotlight {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Reader-home refinements: centered control deck, score-scaled type via
+   container queries, brand-tinted card surfaces, and the comment ticker.
+   Appended last so it layers over the base reader-home rules above.
+   --------------------------------------------------------------------- */
+
+/* wider centered column (~10% side gutters), flush to the top so the feed starts high */
+.reader-home {
+  max-width: none;
+  width: min(1360px, 90vw);
+  margin-inline: auto;
+  padding-top: 0;
+}
+.reader-home .masthead {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+.reader-home .section-intro {
+  margin-bottom: 0.4rem;
+}
+.tl-row .card {
+  height: auto;
+}
+
+/* make the search + filters an obvious, self-contained control deck */
+.reader-home .search {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--rh-line);
+  border-radius: 16px;
+  padding: 1rem 1.15rem;
+  margin: 0 0 2.25rem;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* container-query typography: font tracks each cell's width, so score-weighted big
+   cards read large while small tiles stay legible (never below the clamp floor). */
+.reader-home .card h2 {
+  font-size: clamp(1.1rem, 1rem + 0.45vw, 1.4rem);
+}
+.tl-featured .card h2 {
+  font-size: clamp(1.3rem, 1.05rem + 0.7vw, 1.75rem);
+}
+.reader-home .summary {
+  font-size: 0.95rem;
+}
+.reader-home .card-top,
+.reader-home .reason {
+  font-size: 0.86rem;
+}
+
+/* brand-tinted glass surface keyed to the model accent (#4) */
+.reader-home .card {
+  background:
+    linear-gradient(160deg, rgb(var(--card-accent) / 0.1), rgb(var(--card-accent) / 0.02) 60%),
+    var(--rh-surface);
+}
+.bento-cell:hover .card {
+  background:
+    linear-gradient(160deg, rgb(var(--card-accent) / 0.16), rgb(var(--card-accent) / 0.04) 60%),
+    rgba(255, 255, 255, 0.045);
+  border-color: rgb(var(--card-accent) / 0.55);
+}
+
+/* standard cards: a comfortable few lines of summary */
+.tl-standard .summary {
+  -webkit-line-clamp: 3;
+}
+
+/* rotating hot-comments ticker on each card */
+.comment-ticker {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.15rem 0 0.55rem;
+  min-height: 1.4em;
+  font-size: clamp(0.72rem, 2.8cqi, 0.82rem);
+  color: var(--rh-soft);
+}
+.comment-ticker-quote {
+  color: rgb(var(--card-accent));
+  font-size: 1.15em;
+  line-height: 1;
+}
+.comment-ticker-line {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.92;
+  animation: tickerFade 360ms ease;
+}
+@keyframes tickerFade {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 0.92;
+    transform: none;
+  }
+}
+.comment-ticker-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+.tick-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--rh-faint);
+  opacity: 0.5;
+}
+.tick-dot.on {
+  background: rgb(var(--card-accent));
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .comment-ticker-line {
+    animation: none;
+  }
 }

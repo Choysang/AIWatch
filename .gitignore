@@ -22,7 +22,12 @@
 
 # logs / os
 *.log
+*.err
 .DS_Store
+
+# local dev database (embedded postgres) + agent tooling
+.pg-data/
+.understand-anything/
 
 # local tooling / editor config (not part of the project)
 .serena/
