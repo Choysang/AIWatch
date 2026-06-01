@@ -23,6 +23,18 @@ export const SOURCE_TYPES = [
 ] as const;
 export type SourceType = (typeof SOURCE_TYPES)[number];
 
+/**
+ * Reader-facing content classification facet (SP2 point 5). Mirrors the `content_type`
+ * pgEnum on `events` and CONTENT_TYPES in judge-schema — keep all three in sync.
+ */
+export const CONTENT_TYPES = [
+  "model_release",
+  "product_release",
+  "tech_share",
+  "discussion",
+] as const;
+export type ContentType = (typeof CONTENT_TYPES)[number];
+
 export const DEFAULT_TAKE = 20;
 export const MAX_TAKE = 50;
 /** Cap on distinct tag filters per request (keeps the array-overlap query bounded). */
@@ -49,6 +61,8 @@ export interface PublicQuery {
   tags?: string[];
   /** Source-type facet (ANY-of). Undefined = no filter. */
   sourceTypes?: SourceType[];
+  /** Content-type facet (ANY-of). Undefined = no filter. */
+  contentTypes?: ContentType[];
   level?: PromotedLevel;
   /**
    * Explicit custom date range (SP2 point 3). When either bound is present the rolling
@@ -65,6 +79,11 @@ export interface PublicQuery {
 const SOURCE_TYPE_SET: ReadonlySet<string> = new Set(SOURCE_TYPES);
 function isSourceType(v: string): v is SourceType {
   return SOURCE_TYPE_SET.has(v);
+}
+
+const CONTENT_TYPE_SET: ReadonlySet<string> = new Set(CONTENT_TYPES);
+function isContentType(v: string): v is ContentType {
+  return CONTENT_TYPE_SET.has(v);
 }
 
 function clampTake(raw: string | null): number {
@@ -117,6 +136,17 @@ export function parseSourceTypes(raw: string | null): SourceType[] | undefined {
     if (v && isSourceType(v)) seen.add(v);
   }
   return seen.size ? [...seen] : undefined;
+}
+
+/** Parse a comma-separated `contentTypes` param. Unknown values are silently dropped. */
+export function parseContentTypes(raw: string | null): ContentType[] | undefined {
+  if (!raw) return undefined;
+  const seen = new Set<ContentType>();
+  for (const part of raw.split(",")) {
+    const v = part.trim();
+    if (v && isContentType(v)) seen.add(v);
+  }
+  return seen.size ? CONTENT_TYPES.filter((t) => seen.has(t)) : undefined;
 }
 
 /** Window start as a Date, or null for `all` (no time bound). */
@@ -173,6 +203,7 @@ export function parsePublicQuery(params: URLSearchParams): PublicQuery {
   const q = params.get("q")?.trim() || undefined;
   const tags = parseTags(params.get("tags"));
   const sourceTypes = parseSourceTypes(params.get("sourceTypes"));
+  const contentTypes = parseContentTypes(params.get("contentTypes"));
   const { dateFrom, dateTo } = parseDateRange(params.get("from"), params.get("to"));
 
   return {
@@ -182,6 +213,7 @@ export function parsePublicQuery(params: URLSearchParams): PublicQuery {
     q,
     tags,
     sourceTypes,
+    contentTypes,
     level,
     dateFrom,
     dateTo,

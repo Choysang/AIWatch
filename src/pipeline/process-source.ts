@@ -52,7 +52,10 @@ export interface ProcessSummary {
 export type JudgeFn = (raw: RawPost) => Promise<ColdJudge>;
 
 const COLD_JUDGE_SYSTEM =
-  "你是 AIWatch 的判断器。只输出结构化评分（0-100）与中文摘要/分类/标签/推荐理由，不做最终编辑决策。";
+  "你是 AIWatch 的判断器。只输出结构化评分（0-100）与中文摘要/分类/标签/推荐理由，不做最终编辑决策。" +
+  "必须从以下四类中选择恰好一个 contentType：model_release（模型发布/权重/榜单）、" +
+  "product_release（产品/功能/API 发布）、tech_share（论文/技术解析/教程/工程实践）、" +
+  "discussion（观点/讨论/行业动态/其他）。无法明确归类时选 discussion。";
 
 function buildJudgePrompt(raw: RawPost): string {
   return [

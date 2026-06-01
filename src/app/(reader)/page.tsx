@@ -78,6 +78,7 @@ async function loadEvents(query: PublicQuery): Promise<{ events: EventCardData[]
         q: query.q,
         tags: query.tags,
         sourceTypes: query.sourceTypes,
+        contentTypes: query.contentTypes,
         level: query.level,
         category: query.category,
         dateFrom: query.dateFrom,
@@ -134,6 +135,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       query.tags?.length ||
       query.level ||
       query.sourceTypes?.length ||
+      query.contentTypes?.length ||
       query.dateFrom ||
       query.dateTo ||
       query.mode === "selected",

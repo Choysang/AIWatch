@@ -66,6 +66,7 @@ async function insertEvent(opts: {
   category?: string;
   tags?: string[];
   level?: "none" | "B" | "A" | "S";
+  contentType?: "model_release" | "product_release" | "tech_share" | "discussion";
   promotedAt?: Date | null;
   publishedAt: Date;
   sourceId?: string;
@@ -76,6 +77,7 @@ async function insertEvent(opts: {
     category,
     tags = [],
     level = "none",
+    contentType,
     promotedAt = null,
     publishedAt,
     sourceId = SOURCE_ID,
@@ -87,6 +89,7 @@ async function insertEvent(opts: {
     tags,
     selectedLevel: level,
     selectedLabel: level === "none" ? null : level,
+    contentType,
     promotedAt,
     publishedAt,
     mainSourceId: sourceId,
@@ -274,6 +277,23 @@ describe("listPublicItems (real Postgres)", () => {
       NOW,
     );
     expect(feed.map((e) => e.id)).toEqual(["d_22", "d_20"]);
+  });
+
+  test("contentTypes filter narrows to events of the requested content_type(s)", async () => {
+    await insertEvent({ id: "ct_m", title: "model", level: "B", contentType: "model_release", promotedAt: ago(1), publishedAt: ago(1) });
+    await insertEvent({ id: "ct_p", title: "product", level: "B", contentType: "product_release", promotedAt: ago(1), publishedAt: ago(1) });
+    await insertEvent({ id: "ct_d", title: "discussion", level: "B", contentType: "discussion", promotedAt: ago(1), publishedAt: ago(1) });
+
+    const single = await listPublicItems(query("mode=selected&since=week&contentTypes=model_release"), NOW);
+    expect(single.items.map((i) => i.id)).toEqual(["ct_m"]);
+    expect(single.items[0]!.content_type).toBe("model_release");
+
+    const multi = await listPublicItems(query("mode=selected&since=week&contentTypes=model_release,discussion"), NOW);
+    expect(multi.items.map((i) => i.id).sort()).toEqual(["ct_d", "ct_m"]);
+
+    // Same facet via the reader-feed path.
+    const feed = await searchEvents({ mode: "selected", since: "week", contentTypes: ["product_release"] }, 30, NOW);
+    expect(feed.map((e) => e.id)).toEqual(["ct_p"]);
   });
 
   test("GET /api/public/items route returns JSON with CDN cache headers", async () => {

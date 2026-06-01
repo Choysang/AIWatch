@@ -11,6 +11,7 @@ export const DEFAULT_JUDGMENT = {
   evidenceClarity: 75,
   summary: "（示例）用于离线/演示的占位判断，非真实模型输出。",
   category: "模型",
+  contentType: "model_release",
   tags: ["示例", "demo"],
   recommendationReason: "（示例）演示用推荐理由。",
 };

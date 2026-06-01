@@ -20,6 +20,14 @@ function sourceGroupLabel(sourceType: string | null): string | null {
   return group ? messages.search.sourceGroup[group] : null;
 }
 
+type ContentTypeKey = keyof typeof messages.search.contentType;
+
+/** Reader-facing label for an event's content_type (SP2). Null for legacy un-classified rows. */
+function contentTypeLabel(contentType: string | null): string | null {
+  if (!contentType || !(contentType in messages.search.contentType)) return null;
+  return messages.search.contentType[contentType as ContentTypeKey];
+}
+
 interface EventCardProps {
   event: EventCardData;
   liked?: boolean;
@@ -52,6 +60,7 @@ export function EventCard({
   const showReason = isSelected && Boolean(event.recommendationReason);
   const showComments = (level === "A" || level === "S") && Boolean(topComments?.length);
   const imageUrl = extractImageUrl(event.media);
+  const contentLabel = contentTypeLabel(event.contentType);
   const showSourceInfo = Boolean(
     event.sourceRecommendedBy ||
       event.sourceRecommendReason ||
@@ -71,6 +80,7 @@ export function EventCard({
         </div>
       )}
       <div className="card-top">
+        {contentLabel && <span className="content-badge">{contentLabel}</span>}
         {event.sourceName && <span className="card-source">{event.sourceName}</span>}
         {author && author !== event.sourceName && (
           <>

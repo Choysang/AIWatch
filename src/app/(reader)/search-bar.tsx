@@ -12,7 +12,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
 import { messages } from "@/i18n";
-import { SOURCE_TYPES, type SourceType } from "@/public/query";
+import { CONTENT_TYPES, SOURCE_TYPES, type ContentType, type SourceType } from "@/public/query";
 import {
   GROUP_MEMBERS,
   SOURCE_GROUPS,
@@ -36,6 +36,17 @@ function parseSourceTypeParam(raw: string | null): Set<SourceType> {
   return set;
 }
 
+function parseContentTypeParam(raw: string | null): Set<ContentType> {
+  const set = new Set<ContentType>();
+  if (!raw) return set;
+  const known: ReadonlySet<string> = new Set(CONTENT_TYPES);
+  for (const part of raw.split(",")) {
+    const v = part.trim();
+    if (v && known.has(v)) set.add(v as ContentType);
+  }
+  return set;
+}
+
 /** A group reads as "on" only when all of its member source_types are currently selected. */
 function isGroupActive(selected: Set<SourceType>, group: SourceGroup): boolean {
   return GROUP_MEMBERS[group].every((t) => selected.has(t));
@@ -54,6 +65,7 @@ export function SearchBar() {
   const hasCustomRange = Boolean(params.get("from") || params.get("to"));
   const since = params.get("since") ?? (mode === "selected" ? "week" : "all");
   const selectedSourceTypes = parseSourceTypeParam(params.get("sourceTypes"));
+  const selectedContentTypes = parseContentTypeParam(params.get("contentTypes"));
 
   const navigate = useCallback(
     (mutate: (next: URLSearchParams) => void) => {
@@ -102,6 +114,15 @@ export function SearchBar() {
       else next.set("sourceTypes", SOURCE_TYPES.filter((t) => current.has(t)).join(","));
     });
 
+  const toggleContentType = (value: ContentType) =>
+    navigate((next) => {
+      const current = parseContentTypeParam(next.get("contentTypes"));
+      if (current.has(value)) current.delete(value);
+      else current.add(value);
+      if (current.size === 0) next.delete("contentTypes");
+      else next.set("contentTypes", CONTENT_TYPES.filter((t) => current.has(t)).join(","));
+    });
+
   const submitQuery = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = text.trim();
@@ -122,7 +143,8 @@ export function SearchBar() {
     params.get("since") ||
     params.get("from") ||
     params.get("to") ||
-    params.get("sourceTypes");
+    params.get("sourceTypes") ||
+    params.get("contentTypes");
 
   return (
     <section className="search" aria-label={m.submit}>
@@ -209,6 +231,24 @@ export function SearchBar() {
               onClick={() => toggleSourceGroup(group)}
             >
               {m.sourceGroup[group]}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="filter-group" role="group" aria-label={m.contentTypeLabel}>
+        <span className="filter-label">{m.contentTypeLabel}</span>
+        {CONTENT_TYPES.map((value) => {
+          const active = selectedContentTypes.has(value);
+          return (
+            <button
+              key={value}
+              type="button"
+              className={`chip ${active ? "is-active" : ""}`}
+              aria-pressed={active}
+              onClick={() => toggleContentType(value)}
+            >
+              {m.contentType[value]}
             </button>
           );
         })}

@@ -190,6 +190,20 @@ a {
   background: var(--accent-weak);
 }
 
+/* Content-type badge (SP2): small categorical pill at the head of a card. */
+.content-badge {
+  font-size: 0.68rem;
+  padding: 0.06rem 0.4rem;
+  border-radius: 4px;
+  background: var(--accent-weak);
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+.reader-home .content-badge {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--rh-text);
+}
+
 /* Custom date range (SP2): a non-interactive label chip + two native date inputs. */
 .chip-static {
   cursor: default;

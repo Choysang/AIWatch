@@ -17,6 +17,7 @@ export interface PublicItem {
   selected_level: SelectedLevel;
   selected_label: string | null;
   category: string | null;
+  content_type: string | null;
   tags: string[];
   published_at: string | null;
   promoted_at: string | null;

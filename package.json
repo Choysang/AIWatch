@@ -16,6 +16,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed:demo": "bun run scripts/seed-demo.ts",
+    "db:backfill:content-type": "bun run scripts/backfill-content-type.ts",
     "db:seed:empty-owner": "bun run scripts/setup-owner.ts",
     "setup:owner": "bun run scripts/setup-owner.ts",
     "test": "bun test src",

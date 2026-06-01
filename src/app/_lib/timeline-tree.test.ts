@@ -21,6 +21,7 @@ function mk(
     summary: null,
     recommendationReason: null,
     category: null,
+    contentType: null,
     tags: [],
     qualityScore: null,
     selectedLevel: "none",

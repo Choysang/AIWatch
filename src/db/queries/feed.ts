@@ -4,7 +4,7 @@
 import { and, arrayOverlaps, desc, eq, inArray, ne, sql, type SQL } from "drizzle-orm";
 import { db as defaultDb, type DB } from "@/db/client";
 import { events, posts, sources } from "@/db/schema";
-import type { PublicMode, SemanticWindow, SourceType } from "@/public/query";
+import type { ContentType, PublicMode, SemanticWindow, SourceType } from "@/public/query";
 import { windowStart } from "@/public/query";
 import type { PromotedLevel } from "@/scoring/types";
 
@@ -14,6 +14,7 @@ export interface EventCard {
   summary: string | null;
   recommendationReason: string | null;
   category: string | null;
+  contentType: string | null;
   tags: string[];
   qualityScore: number | null;
   selectedLevel: "none" | "B" | "A" | "S";
@@ -44,6 +45,7 @@ const cardColumns = {
   summary: events.summary,
   recommendationReason: events.recommendationReason,
   category: events.category,
+  contentType: events.contentType,
   tags: events.tags,
   qualityScore: events.qualityScore,
   selectedLevel: events.selectedLevel,
@@ -85,6 +87,7 @@ export interface FeedFilter {
   q?: string;
   tags?: string[];
   sourceTypes?: SourceType[];
+  contentTypes?: ContentType[];
   level?: PromotedLevel;
   category?: string;
   /** Custom date range (overrides `since` when either bound is present). See PublicQuery. */
@@ -125,6 +128,9 @@ export async function searchEvents(
   if (filter.sourceTypes?.length) {
     // Restrict to events whose main source has one of the requested source_types.
     conds.push(inArray(sources.sourceType, filter.sourceTypes));
+  }
+  if (filter.contentTypes?.length) {
+    conds.push(inArray(events.contentType, filter.contentTypes));
   }
   if (filter.q) {
     const like = `%${filter.q}%`;

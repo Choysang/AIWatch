@@ -38,6 +38,13 @@ export const healthStatusEnum = pgEnum("health_status", ["healthy", "degraded", 
 export const titleSourceEnum = pgEnum("title_source", ["original", "first_sentence", "ai_generated"]);
 export const relevanceStatusEnum = pgEnum("relevance_status", ["pending", "relevant", "irrelevant", "dropped"]);
 export const selectedLevelEnum = pgEnum("selected_level", ["none", "B", "A", "S"]);
+// Reader-facing content classification (SP2 point 5): every event is one of these four.
+// Produced by the cold_judge LLM (immutable input) and denormalized onto events for
+// filtering. Nullable only for legacy rows awaiting the one-time backfill — new events
+// always carry a value (the judge schema requires it, no fallback).
+export const contentTypeEnum = pgEnum("content_type", [
+  "model_release", "product_release", "tech_share", "discussion",
+]);
 export const eventRelationEnum = pgEnum("event_relation", ["same_event", "related"]);
 export const triggerReasonEnum = pgEnum("trigger_reason", [
   "initial", "official_update", "major_correction", "new_evidence", "manual_rejudge",
@@ -158,6 +165,9 @@ export const events = pgTable(
     summary: text("summary"),
     recommendationReason: text("recommendation_reason"),
     category: text("category"),
+    // Reader-facing content classification (SP2). Denormalized from the current judgment;
+    // nullable only for legacy rows pending backfill. Indexed for the filter facet.
+    contentType: contentTypeEnum("content_type"),
     tags: text("tags").array().notNull().default(sql`'{}'::text[]`),
     mainSourceId: text("main_source_id").references(() => sources.id),
     mainPostId: text("main_post_id").references(() => posts.id),
@@ -197,6 +207,7 @@ export const events = pgTable(
     index("events_published_idx").on(t.publishedAt),
     index("events_selected_idx").on(t.selectedLevel, t.promotedAt),
     index("events_rank_idx").on(t.rankScore),
+    index("events_content_type_idx").on(t.contentType),
   ],
 );
 
@@ -234,6 +245,7 @@ export const eventJudgments = pgTable(
     evidenceClarity: smallint("evidence_clarity").notNull(),
     summary: text("summary"),
     category: text("category"),
+    contentType: contentTypeEnum("content_type"),
     tags: text("tags").array(),
     recommendationReason: text("recommendation_reason"),
     raw: jsonb("raw"),

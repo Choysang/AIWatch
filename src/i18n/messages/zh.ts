@@ -47,6 +47,14 @@ export const zh = {
       media: "媒体",
       community: "社区",
     },
+    // Content classification facet (SP2 point 5).
+    contentTypeLabel: "类型",
+    contentType: {
+      model_release: "模型发布",
+      product_release: "产品发布",
+      tech_share: "技术分享",
+      discussion: "讨论",
+    },
     clear: "清除筛选",
     empty: "没有符合条件的动态，试试调整关键词或筛选条件。",
   },

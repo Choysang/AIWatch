@@ -14,6 +14,7 @@ interface Row {
   summary: string | null;
   recommendationReason: string | null;
   category: string | null;
+  contentType: string | null;
   tags: string[];
   qualityScore: number | null;
   selectedLevel: "none" | "B" | "A" | "S";
@@ -42,6 +43,7 @@ function toItem(r: Row): PublicItem {
     selected_level: r.selectedLevel,
     selected_label: r.selectedLabel,
     category: r.category,
+    content_type: r.contentType,
     tags: r.tags,
     published_at: r.publishedAt?.toISOString() ?? null,
     promoted_at: r.promotedAt?.toISOString() ?? null,
@@ -81,6 +83,9 @@ export async function listPublicItems(
     // parseSourceTypes, so this is safe to bind directly.
     conds.push(inArray(sources.sourceType, q.sourceTypes));
   }
+  if (q.contentTypes?.length) {
+    conds.push(inArray(events.contentType, q.contentTypes));
+  }
   if (q.q) {
     const like = `%${q.q}%`;
     conds.push(
@@ -99,6 +104,7 @@ export async function listPublicItems(
       summary: events.summary,
       recommendationReason: events.recommendationReason,
       category: events.category,
+      contentType: events.contentType,
       tags: events.tags,
       qualityScore: events.qualityScore,
       selectedLevel: events.selectedLevel,

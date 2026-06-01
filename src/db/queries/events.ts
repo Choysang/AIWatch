@@ -75,6 +75,7 @@ export async function createEventFromPost(
       summary: judgment.summary,
       recommendationReason: judgment.recommendationReason,
       category: judgment.category,
+      contentType: judgment.contentType,
       tags: judgment.tags,
       mainSourceId: input.source.id,
       mainPostId: input.post.id,
@@ -101,6 +102,7 @@ export async function createEventFromPost(
       evidenceClarity: judgment.evidenceClarity,
       summary: judgment.summary,
       category: judgment.category,
+      contentType: judgment.contentType,
       tags: judgment.tags,
       recommendationReason: judgment.recommendationReason,
     });
