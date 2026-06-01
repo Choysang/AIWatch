@@ -252,7 +252,11 @@ describe("listPublicItems (real Postgres)", () => {
   });
 
   test("GET /api/public/items route returns JSON with CDN cache headers", async () => {
-    await insertEvent({ id: "r1", title: "routed", level: "B", promotedAt: ago(1), publishedAt: ago(1) });
+    // The route resolves its window against the real `new Date()` (it can't take an injected
+    // clock), so seed relative to real now — not the fixed test NOW — to stay inside the
+    // `since=week` window regardless of when the suite runs.
+    const realRecent = new Date(Date.now() - 1 * DAY);
+    await insertEvent({ id: "r1", title: "routed", level: "B", promotedAt: realRecent, publishedAt: realRecent });
     const { GET } = await import("@/app/api/public/items/route");
 
     const res = await GET(new Request("http://localhost/api/public/items?mode=selected&since=week"));

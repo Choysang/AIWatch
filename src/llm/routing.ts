@@ -76,7 +76,7 @@ const PROVIDER_ENV: Record<Exclude<LlmProviderName, "stub">, ProviderEnv> = {
 /** True when the provider has a usable key configured. */
 export function providerConfigured(provider: LlmProviderName): boolean {
   if (provider === "stub") return true;
-  return Boolean(process.env[PROVIDER_ENV[provider].key]);
+  return Boolean(process.env[PROVIDER_ENV[provider].key]?.trim());
 }
 
 /** True when stub fallback is explicitly allowed (dev/demo). Default off. */
@@ -110,9 +110,13 @@ export function instantiateProvider(
   name: Exclude<LlmProviderName, "stub">,
 ): LLMProvider | null {
   const env = PROVIDER_ENV[name];
-  const apiKey = process.env[env.key];
+  const apiKey = process.env[env.key]?.trim();
   if (!apiKey) return null;
-  const baseUrl = process.env[env.baseUrl] ?? env.defaultBaseUrl;
+  // Treat an empty/whitespace base-url override as "unset" and fall back to the vendor
+  // default. A literal `DEEPSEEK_BASE_URL=` placeholder in .env would otherwise survive the
+  // `?? default` (empty string isn't nullish) and trip the `if (!baseUrl)` guard below,
+  // failing an otherwise-keyed provider closed.
+  const baseUrl = process.env[env.baseUrl]?.trim() || env.defaultBaseUrl;
 
   switch (name) {
     case "openai":
