@@ -20,8 +20,15 @@ export interface EventCard {
   selectedLabel: string | null;
   publishedAt: Date | null;
   promotedAt: Date | null;
+  createdAt: Date;
   sourceName: string | null;
   sourcePlatform: string | null;
+  sourceUrl: string | null;
+  sourceType: string | null;
+  sourceBrandTag: string | null;
+  sourceRecommendedBy: string | null;
+  sourceRecommendReason: string | null;
+  sourceOnboardedAt: Date | null;
   authorName: string | null;
   authorHandle: string | null;
   url: string | null;
@@ -43,9 +50,16 @@ const cardColumns = {
   selectedLabel: events.selectedLabel,
   publishedAt: events.publishedAt,
   promotedAt: events.promotedAt,
+  createdAt: events.createdAt,
   media: events.media,
   sourceName: sources.name,
   sourcePlatform: sources.platform,
+  sourceUrl: sources.url,
+  sourceType: sources.sourceType,
+  sourceBrandTag: sources.brandTag,
+  sourceRecommendedBy: sources.recommendedBy,
+  sourceRecommendReason: sources.recommendReason,
+  sourceOnboardedAt: sources.onboardedAt,
   authorName: posts.authorName,
   authorHandle: posts.authorHandle,
   url: posts.url,
