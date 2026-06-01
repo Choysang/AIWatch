@@ -251,6 +251,31 @@ describe("listPublicItems (real Postgres)", () => {
     expect(all.map((e) => e.id)).toContain("f4");
   });
 
+  test("custom date range (from/to) filters by effective time and overrides the window", async () => {
+    // Three selected events on distinct days relative to the fixed NOW (2026-05-24).
+    await insertEvent({ id: "d_22", title: "May 22", level: "B", promotedAt: ago(2), publishedAt: ago(2) }); // 2026-05-22
+    await insertEvent({ id: "d_20", title: "May 20", level: "B", promotedAt: ago(4), publishedAt: ago(4) }); // 2026-05-20
+    await insertEvent({ id: "d_10", title: "May 10", level: "B", promotedAt: ago(14), publishedAt: ago(14) }); // 2026-05-10
+
+    // Range 2026-05-19 .. 2026-05-23 (inclusive) catches only the 20th and 22nd, and reaches
+    // past the default 7-day `week` window that NOW would otherwise impose.
+    const ranged = await listPublicItems(query("mode=selected&since=week&from=2026-05-19&to=2026-05-23"), NOW);
+    expect(ranged.items.map((i) => i.id).sort()).toEqual(["d_20", "d_22"]);
+
+    // Open-ended upper bound: everything on/before 2026-05-20.
+    const until = await listPublicItems(query("mode=selected&to=2026-05-20"), NOW);
+    expect(until.items.map((i) => i.id).sort()).toEqual(["d_10", "d_20"]);
+
+    // Same range via the reader-feed path. dateTo here is the EXCLUSIVE start of the 23rd, so
+    // the 23rd is not included; the 20th and 22nd are. Sorted by promoted_at desc -> 22 before 20.
+    const feed = await searchEvents(
+      { mode: "selected", since: "week", dateFrom: new Date("2026-05-19T00:00:00Z"), dateTo: new Date("2026-05-23T00:00:00Z") },
+      30,
+      NOW,
+    );
+    expect(feed.map((e) => e.id)).toEqual(["d_22", "d_20"]);
+  });
+
   test("GET /api/public/items route returns JSON with CDN cache headers", async () => {
     // The route resolves its window against the real `new Date()` (it can't take an injected
     // clock), so seed relative to real now — not the fixed test NOW — to stay inside the

@@ -50,6 +50,14 @@ export interface PublicQuery {
   /** Source-type facet (ANY-of). Undefined = no filter. */
   sourceTypes?: SourceType[];
   level?: PromotedLevel;
+  /**
+   * Explicit custom date range (SP2 point 3). When either bound is present the rolling
+   * `since` window is ignored and these bounds apply instead. `dateFrom` is the inclusive
+   * lower bound (UTC start of the user's "from" day); `dateTo` is the EXCLUSIVE upper bound
+   * (UTC start of the day after the user's "to", so the "to" day is fully included).
+   */
+  dateFrom?: Date;
+  dateTo?: Date;
   take: number;
   cursor?: Cursor;
 }
@@ -117,6 +125,36 @@ export function windowStart(since: SemanticWindow, now: Date): Date | null {
   return new Date(now.getTime() - WINDOW_DAYS[since] * 24 * 60 * 60 * 1000);
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Parse a YYYY-MM-DD calendar date as UTC midnight. Returns undefined for malformed input. */
+function parseIsoDate(raw: string | null): Date | undefined {
+  if (!raw || !DATE_RE.test(raw)) return undefined;
+  const d = new Date(`${raw}T00:00:00.000Z`);
+  // Reject impossible dates that JS would otherwise roll over (e.g. 2026-02-30).
+  if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== raw) return undefined;
+  return d;
+}
+
+/**
+ * Parse the `from` / `to` custom-range params. `to` is shifted to the EXCLUSIVE start of the
+ * next day so the user's end date is fully included. An inverted range (from >= to) is dropped
+ * rather than returning an empty window silently.
+ */
+export function parseDateRange(
+  fromRaw: string | null,
+  toRaw: string | null,
+): { dateFrom?: Date; dateTo?: Date } {
+  const dateFrom = parseIsoDate(fromRaw);
+  const toDay = parseIsoDate(toRaw);
+  const dateTo = toDay ? new Date(toDay.getTime() + DAY_MS) : undefined;
+  if (dateFrom && dateTo && dateFrom.getTime() >= dateTo.getTime()) {
+    return {}; // inverted/empty range -> treat as no range
+  }
+  return { dateFrom, dateTo };
+}
+
 export function parsePublicQuery(params: URLSearchParams): PublicQuery {
   const mode: PublicMode = params.get("mode") === "all" ? "all" : "selected";
   const sinceRaw = params.get("since");
@@ -135,6 +173,7 @@ export function parsePublicQuery(params: URLSearchParams): PublicQuery {
   const q = params.get("q")?.trim() || undefined;
   const tags = parseTags(params.get("tags"));
   const sourceTypes = parseSourceTypes(params.get("sourceTypes"));
+  const { dateFrom, dateTo } = parseDateRange(params.get("from"), params.get("to"));
 
   return {
     mode,
@@ -144,6 +183,8 @@ export function parsePublicQuery(params: URLSearchParams): PublicQuery {
     tags,
     sourceTypes,
     level,
+    dateFrom,
+    dateTo,
     take: clampTake(params.get("take")),
     cursor: decodeCursor(params.get("cursor")),
   };

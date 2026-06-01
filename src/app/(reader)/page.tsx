@@ -80,6 +80,8 @@ async function loadEvents(query: PublicQuery): Promise<{ events: EventCardData[]
         sourceTypes: query.sourceTypes,
         level: query.level,
         category: query.category,
+        dateFrom: query.dateFrom,
+        dateTo: query.dateTo,
       },
       HOME_LIMIT,
     );
@@ -127,7 +129,15 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     topComments = new Map();
   }
   const m = messages;
-  const isFiltered = Boolean(query.q || query.tags?.length || query.level || query.mode === "selected");
+  const isFiltered = Boolean(
+    query.q ||
+      query.tags?.length ||
+      query.level ||
+      query.sourceTypes?.length ||
+      query.dateFrom ||
+      query.dateTo ||
+      query.mode === "selected",
+  );
 
   return (
     <main className="page reader-home">

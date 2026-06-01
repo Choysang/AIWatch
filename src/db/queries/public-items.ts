@@ -65,8 +65,11 @@ export async function listPublicItems(
     conds.push(ne(events.selectedLevel, "none"));
     if (q.level) conds.push(eq(events.selectedLevel, q.level));
   }
-  const start = windowStart(q.since, now);
+  // Custom range (explicit from/to) takes precedence over the rolling `since` window.
+  const customRange = Boolean(q.dateFrom || q.dateTo);
+  const start = customRange ? q.dateFrom : windowStart(q.since, now);
   if (start) conds.push(sql`${sortKey} >= ${start}`);
+  if (q.dateTo) conds.push(sql`${sortKey} < ${q.dateTo}`);
   if (q.category) conds.push(eq(events.category, q.category));
   if (q.tags?.length) {
     // Array overlap: event carries ANY of the requested tags.

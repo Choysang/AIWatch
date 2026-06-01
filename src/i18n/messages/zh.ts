@@ -34,22 +34,18 @@ export const zh = {
       month: "本月",
       all: "全部",
     },
-    levelLabel: "等级",
-    level: {
-      all: "全部",
-      B: "当日",
-      A: "本周",
-      S: "本月",
-    },
-    sourceTypeLabel: "来源类型",
-    sourceType: {
+    // Custom date range (SP2 point 3): picking a range overrides the rolling window above.
+    customLabel: "自定义",
+    dateFromLabel: "起始日期",
+    dateToLabel: "结束日期",
+    dateApply: "应用",
+    // Reader-facing source grouping (SP2 point 4): seven DB source_types collapse to four.
+    sourceGroupLabel: "来源",
+    sourceGroup: {
       official: "官方",
-      employee: "员工",
       expert: "专家",
-      kol: "KOL",
       media: "媒体",
       community: "社区",
-      open_source_project: "开源项目",
     },
     clear: "清除筛选",
     empty: "没有符合条件的动态，试试调整关键词或筛选条件。",

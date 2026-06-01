@@ -75,6 +75,32 @@ describe("parsePublicQuery", () => {
   test("dedupes repeated sourceTypes", () => {
     expect(parse("sourceTypes=kol,kol,official").sourceTypes).toEqual(["kol", "official"]);
   });
+
+  test("parses a custom date range; `to` is shifted to the exclusive next-day boundary", () => {
+    const q = parse("from=2026-05-01&to=2026-05-31");
+    expect(q.dateFrom?.toISOString()).toBe("2026-05-01T00:00:00.000Z");
+    // 2026-05-31 fully included -> exclusive upper bound is the start of 2026-06-01.
+    expect(q.dateTo?.toISOString()).toBe("2026-06-01T00:00:00.000Z");
+  });
+
+  test("accepts an open-ended range (only from, or only to)", () => {
+    expect(parse("from=2026-05-01").dateFrom?.toISOString()).toBe("2026-05-01T00:00:00.000Z");
+    expect(parse("from=2026-05-01").dateTo).toBeUndefined();
+    expect(parse("to=2026-05-10").dateTo?.toISOString()).toBe("2026-05-11T00:00:00.000Z");
+    expect(parse("to=2026-05-10").dateFrom).toBeUndefined();
+  });
+
+  test("drops malformed and impossible dates", () => {
+    expect(parse("from=not-a-date").dateFrom).toBeUndefined();
+    expect(parse("from=2026-13-01").dateFrom).toBeUndefined();
+    expect(parse("to=2026-02-30").dateTo).toBeUndefined();
+  });
+
+  test("drops an inverted range (from on/after to)", () => {
+    const q = parse("from=2026-05-31&to=2026-05-01");
+    expect(q.dateFrom).toBeUndefined();
+    expect(q.dateTo).toBeUndefined();
+  });
 });
 
 describe("cursor codec", () => {

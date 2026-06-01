@@ -6,21 +6,19 @@
 
 import type { EventCard as EventCardData } from "@/db/queries/feed";
 import { messages } from "@/i18n";
+import { groupForSourceType } from "@/public/source-groups";
 import { formatDateTime } from "@/app/_lib/format";
 import { extractImageUrl } from "@/app/_lib/media";
 import { CommentTicker } from "./comment-ticker";
 import { ReactionButtons } from "./reaction-buttons";
 
 const MAX_TAGS = 4;
-const SOURCE_TYPE_LABEL: Record<string, string> = {
-  official: "官方渠道",
-  employee: "团队成员",
-  expert: "领域专家",
-  kol: "行业博主",
-  media: "媒体报道",
-  community: "社区讨论",
-  open_source_project: "开源项目",
-};
+
+/** Reader-facing label for a source_type, via the four-group consolidation (SP2). */
+function sourceGroupLabel(sourceType: string | null): string | null {
+  const group = groupForSourceType(sourceType);
+  return group ? messages.search.sourceGroup[group] : null;
+}
 
 interface EventCardProps {
   event: EventCardData;
@@ -130,7 +128,7 @@ export function EventCard({
       {showSourceInfo && (
         <aside className="source-info">
           <div className="source-info-head">
-            {event.sourceType && <span>{SOURCE_TYPE_LABEL[event.sourceType] ?? event.sourceType}</span>}
+            {sourceGroupLabel(event.sourceType) && <span>{sourceGroupLabel(event.sourceType)}</span>}
             {event.sourceOnboardedAt && <time>接入 {formatDateTime(event.sourceOnboardedAt)}</time>}
           </div>
           {event.sourceRecommendReason && <p>{event.sourceRecommendReason}</p>}

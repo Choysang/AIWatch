@@ -1,6 +1,11 @@
 // Reader search + filter bar. URL is the single source of truth (web pattern: URL-as-state),
 // so results stay shareable and the page can be server-rendered. This client component only
 // reads the current params and writes new ones via the router; the homepage does the fetching.
+//
+// SP2: the "等级 B/A/S" chip group was removed from the reader UI (the `level` param still
+// works for the public API). Source filtering is now four reader-facing groups (官方/专家/
+// 媒体/社区) that expand to the underlying source_types. A custom date range overrides the
+// rolling time window when set.
 
 "use client";
 
@@ -8,11 +13,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
 import { messages } from "@/i18n";
 import { SOURCE_TYPES, type SourceType } from "@/public/query";
+import {
+  GROUP_MEMBERS,
+  SOURCE_GROUPS,
+  groupMembers,
+  type SourceGroup,
+} from "@/public/source-groups";
 
 type ChipValue = string | undefined;
 
 const WINDOWS = ["today", "week", "month", "all"] as const;
-const LEVELS = ["all", "B", "A", "S"] as const;
 const MODES = ["all", "selected"] as const;
 
 function parseSourceTypeParam(raw: string | null): Set<SourceType> {
@@ -26,16 +36,23 @@ function parseSourceTypeParam(raw: string | null): Set<SourceType> {
   return set;
 }
 
+/** A group reads as "on" only when all of its member source_types are currently selected. */
+function isGroupActive(selected: Set<SourceType>, group: SourceGroup): boolean {
+  return GROUP_MEMBERS[group].every((t) => selected.has(t));
+}
+
 export function SearchBar() {
   const m = messages.search;
   const router = useRouter();
   const params = useSearchParams();
   const [text, setText] = useState(params.get("q") ?? "");
+  const [fromVal, setFromVal] = useState(params.get("from") ?? "");
+  const [toVal, setToVal] = useState(params.get("to") ?? "");
 
   // Current selections, with the same defaults the server applies (see parsePublicQuery).
   const mode = params.get("mode") === "selected" ? "selected" : "all";
+  const hasCustomRange = Boolean(params.get("from") || params.get("to"));
   const since = params.get("since") ?? (mode === "selected" ? "week" : "all");
-  const level = params.get("level") ?? "all";
   const selectedSourceTypes = parseSourceTypeParam(params.get("sourceTypes"));
 
   const navigate = useCallback(
@@ -54,11 +71,32 @@ export function SearchBar() {
       else next.set(key, value);
     });
 
-  const toggleSourceType = (value: SourceType) =>
+  // Selecting a rolling window clears any custom range (they are mutually exclusive).
+  const selectWindow = (value: string) =>
+    navigate((next) => {
+      next.set("since", value);
+      next.delete("from");
+      next.delete("to");
+    });
+
+  const applyRange = () =>
+    navigate((next) => {
+      if (fromVal) next.set("from", fromVal);
+      else next.delete("from");
+      if (toVal) next.set("to", toVal);
+      else next.delete("to");
+      // A custom range supersedes the rolling window.
+      if (fromVal || toVal) next.delete("since");
+    });
+
+  const toggleSourceGroup = (group: SourceGroup) =>
     navigate((next) => {
       const current = parseSourceTypeParam(next.get("sourceTypes"));
-      if (current.has(value)) current.delete(value);
-      else current.add(value);
+      const turnOff = isGroupActive(current, group);
+      for (const t of groupMembers(group)) {
+        if (turnOff) current.delete(t);
+        else current.add(t);
+      }
       if (current.size === 0) next.delete("sourceTypes");
       // Preserve enum order for a stable URL regardless of click order.
       else next.set("sourceTypes", SOURCE_TYPES.filter((t) => current.has(t)).join(","));
@@ -72,15 +110,18 @@ export function SearchBar() {
 
   const clearAll = () => {
     setText("");
+    setFromVal("");
+    setToVal("");
     router.push("/");
   };
 
   const hasFilters =
     params.get("q") ||
     params.get("tags") ||
-    params.get("level") ||
     params.get("mode") ||
     params.get("since") ||
+    params.get("from") ||
+    params.get("to") ||
     params.get("sourceTypes");
 
   return (
@@ -121,46 +162,56 @@ export function SearchBar() {
           <button
             key={value}
             type="button"
-            className={`chip ${since === value ? "is-active" : ""}`}
-            aria-pressed={since === value}
-            onClick={() => setParam("since", value)}
+            className={`chip ${!hasCustomRange && since === value ? "is-active" : ""}`}
+            aria-pressed={!hasCustomRange && since === value}
+            onClick={() => selectWindow(value)}
           >
             {m.window[value]}
           </button>
         ))}
+        <span className={`chip chip-static ${hasCustomRange ? "is-active" : ""}`} aria-hidden="true">
+          {m.customLabel}
+        </span>
+        <input
+          type="date"
+          className="search-date"
+          value={fromVal}
+          max={toVal || undefined}
+          aria-label={m.dateFromLabel}
+          onChange={(e) => setFromVal(e.target.value)}
+        />
+        <span className="date-sep" aria-hidden="true">
+          –
+        </span>
+        <input
+          type="date"
+          className="search-date"
+          value={toVal}
+          min={fromVal || undefined}
+          aria-label={m.dateToLabel}
+          onChange={(e) => setToVal(e.target.value)}
+        />
+        <button type="button" className="chip" onClick={applyRange}>
+          {m.dateApply}
+        </button>
       </div>
 
-      <div className="filter-group" role="group" aria-label={m.sourceTypeLabel}>
-        <span className="filter-label">{m.sourceTypeLabel}</span>
-        {SOURCE_TYPES.map((value) => {
-          const active = selectedSourceTypes.has(value);
+      <div className="filter-group" role="group" aria-label={m.sourceGroupLabel}>
+        <span className="filter-label">{m.sourceGroupLabel}</span>
+        {SOURCE_GROUPS.map((group) => {
+          const active = isGroupActive(selectedSourceTypes, group);
           return (
             <button
-              key={value}
+              key={group}
               type="button"
               className={`chip ${active ? "is-active" : ""}`}
               aria-pressed={active}
-              onClick={() => toggleSourceType(value)}
+              onClick={() => toggleSourceGroup(group)}
             >
-              {m.sourceType[value]}
+              {m.sourceGroup[group]}
             </button>
           );
         })}
-      </div>
-
-      <div className="filter-group" role="group" aria-label={m.levelLabel}>
-        <span className="filter-label">{m.levelLabel}</span>
-        {LEVELS.map((value) => (
-          <button
-            key={value}
-            type="button"
-            className={`chip ${level === value ? "is-active" : ""}`}
-            aria-pressed={level === value}
-            onClick={() => setParam("level", value === "all" ? undefined : value)}
-          >
-            {m.level[value]}
-          </button>
-        ))}
         {hasFilters && (
           <button type="button" className="chip chip-clear" onClick={clearAll}>
             {m.clear}

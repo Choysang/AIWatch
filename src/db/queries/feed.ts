@@ -87,6 +87,9 @@ export interface FeedFilter {
   sourceTypes?: SourceType[];
   level?: PromotedLevel;
   category?: string;
+  /** Custom date range (overrides `since` when either bound is present). See PublicQuery. */
+  dateFrom?: Date;
+  dateTo?: Date;
 }
 
 /**
@@ -110,8 +113,11 @@ export async function searchEvents(
     conds.push(ne(events.selectedLevel, "none"));
     if (filter.level) conds.push(eq(events.selectedLevel, filter.level));
   }
-  const start = windowStart(filter.since, now);
+  // Custom range (explicit from/to) takes precedence over the rolling `since` window.
+  const customRange = Boolean(filter.dateFrom || filter.dateTo);
+  const start = customRange ? filter.dateFrom : windowStart(filter.since, now);
   if (start) conds.push(sql`${sortKey} >= ${start}`);
+  if (filter.dateTo) conds.push(sql`${sortKey} < ${filter.dateTo}`);
   if (filter.category) conds.push(eq(events.category, filter.category));
   if (filter.tags?.length) {
     conds.push(arrayOverlaps(events.tags, filter.tags));
