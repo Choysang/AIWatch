@@ -67,21 +67,22 @@ describe("buildTimelineTree", () => {
     const tree = buildTimelineTree(events);
 
     expect(tree).toHaveLength(1);
-    expect(tree[0].key).toBe("2026");
-    expect(tree[0].heading).toBe("2026 年");
-    expect(tree[0].count).toBe(3);
+    const year = tree[0]!;
+    expect(year.key).toBe("2026");
+    expect(year.heading).toBe("2026 年");
+    expect(year.count).toBe(3);
 
-    const months = tree[0].months;
+    const months = year.months;
     expect(months).toHaveLength(2);
-    expect(months[0].heading).toBe("6 月");
-    expect(months[0].count).toBe(2);
-    expect(months[1].heading).toBe("5 月");
+    expect(months[0]!.heading).toBe("6 月");
+    expect(months[0]!.count).toBe(2);
+    expect(months[1]!.heading).toBe("5 月");
 
-    const juneWeek = months[0].weeks[0];
+    const juneWeek = months[0]!.weeks[0]!;
     expect(juneWeek.heading).toBe("第23周");
     expect(juneWeek.days).toHaveLength(2);
-    expect(juneWeek.days[0].items[0].id).toBe("e1");
-    expect(juneWeek.days[1].items[0].id).toBe("e2");
+    expect(juneWeek.days[0]!.items[0]!.id).toBe("e1");
+    expect(juneWeek.days[1]!.items[0]!.id).toBe("e2");
   });
 
   test("跨月 ISO 周整周挂在周一所在月（9月的日落在8月桶下）", () => {
@@ -91,13 +92,14 @@ describe("buildTimelineTree", () => {
     ];
     const tree = buildTimelineTree(events);
 
-    expect(tree[0].months).toHaveLength(1);
-    expect(tree[0].months[0].heading).toBe("8 月");
-    const week = tree[0].months[0].weeks[0];
+    const months = tree[0]!.months;
+    expect(months).toHaveLength(1);
+    expect(months[0]!.heading).toBe("8 月");
+    const week = months[0]!.weeks[0]!;
     expect(week.heading).toBe("第36周");
     expect(week.days).toHaveLength(2);
-    expect(week.days[0].heading).toContain("9月2日");
-    expect(week.days[1].heading).toContain("8月31日");
+    expect(week.days[0]!.heading).toContain("9月2日");
+    expect(week.days[1]!.heading).toContain("8月31日");
   });
 
   test("published/promoted 均为 null 时回退到 createdAt", () => {
@@ -109,8 +111,8 @@ describe("buildTimelineTree", () => {
       }),
     ];
     const tree = buildTimelineTree(events);
-    const day = tree[0].months[0].weeks[0].days[0];
-    expect(day.items[0].id).toBe("c1");
+    const day = tree[0]!.months[0]!.weeks[0]!.days[0]!;
+    expect(day.items[0]!.id).toBe("c1");
     expect(day.heading).toContain("6月3日");
   });
 
@@ -121,10 +123,11 @@ describe("buildTimelineTree", () => {
       mk("e3", { publishedAt: at("2026-05-28T04:00:00Z") }),
     ];
     const tree = buildTimelineTree(events);
-    expect(tree[0].count).toBe(3);
-    expect(tree[0].months[0].count).toBe(2);
-    expect(tree[0].months[0].weeks[0].count).toBe(2);
-    expect(tree[0].months[0].weeks[0].days[0].count).toBe(1);
+    const year = tree[0]!;
+    expect(year.count).toBe(3);
+    expect(year.months[0]!.count).toBe(2);
+    expect(year.months[0]!.weeks[0]!.count).toBe(2);
+    expect(year.months[0]!.weeks[0]!.days[0]!.count).toBe(1);
   });
 
   test("onLatestPath 只标记最新事件所在的路径", () => {
@@ -134,13 +137,14 @@ describe("buildTimelineTree", () => {
       mk("e3", { publishedAt: at("2026-05-28T04:00:00Z") }),
     ];
     const tree = buildTimelineTree(events);
-    expect(tree[0].onLatestPath).toBe(true);
-    expect(tree[0].months[0].onLatestPath).toBe(true); // 6月
-    expect(tree[0].months[1].onLatestPath).toBe(false); // 5月
-    const week = tree[0].months[0].weeks[0];
+    const year = tree[0]!;
+    expect(year.onLatestPath).toBe(true);
+    expect(year.months[0]!.onLatestPath).toBe(true); // 6月
+    expect(year.months[1]!.onLatestPath).toBe(false); // 5月
+    const week = year.months[0]!.weeks[0]!;
     expect(week.onLatestPath).toBe(true);
-    expect(week.days[0].onLatestPath).toBe(true); // 6月3日
-    expect(week.days[1].onLatestPath).toBe(false); // 6月2日
+    expect(week.days[0]!.onLatestPath).toBe(true); // 6月3日
+    expect(week.days[1]!.onLatestPath).toBe(false); // 6月2日
   });
 
   test("空输入返回空数组", () => {

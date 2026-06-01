@@ -38,8 +38,8 @@ export interface TimelineYear {
 const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
 
 function parseYmd(ymd: string): { y: number; m: number; d: number } {
-  const [y, m, d] = ymd.split("-").map(Number);
-  return { y, m, d };
+  const parts = ymd.split("-");
+  return { y: Number(parts[0]), m: Number(parts[1]), d: Number(parts[2]) };
 }
 
 /** UTC-midnight instant for a civil YYYY-MM-DD (used only for civil weekday/day math). */
@@ -113,7 +113,8 @@ function buckets(event: EventCard): Buckets {
  */
 export function buildTimelineTree(events: EventCard[]): TimelineYear[] {
   const years: TimelineYear[] = [];
-  const latest = events.length > 0 ? buckets(events[0]) : null;
+  const first = events[0];
+  const latest = first ? buckets(first) : null;
 
   for (const event of events) {
     const b = buckets(event);

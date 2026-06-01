@@ -16,9 +16,10 @@ import { getViewerReactions } from "@/db/queries/reactions";
 import { getTopCommentsForEvents } from "@/db/queries/comments";
 import { messages } from "@/i18n";
 import { parsePublicQuery, type PublicQuery } from "@/public/query";
-import { dayKey, formatDayHeading, formatTimeOfDay } from "@/app/_lib/format";
+import { formatTimeOfDay } from "@/app/_lib/format";
 import { modelAccent } from "@/app/_lib/model-accent";
-import { DaySection } from "./day-section";
+import { buildTimelineTree } from "@/app/_lib/timeline-tree";
+import { CollapsibleGroup } from "./collapsible-group";
 import { EventCard } from "./event-card";
 import { ParticleBackground } from "./particle-background";
 import { SearchBar } from "./search-bar";
@@ -89,29 +90,6 @@ async function loadEvents(query: PublicQuery): Promise<{ events: EventCardData[]
   }
 }
 
-interface DayGroup {
-  key: string;
-  heading: string;
-  items: EventCardData[];
-}
-
-/** Group an already-sorted feed into contiguous day buckets (APP_TZ calendar day). The
- *  feed arrives sorted by effective time, so a single pass keeps each day contiguous. */
-function groupByDay(events: EventCardData[]): DayGroup[] {
-  const groups: DayGroup[] = [];
-  for (const event of events) {
-    const when = event.publishedAt ?? event.promotedAt ?? null;
-    const key = dayKey(when);
-    const last = groups[groups.length - 1];
-    if (last && last.key === key) {
-      last.items.push(event);
-    } else {
-      groups.push({ key, heading: formatDayHeading(when), items: [event] });
-    }
-  }
-  return groups;
-}
-
 async function loadViewerReactions(
   eventIds: string[],
 ): Promise<Map<string, { liked: boolean; starred: boolean }>> {
@@ -166,6 +144,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           <Link href="/reports">{m.nav.reports}</Link>
           <Link href="/changelog">{m.nav.changelog}</Link>
           <Link href="/about">{m.nav.about}</Link>
+          <Link href="/recommend-source">{m.nav.recommendSource}</Link>
           <Link href="/feedback">{m.nav.feedback}</Link>
         </nav>
       </header>
@@ -185,35 +164,76 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <div className="empty">{isFiltered ? m.search.empty : m.home.empty}</div>
       ) : (
         <div className="feed">
-          {groupByDay(events).map((group) => (
-            <DaySection key={group.key} heading={group.heading} count={group.items.length}>
-              {group.items.map((event) => {
-                const r = reactions.get(event.id) ?? { liked: false, starred: false };
-                const accent = modelAccent(event);
-                const when = event.publishedAt ?? event.promotedAt ?? null;
-                return (
-                  <div
-                    key={event.id}
-                    className="tl-row"
-                    style={{ "--card-accent": accent.rgb } as CSSProperties}
-                  >
-                    <div className="tl-rail">
-                      <time className="tl-time">{formatTimeOfDay(when)}</time>
-                    </div>
-                    <span className="tl-dot" aria-hidden="true" />
-                    <SpotlightCard accentRgb={accent.rgb} emphasis={cardEmphasis(event)}>
-                      <EventCard
-                        event={event}
-                        liked={r.liked}
-                        starred={r.starred}
-                        accentLabel={accent.label}
-                        topComments={topComments.get(event.id)}
-                      />
-                    </SpotlightCard>
-                  </div>
-                );
-              })}
-            </DaySection>
+          {buildTimelineTree(events).map((year) => (
+            <CollapsibleGroup
+              key={year.key}
+              level="year"
+              heading={year.heading}
+              count={year.count}
+              defaultCollapsed={!year.onLatestPath}
+            >
+              {year.months.map((month) => (
+                <CollapsibleGroup
+                  key={month.key}
+                  level="month"
+                  heading={month.heading}
+                  count={month.count}
+                  defaultCollapsed={!month.onLatestPath}
+                >
+                  {month.weeks.map((week) => (
+                    <CollapsibleGroup
+                      key={week.key}
+                      level="week"
+                      heading={week.heading}
+                      count={week.count}
+                      defaultCollapsed={!week.onLatestPath}
+                    >
+                      {week.days.map((day) => (
+                        <CollapsibleGroup
+                          key={day.key}
+                          level="day"
+                          heading={day.heading}
+                          count={day.count}
+                          defaultCollapsed={!day.onLatestPath}
+                        >
+                          {day.items.map((event) => {
+                            const r =
+                              reactions.get(event.id) ?? { liked: false, starred: false };
+                            const accent = modelAccent(event);
+                            const when =
+                              event.publishedAt ?? event.promotedAt ?? event.createdAt;
+                            return (
+                              <div
+                                key={event.id}
+                                className="tl-row"
+                                style={{ "--card-accent": accent.rgb } as CSSProperties}
+                              >
+                                <div className="tl-rail">
+                                  <time className="tl-time">{formatTimeOfDay(when)}</time>
+                                </div>
+                                <span className="tl-dot" aria-hidden="true" />
+                                <SpotlightCard
+                                  accentRgb={accent.rgb}
+                                  emphasis={cardEmphasis(event)}
+                                >
+                                  <EventCard
+                                    event={event}
+                                    liked={r.liked}
+                                    starred={r.starred}
+                                    accentLabel={accent.label}
+                                    topComments={topComments.get(event.id)}
+                                  />
+                                </SpotlightCard>
+                              </div>
+                            );
+                          })}
+                        </CollapsibleGroup>
+                      ))}
+                    </CollapsibleGroup>
+                  ))}
+                </CollapsibleGroup>
+              ))}
+            </CollapsibleGroup>
           ))}
         </div>
       )}
