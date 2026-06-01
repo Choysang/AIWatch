@@ -9,6 +9,18 @@ const sourceRecommendation = z.object({
   url: z.string().url(),
   name: z.string().min(1).max(200).optional(),
   platform: z.string().max(40).optional(),
+  handle: z.string().max(120).optional(),
+  sourceProfile: z
+    .enum([
+      "official_first_party",
+      "core_people",
+      "community_practice",
+      "media_info",
+      "technical_supplement",
+    ])
+    .optional(),
+  recommendedBy: z.string().max(120).optional(),
+  recommendReason: z.string().max(1000).optional(),
   categories: z.array(z.string().min(1).max(40)).max(10).optional(),
 });
 

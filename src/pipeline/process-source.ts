@@ -28,9 +28,11 @@ import { scoringConfig } from "@/scoring/config";
 import { externalHeatScore } from "@/scoring/external-heat";
 import { coldJudgeSchema, type ColdJudge } from "./judge-schema";
 import { normalizePost } from "./normalize";
+import { isBeforeSourceOnboarding } from "./onboarding-cutoff";
 
 export interface ProcessSummary {
   fetched: number;
+  skippedBeforeOnboarded: number; // published before the source was added for monitoring
   dropped: number; // failed the $0 gate
   duplicates: number; // post already seen for this source
   merged: number; // attached to an existing event (same canonical URL)
@@ -141,6 +143,7 @@ export async function processSource(
 
   const summary: ProcessSummary = {
     fetched: rawPosts.length,
+    skippedBeforeOnboarded: 0,
     dropped: 0,
     duplicates: 0,
     merged: 0,
@@ -153,6 +156,11 @@ export async function processSource(
   };
 
   for (const raw of rawPosts) {
+    if (isBeforeSourceOnboarding(source, raw)) {
+      summary.skippedBeforeOnboarded++;
+      continue;
+    }
+
     if (!deterministicGate({ title: raw.rawTitle, content: raw.rawContent }).pass) {
       summary.dropped++;
       continue;
@@ -203,7 +211,7 @@ export async function processSource(
       await createEventFromPost(
         {
           source: { id: source.id, level: source.level },
-          post: { id: post.id, publishedAt: raw.publishedAt ?? null },
+          post: { id: post.id, publishedAt: raw.publishedAt ?? null, media: raw.media ?? null },
           judgment,
           routing: {
             provider: provider.name,

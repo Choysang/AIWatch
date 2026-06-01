@@ -1,4 +1,4 @@
-// Admin console — source health (Slice 0 scope). The folder is `%5Fadmin` so the App
+// Admin console. The folder is `%5Fadmin` so the App
 // Router serves it at the literal URL `/_admin` (a plain `_admin` folder would be a
 // private, non-routable folder). Unlinked from public nav (decision B); requires login
 // + a console role (decision 10).
@@ -6,14 +6,15 @@
 import { redirect } from "next/navigation";
 import { formatDateTime } from "@/app/_lib/format";
 import { getSession, isConsoleRole } from "@/app/_lib/session";
-import { listAuditLogs, type AuditRow } from "@/db/queries/audit";
+import { can } from "@/auth/rbac";
 import { listContributions, type ContributionRow } from "@/db/queries/contributions";
+import { listFeedback, type FeedbackRow } from "@/db/queries/feedback";
 import { listPromotedEvents, type PromotedEventRow } from "@/db/queries/promotions";
 import { listRecentReports, type AdminReportRow } from "@/db/queries/public-reports";
-import { listSourceHealth, type SourceHealthRow } from "@/db/queries/sources";
+import { listManagedSources } from "@/db/queries/sources";
 import { messages } from "@/i18n";
-import type { ContributionStatus } from "@/contributions/types";
-import type { ReviewAction } from "@/contributions/review";
+import { SourceManagementSection } from "./sources/source-management";
+import type { SourceRecommendationReviewItem } from "./sources/source-review-dialog";
 
 // Admin console: titled for the operator, but never indexed (unlinked from public nav).
 export const metadata = {
@@ -21,22 +22,39 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-// Actions offered per status, matching the review state machine (src/contributions/review.ts).
-// `apply` is only meaningful for source recommendations (the only auto-appliable kind in V1).
-const ACTIONS_BY_STATUS: Record<ContributionStatus, ReviewAction[]> = {
-  submitted: ["triage", "approve", "reject"],
-  triaged: ["approve", "reject"],
-  approved: ["apply", "reject"],
-  rejected: [],
-  applied: [],
-};
-
-function availableActions(row: ContributionRow): ReviewAction[] {
-  const actions = ACTIONS_BY_STATUS[row.status];
-  return actions.filter((a) => (a === "apply" ? row.kind === "source_recommendation" : true));
-}
-
 export const dynamic = "force-dynamic";
+
+function sourceReviewItem(row: ContributionRow): SourceRecommendationReviewItem | null {
+  if (row.kind !== "source_recommendation") return null;
+  if (row.status === "rejected" || row.status === "applied") return null;
+  const change = row.proposedChange && typeof row.proposedChange === "object"
+    ? (row.proposedChange as Record<string, unknown>)
+    : {};
+  const url = typeof change.url === "string" ? change.url : "";
+  if (!url) return null;
+  const categories = Array.isArray(change.categories)
+    ? change.categories.filter((v): v is string => typeof v === "string")
+    : [];
+
+  return {
+    id: row.id,
+    name: typeof change.name === "string" ? change.name : url,
+    platform: typeof change.platform === "string" ? change.platform : "x",
+    sourceProfile: typeof change.sourceProfile === "string" ? change.sourceProfile : "community_practice",
+    handle: typeof change.handle === "string" ? change.handle : "",
+    url,
+    recommendedBy:
+      typeof change.recommendedBy === "string"
+        ? change.recommendedBy
+        : row.contributorContact ?? row.contributorUserId ?? "",
+    recommendReason:
+      typeof change.recommendReason === "string"
+        ? change.recommendReason
+        : row.reason ?? categories.join(", "),
+    contact: row.contributorContact ?? "",
+    createdAt: formatDateTime(row.createdAt),
+  };
+}
 
 export default async function AdminPage() {
   const session = await getSession();
@@ -45,83 +63,41 @@ export default async function AdminPage() {
   const role = (session.user as { role?: string }).role;
   if (!isConsoleRole(role)) {
     return (
-      <main className="page">
+      <main className="page admin-page">
         <p>{messages.admin.loginRequired}</p>
       </main>
     );
   }
 
-  const [rows, promoted, reports, contributions, audit] = await Promise.all([
-    listSourceHealth(),
+  const [sources, promoted, reports, feedback, contributions] = await Promise.all([
+    listManagedSources(),
     listPromotedEvents(),
     listRecentReports(),
+    listFeedback(),
     listContributions(),
-    listAuditLogs(),
   ]);
-  const c = messages.admin.columns;
   const pc = messages.admin.promotionColumns;
   const rc = messages.admin.reportColumns;
-  const cc = messages.admin.contributionColumns;
-  const ac = messages.admin.auditColumns;
+  const fc = messages.admin.feedbackColumns;
+  const canModerateSources = can(role, "source.moderate");
+  const sourceReviewItems = contributions
+    .map(sourceReviewItem)
+    .filter((item): item is SourceRecommendationReviewItem => item !== null);
 
   return (
-    <main className="page">
+    <main className="page admin-page">
       <header className="masthead">
         <h1 style={{ fontSize: "1.8rem" }}>{messages.admin.title}</h1>
-        <span className="tagline">{messages.admin.sourceHealth}</span>
+        <nav>
+          <span className="tagline">信源、精选、报告与审核</span>
+        </nav>
       </header>
 
-      {rows.length === 0 ? (
-        <div className="empty">{messages.admin.empty}</div>
-      ) : (
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>{c.name}</th>
-              <th>{c.platform}</th>
-              <th>{c.level}</th>
-              <th>{c.connector}</th>
-              <th>{c.enabled}</th>
-              <th>{c.health}</th>
-              <th>{c.lastFetch}</th>
-              <th>{c.nextFetch}</th>
-              <th>{c.failures}</th>
-              <th>{c.lastError}</th>
-              <th>{c.review}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row: SourceHealthRow) => (
-              <tr key={row.id}>
-                <td>{row.name}</td>
-                <td>{row.platform}</td>
-                <td>{row.level}</td>
-                <td>{row.connectorType}</td>
-                <td>{row.enabled ? "✓" : "—"}</td>
-                <td>
-                  <span className={`pill ${row.healthStatus}`}>{row.healthStatus}</span>
-                </td>
-                <td>{formatDateTime(row.lastFetchAt)}</td>
-                <td>{formatDateTime(row.nextFetchAt)}</td>
-                <td>{row.failureCount}</td>
-                <td style={{ color: "var(--ink-faint)", maxWidth: 240 }}>{row.lastError ?? ""}</td>
-                <td>
-                  {row.reviewReason ? (
-                    <span className="pill paused" title={formatDateTime(row.reviewSuggestedAt)}>
-                      {messages.admin.reviewSuggest}：
-                      {messages.admin.reviewReason[
-                        row.reviewReason as keyof typeof messages.admin.reviewReason
-                      ] ?? row.reviewReason}
-                    </span>
-                  ) : (
-                    ""
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <SourceManagementSection
+        rows={sources}
+        reviewItems={sourceReviewItems}
+        canModerateSources={canModerateSources}
+      />
 
       <h2 style={{ fontFamily: "var(--font-serif)", marginTop: "3rem" }}>
         {messages.admin.promotions}
@@ -200,87 +176,28 @@ export default async function AdminPage() {
       )}
 
       <h2 style={{ fontFamily: "var(--font-serif)", marginTop: "3rem" }}>
-        {messages.admin.contributions}
+        {messages.admin.feedback}
       </h2>
-      {contributions.length === 0 ? (
-        <div className="empty">{messages.admin.noContributions}</div>
+      {feedback.length === 0 ? (
+        <div className="empty">{messages.admin.noFeedback}</div>
       ) : (
         <table className="admin-table">
           <thead>
             <tr>
-              <th>{cc.kind}</th>
-              <th>{cc.target}</th>
-              <th>{cc.status}</th>
-              <th>{cc.reason}</th>
-              <th>{cc.contributor}</th>
-              <th>{cc.createdAt}</th>
-              <th>{cc.actions}</th>
+              <th>{fc.body}</th>
+              <th>{fc.contact}</th>
+              <th>{fc.fingerprint}</th>
+              <th>{fc.createdAt}</th>
             </tr>
           </thead>
           <tbody>
-            {contributions.map((row: ContributionRow) => (
+            {feedback.map((row: FeedbackRow) => (
               <tr key={row.id}>
-                <td>{messages.admin.contributionKind[row.kind]}</td>
+                <td style={{ maxWidth: 520 }}>{row.body}</td>
+                <td style={{ color: "var(--ink-faint)" }}>{row.contact ?? ""}</td>
                 <td style={{ color: "var(--ink-faint)" }}>
-                  {row.targetType}
-                  {row.targetId ? ` · ${row.targetId}` : ""}
+                  {row.fingerprint ? row.fingerprint.slice(0, 12) : messages.admin.feedbackAnon}
                 </td>
-                <td>
-                  <span className={`pill ${row.status === "applied" ? "healthy" : "degraded"}`}>
-                    {messages.admin.contributionStatus[row.status]}
-                  </span>
-                </td>
-                <td style={{ color: "var(--ink-faint)", maxWidth: 280 }}>{row.reason ?? ""}</td>
-                <td style={{ color: "var(--ink-faint)" }}>
-                  {row.contributorUserId ??
-                    (row.contributorFingerprint
-                      ? `${messages.admin.contributionAnon} · ${row.contributorFingerprint.slice(0, 8)}`
-                      : messages.admin.contributionAnon)}
-                </td>
-                <td>{formatDateTime(row.createdAt)}</td>
-                <td>
-                  <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
-                    {availableActions(row).map((action) => (
-                      <form key={action} method="post" action={`/api/_admin/contributions/${row.id}`}>
-                        <input type="hidden" name="action" value={action} />
-                        <button type="submit" className="admin-action">
-                          {messages.admin.contributionActions[action]}
-                        </button>
-                      </form>
-                    ))}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      <h2 style={{ fontFamily: "var(--font-serif)", marginTop: "3rem" }}>{messages.admin.audit}</h2>
-      {audit.length === 0 ? (
-        <div className="empty">{messages.admin.noAudit}</div>
-      ) : (
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>{ac.action}</th>
-              <th>{ac.actor}</th>
-              <th>{ac.target}</th>
-              <th>{ac.reason}</th>
-              <th>{ac.createdAt}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {audit.map((row: AuditRow) => (
-              <tr key={row.id}>
-                <td>{row.action}</td>
-                <td style={{ color: "var(--ink-faint)" }}>
-                  {row.actorId ?? messages.admin.auditSystemActor}
-                </td>
-                <td style={{ color: "var(--ink-faint)" }}>
-                  {row.targetType ? `${row.targetType}${row.targetId ? ` · ${row.targetId}` : ""}` : ""}
-                </td>
-                <td style={{ color: "var(--ink-faint)", maxWidth: 280 }}>{row.reason ?? ""}</td>
                 <td>{formatDateTime(row.createdAt)}</td>
               </tr>
             ))}

@@ -60,4 +60,19 @@ describe("parseFeed", () => {
     const posts = parseFeed(`<rss version="2.0"><channel><title>x</title></channel></rss>`);
     expect(posts).toEqual([]);
   });
+
+  test("extracts image media from RSSHub-style feed entries", () => {
+    const posts = parseFeed(`<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
+  <channel>
+    <item>
+      <title>Image post</title>
+      <link>https://x.com/OpenAI/status/123</link>
+      <description><![CDATA[New release <img src="https://pbs.twimg.com/media/demo.jpg" />]]></description>
+      <media:content url="https://pbs.twimg.com/media/demo.jpg" medium="image" />
+    </item>
+  </channel>
+</rss>`);
+    expect(posts[0]!.media).toEqual({ url: "https://pbs.twimg.com/media/demo.jpg" });
+  });
 });

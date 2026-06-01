@@ -7,7 +7,16 @@ describe("parseSubmission — source_recommendation", () => {
     const r = parseSubmission({
       kind: "source_recommendation",
       reason: "great firsthand model news",
-      proposedChange: { url: "https://openai.com/blog", name: "OpenAI Blog", categories: ["模型"] },
+      proposedChange: {
+        url: "https://openai.com/blog",
+        name: "OpenAI Blog",
+        platform: "blog",
+        sourceProfile: "official_first_party",
+        handle: "@OpenAI",
+        recommendedBy: "reader",
+        recommendReason: "firsthand release notes",
+        categories: ["模型"],
+      },
     });
     expect(r.kind).toBe("source_recommendation");
     expect(r.targetType).toBe("source");
@@ -15,6 +24,11 @@ describe("parseSubmission — source_recommendation", () => {
     expect(r.proposedChange).toEqual({
       url: "https://openai.com/blog",
       name: "OpenAI Blog",
+      platform: "blog",
+      sourceProfile: "official_first_party",
+      handle: "@OpenAI",
+      recommendedBy: "reader",
+      recommendReason: "firsthand release notes",
       categories: ["模型"],
     });
   });

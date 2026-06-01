@@ -15,6 +15,7 @@ export interface ContributionRow {
   status: ContributionStatus;
   contributorUserId: string | null;
   contributorFingerprint: string | null;
+  contributorContact: string | null;
   reviewNote: string | null;
   appliedTargetId: string | null;
   createdAt: Date;
@@ -34,6 +35,7 @@ export async function listContributions(take = 50, db: DB = defaultDb): Promise<
       status: contributions.status,
       contributorUserId: contributions.contributorUserId,
       contributorFingerprint: contributions.contributorFingerprint,
+      contributorContact: contributions.contributorContact,
       reviewNote: contributions.reviewNote,
       appliedTargetId: contributions.appliedTargetId,
       createdAt: contributions.createdAt,

@@ -14,7 +14,10 @@ export type ConnectorType =
   | "huggingface"
   | "reddit"
   | "rsshub"
-  | "mock";
+  | "mock"
+  // Hand-curated source: nothing is auto-fetched. Posts are entered by an operator
+  // (admin manual-entry, Task 3) and the cron crawl is a safe no-op (fetch -> []).
+  | "manual";
 
 /** A raw item fetched from a source, before gate/dedup/judgment. */
 export interface RawPost {

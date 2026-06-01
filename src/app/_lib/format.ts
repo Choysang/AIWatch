@@ -19,6 +19,13 @@ export function formatDateTime(value: Date | string | null | undefined): string 
   return dateTimeFmt.format(date);
 }
 
+const dateOnlyFmt = new Intl.DateTimeFormat("zh-CN", {
+  timeZone: APP_TZ,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
 // --- day grouping (sticky date headers + per-day collapse on the feed) ---
 // dayKey is the stable grouping key (APP_TZ calendar day, YYYY-MM-DD); dayHeading is the
 // human label. Both render in APP_TZ so a day boundary matches what the reader sees.
@@ -40,6 +47,11 @@ function toDate(value: Date | string | null | undefined): Date | null {
   if (!value) return null;
   const date = value instanceof Date ? value : new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export function formatDateOnly(value: Date | string | null | undefined): string {
+  const date = toDate(value);
+  return date ? dateOnlyFmt.format(date) : "";
 }
 
 /** Stable per-day grouping key in APP_TZ (YYYY-MM-DD). "unknown" when the date is missing. */

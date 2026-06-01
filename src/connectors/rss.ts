@@ -44,6 +44,40 @@ function pickLink(entry: Record<string, unknown>): string | null {
   return null;
 }
 
+function isImageUrl(value: unknown): value is string {
+  return typeof value === "string" && /^https?:\/\//i.test(value);
+}
+
+function imageFromObject(value: unknown): string | null {
+  if (!value || typeof value !== "object") return null;
+  const obj = value as Record<string, unknown>;
+  if (isImageUrl(obj["@_url"])) return obj["@_url"];
+  if (isImageUrl(obj["@_href"])) return obj["@_href"];
+  if (isImageUrl(obj.url)) return obj.url;
+  return null;
+}
+
+function imageFromHtml(value: string | null): string | null {
+  if (!value) return null;
+  const match = value.match(/<img\b[^>]*\bsrc=["']([^"']+)["']/i);
+  return isImageUrl(match?.[1]) ? match[1] : null;
+}
+
+function pickImage(entry: Record<string, unknown>, rawContent: string | null): { url: string } | null {
+  const mediaContent = toArray(entry["media:content"] as unknown);
+  for (const media of mediaContent) {
+    const url = imageFromObject(media);
+    if (url) return { url };
+  }
+  const enclosures = toArray(entry.enclosure as unknown);
+  for (const enclosure of enclosures) {
+    const url = imageFromObject(enclosure);
+    if (url) return { url };
+  }
+  const inline = imageFromHtml(rawContent);
+  return inline ? { url: inline } : null;
+}
+
 /** Pure: parse a feed XML string into RawPost[]. The unit-testable core of the connector. */
 export function parseFeed(xml: string): RawPost[] {
   const doc = parser.parse(xml) as Record<string, unknown>;
@@ -62,18 +96,19 @@ export function parseFeed(xml: string): RawPost[] {
       (item.author && typeof item.author === "object"
         ? asText((item.author as Record<string, unknown>).name)
         : null);
+    const rawContent =
+      asText(item.description) ??
+      asText(item["content:encoded"]) ??
+      asText(item.content) ??
+      asText(item.summary);
     return {
       externalId: asText(item.guid) ?? asText(item.id) ?? pickLink(item),
       authorName: author,
       authorHandle: null,
       url: pickLink(item),
       rawTitle: asText(item.title),
-      rawContent:
-        asText(item.description) ??
-        asText(item["content:encoded"]) ??
-        asText(item.content) ??
-        asText(item.summary),
-      media: null,
+      rawContent,
+      media: pickImage(item, rawContent),
       publicMetrics: null,
       publishedAt: parseDate(item.pubDate) ?? parseDate(item.published) ?? parseDate(item.updated),
     } satisfies RawPost;

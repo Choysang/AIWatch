@@ -2,6 +2,7 @@
 // Wired: mock + rss + rsshub (hard tier). Remaining hard-tier types (reddit/github/...)
 // land in later slices and fail closed with a clear message until implemented.
 
+import { ManualConnector } from "./manual";
 import { MockConnector } from "./mock";
 import { RssConnector } from "./rss";
 import { RsshubConnector } from "./rsshub";
@@ -13,6 +14,8 @@ const registry: Partial<Record<ConnectorType, SourceConnector>> = {
   // RSSHub reads RSSHUB_BASE_URL lazily at fetch time, so a single shared instance is fine;
   // it fails closed (per source) when the base URL is unset.
   rsshub: new RsshubConnector(),
+  // Hand-curated sources: fetch -> [] so the scheduled crawl never fabricates content.
+  manual: new ManualConnector(),
 };
 
 export function getConnector(type: ConnectorType): SourceConnector {

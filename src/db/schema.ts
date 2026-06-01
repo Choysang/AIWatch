@@ -32,7 +32,7 @@ export const sourceTypeEnum = pgEnum("source_type", [
 ]);
 export const sourceLevelEnum = pgEnum("source_level", ["L1", "L2", "L3", "L4", "L5"]);
 export const connectorTypeEnum = pgEnum("connector_type", [
-  "rss", "github", "hn", "youtube_rss", "huggingface", "reddit", "rsshub", "mock",
+  "rss", "github", "hn", "youtube_rss", "huggingface", "reddit", "rsshub", "mock", "manual",
 ]);
 export const healthStatusEnum = pgEnum("health_status", ["healthy", "degraded", "paused", "disabled"]);
 export const titleSourceEnum = pgEnum("title_source", ["original", "first_sentence", "ai_generated"]);
@@ -79,6 +79,13 @@ export const sources = pgTable(
     connectorType: connectorTypeEnum("connector_type").notNull(),
     connectorRef: text("connector_ref"), // url / handle / rsshub route
     categories: text("categories").array().notNull().default(sql`'{}'::text[]`),
+    // Curated provenance ("田区"/source-info card, Task 3). Human-authored, admin-managed:
+    // these are why a manually-onboarded source (e.g. an X account) is on the watch list.
+    // All nullable — legacy/auto sources carry none. Shown on the reader card's source block.
+    brandTag: text("brand_tag"), // 信源标签 (e.g. "OpenAI")
+    recommendedBy: text("recommended_by"), // 推荐人名称
+    recommendReason: text("recommend_reason"), // 推荐理由 (source-level, not event-level)
+    onboardedAt: ts("onboarded_at"), // 接入日期
     enabled: boolean("enabled").notNull().default(true),
     archivedAt: ts("archived_at"),
     fetchFrequency: interval("fetch_frequency").notNull().default("30 minutes"),

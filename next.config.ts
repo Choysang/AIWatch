@@ -4,6 +4,7 @@ import type { NextConfig } from "next";
 // so Next never compiles it. Keep shared logic in framework-agnostic src/ modules.
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  devIndicators: false,
 };
 
 export default nextConfig;

@@ -37,7 +37,10 @@ export async function attachPostToEvent(
 
 export interface CreateEventInput {
   source: { id: string; level: SourceLevel };
-  post: { id: string; publishedAt: Date | null };
+  // media is denormalized onto the event (events holds the hot read fields the card needs):
+  // the reader feed selects events.media, so the post's extracted image must ride along here
+  // or it never reaches the card.
+  post: { id: string; publishedAt: Date | null; media?: unknown };
   judgment: ColdJudge;
   routing: {
     provider: string;
@@ -75,6 +78,7 @@ export async function createEventFromPost(
       tags: judgment.tags,
       mainSourceId: input.source.id,
       mainPostId: input.post.id,
+      media: input.post.media ?? null,
       qualityScore: Math.round(scoring.qualityScore),
       rankScore: scoring.rankScore,
       publishedAt: input.post.publishedAt,

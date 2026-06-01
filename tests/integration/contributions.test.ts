@@ -1,7 +1,7 @@
 // Integration test for the contribution lifecycle against real Postgres (decision H/14).
 // Covers submit -> triage -> approve -> apply through the DB, RBAC enforcement, the review
-// state machine, audit-row provenance, and that applying a source recommendation creates a
-// DISABLED source (nothing goes live without an admin enabling it).
+// state machine, audit-row provenance, and that applying a source recommendation creates an
+// enabled managed source.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
@@ -114,13 +114,13 @@ describe("review lifecycle", () => {
     expect(applied.status).toBe("applied");
     expect(applied.appliedTargetId).toBeTruthy();
 
-    // Apply created a DISABLED source pointing at the recommended feed.
+    // Apply created an enabled source pointing at the recommended feed.
     const src = await getDb()
       .select()
       .from(schema.sources)
       .where(eq(schema.sources.id, applied.appliedTargetId!));
     expect(src).toHaveLength(1);
-    expect(src[0]!.enabled).toBe(false);
+    expect(src[0]!.enabled).toBe(true);
     expect(src[0]!.url).toBe("https://example.com/feed.xml");
     expect(src[0]!.connectorRef).toBe("https://example.com/feed.xml");
 

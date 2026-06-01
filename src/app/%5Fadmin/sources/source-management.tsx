@@ -1,0 +1,216 @@
+import { formatDateOnly } from "@/app/_lib/format";
+import type { ManagedSourceRow } from "@/db/queries/sources";
+import { SourceAddDialog } from "./source-add-dialog";
+import { SourceReviewDialog, type SourceRecommendationReviewItem } from "./source-review-dialog";
+import { SourceBulkDeleteButton, SourceSelectAll, SourceTableResize } from "./source-selection";
+
+const CONNECTOR_LABELS = [
+  "rss",
+  "github",
+  "hn",
+  "youtube_rss",
+  "huggingface",
+  "reddit",
+  "rsshub",
+  "mock",
+  "manual",
+] as const;
+const BULK_DELETE_FORM_ID = "source-bulk-delete-form";
+const SOURCES_TABLE_ID = "managed-sources-table";
+
+const PLATFORM_LABEL: Record<string, string> = {
+  x: "X / Twitter",
+  github: "GitHub",
+  reddit: "Reddit",
+  hackernews: "Hacker News",
+  blog: "博客",
+  zhihu: "知乎",
+  csdn: "CSDN",
+  rss: "RSS",
+  news: "新闻站",
+  youtube: "YouTube",
+  bilibili: "哔哩哔哩",
+  huggingface: "Hugging Face",
+  weibo: "微博",
+};
+
+const CONNECTOR_LABEL: Record<(typeof CONNECTOR_LABELS)[number], string> = {
+  rss: "RSS 订阅（网站自带更新源）",
+  github: "GitHub（暂未接入）",
+  hn: "Hacker News（暂未接入）",
+  youtube_rss: "YouTube RSS（暂未接入）",
+  huggingface: "Hugging Face（暂未接入）",
+  reddit: "Reddit（暂未接入）",
+  rsshub: "RSSHub（适合 X、知乎、微博、B站）",
+  mock: "演示数据（本地测试）",
+  manual: "手动补录（不自动抓取）",
+};
+
+const SOURCE_PROFILE_LABEL = {
+  official_first_party: "一手官方（官网、官方账号）",
+  core_people: "核心人物（创始人、研究/产品/工程负责人）",
+  community_practice: "社区实践（开发者、社区讨论、开源项目）",
+  media_info: "媒体资讯（媒体、行业报道）",
+  technical_supplement: "技术补充（教程、经验、长尾博客）",
+};
+
+function platformLabel(value: string): string {
+  return PLATFORM_LABEL[value] ?? value;
+}
+
+function connectorLabel(value: string): string {
+  return CONNECTOR_LABEL[value as (typeof CONNECTOR_LABELS)[number]] ?? value;
+}
+
+function sourceProfileLabel(sourceType: string, level: string): string {
+  if (level === "L1") return SOURCE_PROFILE_LABEL.official_first_party;
+  if (level === "L2") return SOURCE_PROFILE_LABEL.core_people;
+  if (level === "L4") return SOURCE_PROFILE_LABEL.media_info;
+  if (level === "L5") return SOURCE_PROFILE_LABEL.technical_supplement;
+  if (sourceType === "open_source_project" || sourceType === "community" || sourceType === "kol") {
+    return SOURCE_PROFILE_LABEL.community_practice;
+  }
+  return `${level} ${sourceType}`;
+}
+
+function sourceStatus(row: ManagedSourceRow): { label: string; className: string; title: string } {
+  if (!row.enabled || row.healthStatus === "paused") {
+    return { label: "停用", className: "paused", title: "已停用，不会自动抓取" };
+  }
+  if (row.healthStatus === "healthy") {
+    return { label: "正常", className: "healthy", title: "最近抓取请求正常" };
+  }
+  return {
+    label: "不可用",
+    className: "unavailable",
+    title: row.lastError ? `最近错误：${row.lastError}` : "最近抓取请求不可用，暂无错误详情",
+  };
+}
+
+function HeaderCell(props: { children: React.ReactNode; colIndex: number; className?: string }) {
+  return (
+    <th className={props.className}>
+      <span>{props.children}</span>
+      <span className="admin-col-resizer" data-col-index={props.colIndex} aria-hidden="true" />
+    </th>
+  );
+}
+
+export function SourceManagementSection(props: {
+  rows: ManagedSourceRow[];
+  reviewItems: SourceRecommendationReviewItem[];
+  canModerateSources: boolean;
+}) {
+  const { rows, reviewItems, canModerateSources } = props;
+
+  return (
+    <section className="admin-section">
+      <div className="admin-section-head">
+        <h2>已接入信源</h2>
+        <div className="admin-section-actions">
+          {canModerateSources ? <SourceAddDialog /> : null}
+          {canModerateSources ? <SourceReviewDialog items={reviewItems} /> : null}
+          {canModerateSources && rows.length > 0 ? (
+            <>
+              <form id={BULK_DELETE_FORM_ID} method="post" action="/api/_admin/sources">
+                <input name="_action" type="hidden" value="delete" />
+              </form>
+              <SourceBulkDeleteButton formId={BULK_DELETE_FORM_ID} />
+            </>
+          ) : null}
+        </div>
+      </div>
+      {rows.length === 0 ? (
+        <div className="empty">暂无信源</div>
+      ) : (
+        <div className="admin-table-wrap admin-sources-table-wrap">
+          <SourceTableResize tableId={SOURCES_TABLE_ID} />
+          <table className="admin-table admin-resizable-table admin-sources-table" id={SOURCES_TABLE_ID}>
+            <colgroup>
+              {canModerateSources ? <col data-col-index={0} style={{ width: "3%" }} /> : null}
+              <col data-col-index={canModerateSources ? 1 : 0} style={{ width: canModerateSources ? "14%" : "15%" }} />
+              <col data-col-index={canModerateSources ? 2 : 1} style={{ width: canModerateSources ? "9%" : "10%" }} />
+              <col data-col-index={canModerateSources ? 3 : 2} style={{ width: "15%" }} />
+              <col data-col-index={canModerateSources ? 4 : 3} style={{ width: canModerateSources ? "17%" : "20%" }} />
+              <col data-col-index={canModerateSources ? 5 : 4} style={{ width: canModerateSources ? "7%" : "8%" }} />
+              <col data-col-index={canModerateSources ? 6 : 5} style={{ width: canModerateSources ? "15%" : "17%" }} />
+              <col data-col-index={canModerateSources ? 7 : 6} style={{ width: "7%" }} />
+              <col data-col-index={canModerateSources ? 8 : 7} style={{ width: "8%" }} />
+              {canModerateSources ? <col data-col-index={9} style={{ width: "5%" }} /> : null}
+            </colgroup>
+            <thead>
+              <tr>
+                {canModerateSources ? (
+                  <HeaderCell className="admin-select-col" colIndex={0}>
+                    <SourceSelectAll formId={BULK_DELETE_FORM_ID} />
+                  </HeaderCell>
+                ) : null}
+                <HeaderCell colIndex={canModerateSources ? 1 : 0}>名称</HeaderCell>
+                <HeaderCell colIndex={canModerateSources ? 2 : 1}>平台</HeaderCell>
+                <HeaderCell colIndex={canModerateSources ? 3 : 2}>信源定位</HeaderCell>
+                <HeaderCell colIndex={canModerateSources ? 4 : 3}>抓取方式</HeaderCell>
+                <HeaderCell colIndex={canModerateSources ? 5 : 4}>状态</HeaderCell>
+                <HeaderCell colIndex={canModerateSources ? 6 : 5}>推荐理由</HeaderCell>
+                <HeaderCell colIndex={canModerateSources ? 7 : 6}>推荐人</HeaderCell>
+                <HeaderCell colIndex={canModerateSources ? 8 : 7}>接入日期</HeaderCell>
+                {canModerateSources ? <HeaderCell colIndex={9}>操作</HeaderCell> : null}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => {
+                const status = sourceStatus(row);
+                return (
+                  <tr key={row.id}>
+                    {canModerateSources ? (
+                      <td className="admin-select-col">
+                        <input
+                          aria-label={`选择信源 ${row.name}`}
+                          form={BULK_DELETE_FORM_ID}
+                          name="sourceIds"
+                          type="checkbox"
+                          value={row.id}
+                        />
+                      </td>
+                    ) : null}
+                    <td>
+                      <strong>{row.name}</strong>
+                      <div className="admin-muted">{row.handle ?? row.url ?? ""}</div>
+                    </td>
+                    <td>{platformLabel(row.platform)}</td>
+                    <td>{sourceProfileLabel(row.sourceType, row.level)}</td>
+                    <td>
+                      {connectorLabel(row.connectorType)}
+                      <div className="admin-muted">{row.connectorRef ?? ""}</div>
+                    </td>
+                    <td>
+                      <span className={`pill ${status.className}`} title={status.title}>
+                        {status.label}
+                      </span>
+                    </td>
+                    <td className="admin-soft">{row.recommendReason ?? ""}</td>
+                    <td className="admin-soft">{row.recommendedBy ?? ""}</td>
+                    <td>{formatDateOnly(row.onboardedAt)}</td>
+                    {canModerateSources ? (
+                      <td>
+                        <div className="admin-row-actions">
+                          <form method="post" action="/api/_admin/sources">
+                            <input name="_action" type="hidden" value="delete" />
+                            <input name="sourceIds" type="hidden" value={row.id} />
+                            <button className="admin-danger-link" type="submit">
+                              删除
+                            </button>
+                          </form>
+                          <span className="admin-row-resizer" aria-hidden="true" />
+                        </div>
+                      </td>
+                    ) : null}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}

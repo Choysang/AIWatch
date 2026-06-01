@@ -1,8 +1,8 @@
 // Contribution lifecycle jobs (decision 14). Public submit -> moderator triage ->
 // approve/reject -> apply. Reviews enforce the RBAC capability map and the review state
-// machine, and every review/apply writes an audit row (spec). Apply for a source
-// recommendation creates a DISABLED source — nothing goes live without an admin enabling
-// it. Only source_recommendation is auto-appliable in V1; other kinds are review-only.
+// machine, and every review/apply writes an audit row (spec). Applying a reviewed source
+// recommendation creates a managed source. Only source_recommendation is auto-appliable
+// in V1; other kinds are review-only.
 
 import { eq } from "drizzle-orm";
 import { newId } from "@/core/ids";
@@ -13,6 +13,7 @@ import { can } from "@/auth/rbac";
 import { resolveTransition, type ReviewAction } from "@/contributions/review";
 import type { ParsedSubmission } from "@/contributions/schema";
 import type { ContributionStatus } from "@/contributions/types";
+import type { CreateSourceInput } from "@/db/queries/sources";
 
 export interface Contributor {
   userId?: string | null;
@@ -116,14 +117,18 @@ export async function applyContribution(
   id: string,
   reviewer: Reviewer,
   note: string | undefined,
+  sourceOverrideOrDb?: CreateSourceInput | DB,
   db: DB = defaultDb,
 ): Promise<{ id: string; status: ContributionStatus; appliedTargetId: string | null }> {
+  const sourceOverride =
+    sourceOverrideOrDb && "name" in sourceOverrideOrDb ? sourceOverrideOrDb : undefined;
+  const targetDb = sourceOverride ? db : (sourceOverrideOrDb as DB | undefined) ?? db;
   requireCapabilityFor("apply", reviewer.role);
 
   // Validate before the transaction (see reviewContribution): the rollback path on a
   // throw-inside-transaction hangs under bun + node-postgres, so all fallible checks —
   // existence, the `approved -> applied` transition, and V1 kind support — run first.
-  const rows = await db.select().from(contributions).where(eq(contributions.id, id)).limit(1);
+  const rows = await targetDb.select().from(contributions).where(eq(contributions.id, id)).limit(1);
   const row = rows[0];
   if (!row) throw new NotFoundError(`contribution ${id} not found`);
 
@@ -136,23 +141,44 @@ export async function applyContribution(
   const change = row.proposedChange as {
     url: string;
     name?: string;
+    platform?: string;
+    handle?: string;
+    recommendedBy?: string;
+    recommendReason?: string;
     categories?: string[];
   };
+  const sourceInput: CreateSourceInput = sourceOverride ?? {
+    name: change.name ?? change.url,
+    platform: "rss",
+    sourceType: "community",
+    level: "L3",
+    connectorType: "rss",
+    connectorRef: change.url,
+    handle: change.handle ?? null,
+    url: change.url,
+    categories: change.categories ?? [],
+    brandTag: null,
+    recommendedBy: change.recommendedBy ?? null,
+    recommendReason: change.recommendReason ?? row.reason ?? null,
+  };
 
-  return db.transaction(async (tx) => {
+  return targetDb.transaction(async (tx) => {
     const sourceId = newId("src");
-    // Created DISABLED: a recommendation never goes live until an admin enables + tunes it.
     await tx.insert(sources).values({
       id: sourceId,
-      name: change.name ?? change.url,
-      platform: "rss",
-      sourceType: "community",
-      level: "L3",
-      connectorType: "rss",
-      connectorRef: change.url,
-      url: change.url,
-      categories: change.categories ?? [],
-      enabled: false,
+      name: sourceInput.name,
+      platform: sourceInput.platform,
+      sourceType: sourceInput.sourceType,
+      level: sourceInput.level,
+      connectorType: sourceInput.connectorType,
+      handle: sourceInput.handle ?? null,
+      url: sourceInput.url ?? null,
+      connectorRef: sourceInput.connectorRef ?? null,
+      categories: sourceInput.categories ?? [],
+      brandTag: sourceInput.brandTag ?? null,
+      recommendedBy: sourceInput.recommendedBy ?? null,
+      recommendReason: sourceInput.recommendReason ?? null,
+      onboardedAt: sourceInput.onboardedAt ?? new Date(),
     });
 
     const now = new Date();
@@ -173,7 +199,7 @@ export async function applyContribution(
       targetType: "source",
       targetId: sourceId,
       before: null,
-      after: { sourceId, url: change.url, enabled: false, fromContribution: id },
+      after: { sourceId, url: sourceInput.url, enabled: true, fromContribution: id },
       reason: note ?? null,
     });
 

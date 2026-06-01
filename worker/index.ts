@@ -30,16 +30,16 @@ async function main(): Promise<void> {
     // comment quality) every 10 minutes so the tournament always uses fresh composite
     // scores; recompute rank scores every 15 minutes so band transitions + accumulated
     // likes/stars gradually re-rank events without re-running the LLM; assemble reports
-    // at 08:00 (daily), Monday 08:00 (weekly), 1st 08:00 (monthly); flag low-contribution
-    // sources for human review daily at 08:30 (after the day's report is in).
+    // at 06:00 daily, Monday 09:00 weekly, and 1st 09:00 monthly; flag low-contribution
+    // sources for human review daily at 08:30.
     crontab: [
       "* * * * * enqueue-due-sources",
       "*/10 * * * * recompute-promotion-scores",
       "*/5 * * * * check-promotion",
       "*/15 * * * * recompute-rank-scores",
-      "0 8 * * * generate-daily-report",
-      "0 8 * * 1 generate-weekly-report",
-      "0 8 1 * * generate-monthly-report",
+      "0 6 * * * generate-daily-report",
+      "0 9 * * 1 generate-weekly-report",
+      "0 9 1 * * generate-monthly-report",
       "30 8 * * * suggest-source-review",
     ].join("\n"),
     taskList: {
