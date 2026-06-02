@@ -2,6 +2,7 @@
 // numbers; every computed score is stamped with `version`. Changing a weight is a
 // reviewable PR + a version bump + a recompute — never a re-inference.
 
+import type { ContentType } from "@/pipeline/judge-schema";
 import type { BaseWeights, Platform, PromotedLevel, SourceLevel } from "./types";
 
 /** Per-tier numbers for the promotion tournament (Slice 1). */
@@ -50,6 +51,83 @@ export interface ScoringConfig {
   promotion: PromotionConfig;
   promotionScoreWeights: PromotionScoreWeights;
 }
+
+// --- scoring-v2 (SP4 point 8): layered scoring that separates relevance / intrinsic
+// quality / confidence / selection. Lives alongside scoring-v1 until the migration +
+// recompute stage (4.2) flips persistence over and bumps the global version stamp.
+// Deterministic-scoring contract holds: LLM produces immutable dimensions, these weights
+// are config-as-code, every v2 score is stamped with `scoringV2Config.version`.
+
+/** event_quality_score weights (de-popularized: no externalHeat/userValue). Sum to 1. */
+export interface QualityWeights {
+  source: number;
+  impact: number;
+  novelty: number;
+  audienceUsefulness: number;
+  evidenceClarity: number;
+}
+
+/** confidence_score weights ("how sure are we this is real and important"). Sum to 1. */
+export interface ConfidenceWeights {
+  evidenceClarity: number;
+  sourceLevel: number;
+  /** Multi-source corroboration (independent posts merged into the event). */
+  multiSource: number;
+  expert: number;
+}
+
+export interface SelectionConfig {
+  /** Confidence floor in the multiplicative gate: selection = quality*(floor + (1-floor)*conf/100). */
+  confidenceGateFloor: number;
+  /** Max points a fully-positive comment signal (100) adds; neutral (50) adds 0. */
+  commentBonusMax: number;
+  /** Max points a fully-positive citation signal (100) adds; neutral (50) adds 0. */
+  citationBonusMax: number;
+  /** confidence_score strictly below this caps an event's promotion at tier B (open point C1). */
+  confidenceCapToBBelow: number;
+}
+
+export interface ScoringV2Config {
+  version: string;
+  /** relevance_gate hard floor: aiRelevance must be >= this (open point A1: aiRelevance only). */
+  relevanceMin: number;
+  qualityWeights: QualityWeights;
+  confidenceWeights: ConfidenceWeights;
+  /** Log-saturation constant for corroborating sources (count-1). ~3 corroborations => high. */
+  multiSourceSaturation: number;
+  selection: SelectionConfig;
+  /** content_type adjustment applied to selection_score (open point D2: included). */
+  contentTypeSelectionMultiplier: Record<ContentType, number>;
+}
+
+export const scoringV2Config: ScoringV2Config = {
+  version: "scoring-v2",
+  relevanceMin: 50,
+  // De-popularized intrinsic quality (externalHeat/userValue removed vs base_score; userValue
+  // folds into confidence per open point B1). Re-normalized to sum 1.
+  qualityWeights: {
+    source: 0.25,
+    impact: 0.3,
+    novelty: 0.15,
+    audienceUsefulness: 0.15,
+    evidenceClarity: 0.15,
+  },
+  confidenceWeights: { evidenceClarity: 0.35, sourceLevel: 0.25, multiSource: 0.25, expert: 0.15 },
+  multiSourceSaturation: 3,
+  selection: {
+    confidenceGateFloor: 0.5,
+    commentBonusMax: 8,
+    citationBonusMax: 6,
+    confidenceCapToBBelow: 40,
+  },
+  // discussion is harder to promote; model_release gets a small edge. Open point D2: included.
+  contentTypeSelectionMultiplier: {
+    model_release: 1.05,
+    product_release: 1.0,
+    tech_share: 1.0,
+    discussion: 0.9,
+  },
+};
 
 export const scoringConfig: ScoringConfig = {
   version: "scoring-v1",
@@ -118,5 +196,24 @@ const promoWeightSum = Object.values(scoringConfig.promotionScoreWeights).reduce
 if (Math.abs(promoWeightSum - 1) > 1e-9) {
   throw new Error(
     `[${scoringConfig.version}] promotion-score weights must sum to 1, got ${promoWeightSum}`,
+  );
+}
+
+// scoring-v2 invariants: quality and confidence weight sets must each sum to 1 so the
+// composed scores stay on a 0-100 scale. Fail fast at import.
+const qualityWeightSum = Object.values(scoringV2Config.qualityWeights).reduce((a, b) => a + b, 0);
+if (Math.abs(qualityWeightSum - 1) > 1e-9) {
+  throw new Error(
+    `[${scoringV2Config.version}] quality weights must sum to 1, got ${qualityWeightSum}`,
+  );
+}
+
+const confidenceWeightSum = Object.values(scoringV2Config.confidenceWeights).reduce(
+  (a, b) => a + b,
+  0,
+);
+if (Math.abs(confidenceWeightSum - 1) > 1e-9) {
+  throw new Error(
+    `[${scoringV2Config.version}] confidence weights must sum to 1, got ${confidenceWeightSum}`,
   );
 }
