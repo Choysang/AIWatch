@@ -14,6 +14,12 @@ import { messages } from "@/i18n";
 
 interface CommentComposerProps {
   eventId: string;
+  /** SP3.1: when set, submissions are replies to this top-level comment. */
+  parentId?: string;
+  /** SP3.1: reply boxes use a compact layout + reply-specific placeholder. */
+  variant?: "comment" | "reply";
+  /** SP3.1: called after a successful submit (e.g. to collapse a reply box). */
+  onSubmitted?: () => void;
 }
 
 interface ComposerState {
@@ -21,11 +27,18 @@ interface ComposerState {
   error: string | null;
 }
 
-export function CommentComposer({ eventId }: CommentComposerProps) {
+export function CommentComposer({
+  eventId,
+  parentId,
+  variant = "comment",
+  onSubmitted,
+}: CommentComposerProps) {
   const m = messages.comments;
   const router = useRouter();
   const [state, setState] = useState<ComposerState>({ body: "", error: null });
   const [isPending, startTransition] = useTransition();
+  const isReply = variant === "reply";
+  const placeholder = isReply ? m.replyPlaceholder : m.composerPlaceholder;
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -41,13 +54,14 @@ export function CommentComposer({ eventId }: CommentComposerProps) {
           method: "POST",
           headers: { "content-type": "application/json" },
           credentials: "same-origin",
-          body: JSON.stringify({ body: trimmed }),
+          body: JSON.stringify(parentId ? { body: trimmed, parentId } : { body: trimmed }),
         });
         if (!res.ok) {
           setState((s) => ({ ...s, error: m.submitError }));
           return;
         }
         setState({ body: "", error: null });
+        onSubmitted?.();
         // Re-fetch the SSR shell so newly-public comments appear. Low-value rows
         // won't surface — the absence of a new row in the refreshed page is the
         // UX signal that the comment was classifier-filtered.
@@ -58,24 +72,26 @@ export function CommentComposer({ eventId }: CommentComposerProps) {
     });
   };
 
+  const fieldId = parentId ? `comment-body-${parentId}` : "comment-body";
+
   return (
-    <form className="comment-composer" onSubmit={handleSubmit}>
-      <label htmlFor="comment-body" className="visually-hidden">
-        {m.composerPlaceholder}
+    <form className={`comment-composer${isReply ? " reply" : ""}`} onSubmit={handleSubmit}>
+      <label htmlFor={fieldId} className="visually-hidden">
+        {placeholder}
       </label>
       <textarea
-        id="comment-body"
-        placeholder={m.composerPlaceholder}
+        id={fieldId}
+        placeholder={placeholder}
         value={state.body}
         onChange={(e) => setState({ body: e.target.value, error: null })}
-        rows={3}
+        rows={isReply ? 2 : 3}
         maxLength={4000}
         disabled={isPending}
       />
       <div className="composer-actions">
         {state.error && <output className="composer-error">{state.error}</output>}
         <button type="submit" disabled={isPending || state.body.trim().length === 0}>
-          {isPending ? m.submitting : m.submit}
+          {isPending ? m.submitting : isReply ? m.replySubmit : m.submit}
         </button>
       </div>
     </form>

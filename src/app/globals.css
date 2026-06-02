@@ -560,6 +560,58 @@ a {
   word-break: break-word;
 }
 
+/* comment actions (SP3.1): like + reply */
+.comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+}
+.comment-like,
+.comment-reply-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: none;
+  border: none;
+  padding: 0.1rem 0.2rem;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--ink-faint);
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+.comment-like:hover:not(:disabled),
+.comment-reply-toggle:hover {
+  color: var(--accent);
+}
+.comment-like.on {
+  color: var(--accent);
+}
+.comment-like:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.comment-like .count {
+  font-variant-numeric: tabular-nums;
+}
+/* nested replies: indented, lighter rail */
+.comment-replies {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0 0 0 0.9rem;
+  border-left: 2px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.comment-composer.reply {
+  margin-top: 0.6rem;
+}
+.comment-composer.reply textarea {
+  min-height: 3rem;
+}
+
 /* composer */
 .comment-composer {
   display: flex;

@@ -9,7 +9,8 @@ import { notFound } from "next/navigation";
 import { getSession } from "@/app/_lib/session";
 import { READER_ID_COOKIE, verifyReaderId } from "@/auth/reader-id";
 import { getEventDetail } from "@/db/queries/event-detail";
-import { listEventComments } from "@/db/queries/comments";
+import { listEventComments, type CommentSections } from "@/db/queries/comments";
+import { getViewerCommentReactions } from "@/db/queries/comment-reactions";
 import { getViewerReactions } from "@/db/queries/reactions";
 import { messages } from "@/i18n";
 import { formatDateTime } from "@/app/_lib/format";
@@ -37,6 +38,18 @@ export async function generateMetadata({
     // fall through to the generic title
   }
   return { title: messages.appName };
+}
+
+/** Flatten every comment id (top-level + nested replies) across all three sections. */
+function collectCommentIds(sections: CommentSections): string[] {
+  const ids = new Set<string>();
+  for (const list of [sections.expertViews, sections.highQuality, sections.latest]) {
+    for (const c of list) {
+      ids.add(c.id);
+      for (const r of c.replies) ids.add(r.id);
+    }
+  }
+  return [...ids];
 }
 
 async function loadViewerIdentity(): Promise<{
@@ -74,6 +87,13 @@ export default async function EventDetailPage({
     listEventComments(event.id),
   ]);
   const viewerReaction = reactionMap.get(event.id) ?? { liked: false, starred: false };
+
+  // SP3.1: which comments (top-level + replies) has this viewer liked? One lookup for all.
+  const commentIds = collectCommentIds(sections);
+  const likedIds =
+    (identity.userId || identity.fingerprint) && commentIds.length > 0
+      ? new Set((await getViewerCommentReactions(commentIds, identity)).keys())
+      : new Set<string>();
 
   const m = messages;
   const card = m.card;
@@ -159,7 +179,7 @@ export default async function EventDetailPage({
         </div>
       </article>
 
-      <CommentsSection eventId={event.id} sections={sections} />
+      <CommentsSection eventId={event.id} sections={sections} likedIds={likedIds} />
 
       <p className="note">{card.summaryNote}</p>
     </main>

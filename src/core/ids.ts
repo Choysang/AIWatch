@@ -3,7 +3,7 @@
 
 import { ulid } from "ulid";
 
-export type IdPrefix = "src" | "post" | "evt" | "ej" | "es" | "usr" | "rpt" | "con" | "aud" | "rx" | "cmt" | "spd" | "fbk";
+export type IdPrefix = "src" | "post" | "evt" | "ej" | "es" | "usr" | "rpt" | "con" | "aud" | "rx" | "crx" | "cmt" | "spd" | "fbk";
 
 export function newId(prefix: IdPrefix): string {
   return `${prefix}_${ulid().toLowerCase()}`;

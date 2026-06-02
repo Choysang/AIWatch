@@ -19,8 +19,10 @@ import {
   CommentIdentityError,
   EmptyBodyError,
   EventNotFoundError,
+  InvalidParentError,
   listEventComments,
   type CommentRow,
+  type CommentWithReplies,
 } from "@/db/queries/comments";
 import { cacheControl, clientIp, jsonError, publicLimiter } from "../../../public/_runtime";
 
@@ -30,6 +32,8 @@ const MAX_BODY_CHARS = 4000;
 
 const bodySchema = z.object({
   body: z.string().min(1).max(MAX_BODY_CHARS),
+  // SP3.1: when present, this comment is a reply to the given top-level comment.
+  parentId: z.string().min(1).optional(),
 });
 
 function readCookie(req: Request, name: string): string | null {
@@ -49,7 +53,9 @@ interface PublicComment {
   id: string;
   body: string;
   isExpert: boolean;
+  likeCount: number;
   createdAt: string;
+  replies?: PublicComment[];
 }
 
 function toPublic(row: CommentRow): PublicComment {
@@ -57,8 +63,13 @@ function toPublic(row: CommentRow): PublicComment {
     id: row.id,
     body: row.body,
     isExpert: row.isExpert,
+    likeCount: row.likeCount,
     createdAt: row.createdAt.toISOString(),
   };
+}
+
+function toPublicWithReplies(row: CommentWithReplies): PublicComment {
+  return { ...toPublic(row), replies: row.replies.map(toPublic) };
 }
 
 export async function GET(
@@ -71,9 +82,9 @@ export async function GET(
   try {
     const sections = await listEventComments(eventId);
     const body = {
-      expertViews: sections.expertViews.map(toPublic),
-      highQuality: sections.highQuality.map(toPublic),
-      latest: sections.latest.map(toPublic),
+      expertViews: sections.expertViews.map(toPublicWithReplies),
+      highQuality: sections.highQuality.map(toPublicWithReplies),
+      latest: sections.latest.map(toPublicWithReplies),
     };
     return new Response(JSON.stringify(body), {
       status: 200,
@@ -137,11 +148,13 @@ export async function POST(
       eventId,
       body: parsed.body,
       identity: { userId, fingerprint: fp },
+      parentId: parsed.parentId ?? null,
     });
     return Response.json(toPublic(row), { status: 200 });
   } catch (err) {
     if (err instanceof EventNotFoundError) return jsonError(404, "event_not_found");
     if (err instanceof EmptyBodyError) return jsonError(400, "empty_body");
+    if (err instanceof InvalidParentError) return jsonError(400, "invalid_parent");
     if (err instanceof CommentIdentityError) return jsonError(400, "invalid_identity");
     return jsonError(500, "internal_error");
   }

@@ -90,6 +90,12 @@ export const zh = {
     submitError: "发表失败，请稍后再试。",
     flaggedLowValue: "该评论被自动判定为低质量（标题复述/广告/纯立场），未公开展示。",
     bodyEmpty: "评论内容不能为空。",
+    // SP3.1: comment likes + single-level replies.
+    like: "赞",
+    liked: "已赞",
+    reply: "回复",
+    replyPlaceholder: "回复这条评论…",
+    replySubmit: "发表回复",
   },
   selectedLabel: {
     none: "",

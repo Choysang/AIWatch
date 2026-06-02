@@ -266,3 +266,135 @@ describe("event comments (real Postgres)", () => {
     expect(sections.latest.length).toBe(2);
   });
 });
+
+describe("comment replies (SP3.1)", () => {
+  test("a reply nests under its top-level parent and is not a separate section entry", async () => {
+    const sourceId = await seedSource();
+    await seedEvent({ id: "evt_r1", sourceId, title: "T" });
+
+    const parent = await comments.addComment({
+      eventId: "evt_r1",
+      body: "Top-level: the benchmark methodology seems sound to me.",
+      identity: { userId: null, fingerprint: "fp_parent" },
+    });
+    const reply = await comments.addComment({
+      eventId: "evt_r1",
+      body: "Reply: actually appendix C contradicts that claim.",
+      identity: { userId: null, fingerprint: "fp_child" },
+      parentId: parent.id,
+    });
+    expect(reply.parentId).toBe(parent.id);
+
+    const sections = await comments.listEventComments("evt_r1");
+    // Only the parent surfaces as a top-level entry.
+    expect(sections.latest.length).toBe(1);
+    expect(sections.latest[0]!.id).toBe(parent.id);
+    // The reply is nested under it.
+    expect(sections.latest[0]!.replies.length).toBe(1);
+    expect(sections.latest[0]!.replies[0]!.id).toBe(reply.id);
+  });
+
+  test("reply to a comment in a different event is rejected", async () => {
+    const sourceId = await seedSource();
+    await seedEvent({ id: "evt_r2a", sourceId, title: "A" });
+    await seedEvent({ id: "evt_r2b", sourceId, title: "B" });
+    const parent = await comments.addComment({
+      eventId: "evt_r2a",
+      body: "Parent over in event A with substantive content.",
+      identity: { userId: null, fingerprint: "fp_p" },
+    });
+    await expectRejection(
+      comments.addComment({
+        eventId: "evt_r2b",
+        body: "Cross-event reply should not be allowed here.",
+        identity: { userId: null, fingerprint: "fp_c" },
+        parentId: parent.id,
+      }),
+      comments.InvalidParentError,
+    );
+  });
+
+  test("reply to a reply is rejected (single-level threads only)", async () => {
+    const sourceId = await seedSource();
+    await seedEvent({ id: "evt_r3", sourceId, title: "T" });
+    const parent = await comments.addComment({
+      eventId: "evt_r3",
+      body: "Top-level comment with enough substance to be valid.",
+      identity: { userId: null, fingerprint: "fp_p" },
+    });
+    const reply = await comments.addComment({
+      eventId: "evt_r3",
+      body: "First-level reply with substantive content here.",
+      identity: { userId: null, fingerprint: "fp_c" },
+      parentId: parent.id,
+    });
+    await expectRejection(
+      comments.addComment({
+        eventId: "evt_r3",
+        body: "Reply to the reply — should be rejected as too deep.",
+        identity: { userId: null, fingerprint: "fp_d" },
+        parentId: reply.id,
+      }),
+      comments.InvalidParentError,
+    );
+  });
+
+  test("reply to a missing comment is rejected", async () => {
+    const sourceId = await seedSource();
+    await seedEvent({ id: "evt_r4", sourceId, title: "T" });
+    await expectRejection(
+      comments.addComment({
+        eventId: "evt_r4",
+        body: "Reply to a parent that does not exist anywhere.",
+        identity: { userId: null, fingerprint: "fp_c" },
+        parentId: "cmt_nope",
+      }),
+      comments.InvalidParentError,
+    );
+  });
+
+  test("low-value reply is stored but hidden from the nested list", async () => {
+    const sourceId = await seedSource();
+    await seedEvent({ id: "evt_r5", sourceId, title: "Some descriptive event title" });
+    const parent = await comments.addComment({
+      eventId: "evt_r5",
+      body: "Top-level comment that is clearly substantive and valid.",
+      identity: { userId: null, fingerprint: "fp_p" },
+    });
+    const lv = await comments.addComment({
+      eventId: "evt_r5",
+      body: "👍",
+      identity: { userId: null, fingerprint: "fp_c" },
+      parentId: parent.id,
+    });
+    expect(lv.classification).toBe("low_value");
+
+    const sections = await comments.listEventComments("evt_r5");
+    expect(sections.latest[0]!.replies.length).toBe(0);
+  });
+
+  test("high-quality section orders by like_count desc", async () => {
+    const sourceId = await seedSource();
+    await seedEvent({ id: "evt_r6", sourceId, title: "T" });
+    const low = await comments.addComment({
+      eventId: "evt_r6",
+      body: "First comment, posted earlier, fewer likes overall here.",
+      identity: { userId: null, fingerprint: "fp_low" },
+    });
+    const high = await comments.addComment({
+      eventId: "evt_r6",
+      body: "Second comment, posted later, but more popular by far.",
+      identity: { userId: null, fingerprint: "fp_high" },
+    });
+    // Give `high` more likes via the denormalized counter.
+    await getDb()
+      .update(schema.eventComments)
+      .set({ likeCount: 5 })
+      .where(eq(schema.eventComments.id, high.id));
+
+    const sections = await comments.listEventComments("evt_r6");
+    expect(sections.highQuality.length).toBe(2);
+    expect(sections.highQuality[0]!.id).toBe(high.id); // more-liked first
+    expect(sections.highQuality[1]!.id).toBe(low.id);
+  });
+});

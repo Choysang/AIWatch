@@ -99,6 +99,13 @@
       "when": 1780371480186,
       "tag": "0013_public_warhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1780386816161,
+      "tag": "0014_parallel_lady_deathstrike",
+      "breakpoints": true
     }
   ]
 }

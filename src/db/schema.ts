@@ -45,6 +45,9 @@ export const selectedLevelEnum = pgEnum("selected_level", ["none", "B", "A", "S"
 export const contentTypeEnum = pgEnum("content_type", [
   "model_release", "product_release", "tech_share", "discussion",
 ]);
+// Comment reactions (SP3 point 7): readers can like a comment. Only "like" for V1
+// (KISS — no star/downvote); the enum leaves room to extend without a column rename.
+export const commentReactionKindEnum = pgEnum("comment_reaction_kind", ["like"]);
 export const eventRelationEnum = pgEnum("event_relation", ["same_event", "related"]);
 export const triggerReasonEnum = pgEnum("trigger_reason", [
   "initial", "official_update", "major_correction", "new_evidence", "manual_rejudge",
@@ -386,12 +389,40 @@ export const eventComments = pgTable(
     category: commentCategoryEnum("category").notNull().default("unclassified"),
     classification: commentClassificationEnum("classification").notNull().default("valid"),
     isExpert: boolean("is_expert").notNull().default(false),
+    // SP3 point 7: single-level threads. Top-level comments have parent_id = null; a reply
+    // points at its top-level parent. Replies of replies are flattened onto the same parent
+    // (the UI conveys who-replied-to-whom with @mention), so the tree is never deeper than one.
+    parentId: text("parent_id"),
+    // Denormalized like tally, maintained transactionally by comment_reactions add/remove.
+    likeCount: integer("like_count").notNull().default(0),
     createdAt: ts("created_at").notNull().defaultNow(),
   },
   (t) => [
     index("event_comments_event_idx").on(t.eventId, t.createdAt),
     index("event_comments_user_idx").on(t.userId),
     index("event_comments_fingerprint_idx").on(t.fingerprint),
+    index("event_comments_parent_idx").on(t.parentId),
+  ],
+);
+
+// --- comment_reactions (SP3 point 7: like a comment) ---
+// Same XOR identity + partial-unique-dedupe shape as event_reactions, keyed on the comment
+// instead of the event. event_comments.like_count is the denormalized tally kept in sync
+// transactionally. "like" is the only kind in V1.
+export const commentReactions = pgTable(
+  "comment_reactions",
+  {
+    id: text("id").primaryKey(),
+    commentId: text("comment_id").notNull().references(() => eventComments.id),
+    kind: commentReactionKindEnum("kind").notNull().default("like"),
+    userId: text("user_id"),
+    fingerprint: text("fingerprint"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("comment_reactions_comment_idx").on(t.commentId, t.kind),
+    index("comment_reactions_user_idx").on(t.userId),
+    index("comment_reactions_fingerprint_idx").on(t.fingerprint),
   ],
 );
 
@@ -469,6 +500,7 @@ export const schema = {
   contributions,
   eventReactions,
   eventComments,
+  commentReactions,
   auditLogs,
   llmSpendLedger,
   feedback,

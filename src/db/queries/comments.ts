@@ -16,7 +16,7 @@
 // path and returns the existing row so re-submission is idempotent.
 
 import { createHash } from "node:crypto";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { classifyComment, type CommentCategory, type CommentClassification } from "@/comments/classifier";
 import { newId } from "@/core/ids";
 import { db as defaultDb, type DB, type Tx } from "@/db/client";
@@ -37,13 +37,22 @@ export interface CommentRow {
   category: CommentCategory;
   classification: CommentClassification;
   isExpert: boolean;
+  // SP3.1: single-level threads. Top-level comments have parentId = null; a reply points
+  // at its top-level parent. likeCount is the denormalized tally (see comment-reactions.ts).
+  parentId: string | null;
+  likeCount: number;
   createdAt: Date;
 }
 
+/** A top-level comment with its (valid) replies nested underneath. */
+export interface CommentWithReplies extends CommentRow {
+  replies: CommentRow[];
+}
+
 export interface CommentSections {
-  expertViews: CommentRow[];
-  highQuality: CommentRow[];
-  latest: CommentRow[];
+  expertViews: CommentWithReplies[];
+  highQuality: CommentWithReplies[];
+  latest: CommentWithReplies[];
 }
 
 export class CommentIdentityError extends Error {
@@ -64,6 +73,14 @@ export class EmptyBodyError extends Error {
   constructor() {
     super("comment body must be non-empty");
     this.name = "EmptyBodyError";
+  }
+}
+
+/** parentId did not resolve to a top-level comment on the same event. */
+export class InvalidParentError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidParentError";
   }
 }
 
@@ -91,6 +108,27 @@ async function fetchEventTitle(tx: Tx, eventId: string): Promise<string> {
   const row = rows[0];
   if (!row) throw new EventNotFoundError(eventId);
   return row.title;
+}
+
+/**
+ * Validate a reply target: the parent must exist, belong to the same event, and itself
+ * be top-level (single-level threads — a reply-to-reply re-targets the top-level
+ * ancestor at the UI layer, never the data layer). Throws InvalidParentError otherwise.
+ */
+async function assertValidParent(tx: Tx, eventId: string, parentId: string): Promise<void> {
+  const rows = await tx
+    .select({ eventId: eventComments.eventId, parentId: eventComments.parentId })
+    .from(eventComments)
+    .where(eq(eventComments.id, parentId))
+    .limit(1);
+  const parent = rows[0];
+  if (!parent) throw new InvalidParentError(`parent comment not found: ${parentId}`);
+  if (parent.eventId !== eventId) {
+    throw new InvalidParentError("parent comment belongs to a different event");
+  }
+  if (parent.parentId !== null) {
+    throw new InvalidParentError("replies are single-level; cannot reply to a reply");
+  }
 }
 
 async function isExpertUser(tx: Tx, userId: string | null): Promise<boolean> {
@@ -139,15 +177,19 @@ export async function addComment(
     eventId: string;
     body: string;
     identity: CommentIdentity;
+    /** SP3.1: when set, this comment is a reply to the given top-level comment. */
+    parentId?: string | null;
   },
   db: DB = defaultDb,
 ): Promise<CommentRow> {
   assertIdentity(args.identity);
   const trimmed = args.body?.trim() ?? "";
   if (trimmed.length === 0) throw new EmptyBodyError();
+  const parentId = args.parentId ?? null;
 
   return db.transaction(async (tx) => {
     const title = await fetchEventTitle(tx, args.eventId);
+    if (parentId !== null) await assertValidParent(tx, args.eventId, parentId);
     const bodyHash = hashBody(trimmed);
 
     // Dedupe inside the transaction. The partial unique indexes also enforce this at
@@ -170,6 +212,7 @@ export async function addComment(
       category: verdict.category,
       classification: verdict.classification,
       isExpert,
+      parentId,
     });
 
     // Expert valid comment is a strong signal: reset the display-score decay clock.
@@ -201,39 +244,88 @@ export async function listEventComments(
   const highQualityLimit = opts.highQualityLimit ?? 10;
   const latestLimit = opts.latestLimit ?? 20;
 
-  // One query per section keeps each result paged independently; the table is indexed
-  // on (event_id, created_at) so all three are index scans.
-  const validWhere = and(
+  // Sections list TOP-LEVEL comments only (parent_id IS NULL); replies nest underneath
+  // (fetched once below). The table is indexed on (event_id, created_at) and parent_id.
+  const validTopLevel = and(
     eq(eventComments.eventId, eventId),
     eq(eventComments.classification, "valid"),
+    isNull(eventComments.parentId),
   );
 
   const [expertViews, highQuality, latest] = await Promise.all([
     db
       .select()
       .from(eventComments)
-      .where(and(validWhere, eq(eventComments.isExpert, true)))
+      .where(and(validTopLevel, eq(eventComments.isExpert, true)))
       .orderBy(asc(eventComments.createdAt))
       .limit(expertLimit),
+    // SP3.1: high-quality discussion now ranks by likes (then recency), not pure recency.
     db
       .select()
       .from(eventComments)
-      .where(and(validWhere, eq(eventComments.isExpert, false)))
-      .orderBy(asc(eventComments.createdAt))
+      .where(and(validTopLevel, eq(eventComments.isExpert, false)))
+      .orderBy(desc(eventComments.likeCount), desc(eventComments.createdAt))
       .limit(highQualityLimit),
     db
       .select()
       .from(eventComments)
-      .where(validWhere)
+      .where(validTopLevel)
       .orderBy(desc(eventComments.createdAt))
       .limit(latestLimit),
   ]);
 
+  const topLevel = [
+    ...(expertViews as CommentRow[]),
+    ...(highQuality as CommentRow[]),
+    ...(latest as CommentRow[]),
+  ];
+  const repliesByParent = await fetchRepliesByParent(
+    db,
+    topLevel.map((c) => c.id),
+  );
+  const nest = (c: CommentRow): CommentWithReplies => ({
+    ...c,
+    replies: repliesByParent.get(c.id) ?? [],
+  });
+
   return {
-    expertViews: expertViews as CommentRow[],
-    highQuality: highQuality as CommentRow[],
-    latest: latest as CommentRow[],
+    expertViews: (expertViews as CommentRow[]).map(nest),
+    highQuality: (highQuality as CommentRow[]).map(nest),
+    latest: (latest as CommentRow[]).map(nest),
   };
+}
+
+/**
+ * Fetch all valid replies for a set of top-level comment ids in one indexed scan, bucketed
+ * by parent id (oldest-first within each thread). Low-value replies are excluded, mirroring
+ * the top-level filter. Returns an empty map for empty input.
+ */
+async function fetchRepliesByParent(
+  db: DB,
+  parentIds: string[],
+): Promise<Map<string, CommentRow[]>> {
+  const out = new Map<string, CommentRow[]>();
+  if (parentIds.length === 0) return out;
+  const uniqueIds = [...new Set(parentIds)];
+
+  const rows = await db
+    .select()
+    .from(eventComments)
+    .where(
+      and(
+        inArray(eventComments.parentId, uniqueIds),
+        eq(eventComments.classification, "valid"),
+      ),
+    )
+    .orderBy(asc(eventComments.createdAt));
+
+  for (const row of rows as CommentRow[]) {
+    if (row.parentId === null) continue;
+    const bucket = out.get(row.parentId);
+    if (bucket) bucket.push(row);
+    else out.set(row.parentId, [row]);
+  }
+  return out;
 }
 
 /**
@@ -253,7 +345,13 @@ export async function getTopCommentsForEvents(
   const rows = await db
     .select({ eventId: eventComments.eventId, body: eventComments.body })
     .from(eventComments)
-    .where(and(inArray(eventComments.eventId, eventIds), eq(eventComments.classification, "valid")))
+    .where(
+      and(
+        inArray(eventComments.eventId, eventIds),
+        eq(eventComments.classification, "valid"),
+        isNull(eventComments.parentId),
+      ),
+    )
     .orderBy(desc(eventComments.createdAt));
 
   for (const row of rows) {
