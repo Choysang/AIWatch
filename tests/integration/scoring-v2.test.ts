@@ -15,6 +15,7 @@ let getDb: typeof import("@/db/client").getDb;
 let resetDb: typeof import("@/db/client").resetDb;
 let schema: typeof import("@/db/schema");
 let recomputeScoresV2: typeof import("@/db/jobs/recompute-scores-v2").recomputeScoresV2;
+let checkPromotionV2: typeof import("@/db/jobs/check-promotion-v2").checkPromotionV2;
 
 const L1 = "src_v2_l1";
 const L3 = "src_v2_l3";
@@ -36,6 +37,7 @@ beforeAll(async () => {
   ({ getDb, resetDb } = await import("@/db/client"));
   schema = await import("@/db/schema");
   ({ recomputeScoresV2 } = await import("@/db/jobs/recompute-scores-v2"));
+  ({ checkPromotionV2 } = await import("@/db/jobs/check-promotion-v2"));
 
   await migrate(getDb(), { migrationsFolder: "src/db/migrations" });
   for (const [id, level] of [
@@ -231,5 +233,65 @@ describe("recomputeScoresV2 (real Postgres)", () => {
 
     expect((await readEvent("low_conf")).selectionMaxLevel).toBe("B");
     expect((await readEvent("high_conf")).selectionMaxLevel).toBe("S");
+  });
+});
+
+async function readLevel(id: string) {
+  return (
+    await getDb()
+      .select({
+        level: schema.events.selectedLevel,
+        label: schema.events.selectedLabel,
+        breakdown: schema.events.selectedBreakdown,
+      })
+      .from(schema.events)
+      .where(eq(schema.events.id, id))
+  )[0]!;
+}
+
+describe("checkPromotionV2 (real Postgres)", () => {
+  test("a strong, well-corroborated event is promoted on selection_score", async () => {
+    await seedV2Event({
+      id: "strong",
+      sourceId: L1,
+      postCount: 4,
+      contentType: "model_release",
+      dims: { aiRelevance: 90, impact: 90, novelty: 80, audienceUsefulness: 80, evidenceClarity: 90 },
+      publishedAt: ago(0.2),
+    });
+
+    await recomputeScoresV2(NOW, getDb());
+    const result = await checkPromotionV2(NOW, getDb());
+    expect(result.candidates).toBe(1);
+
+    const ev = await readLevel("strong");
+    expect(ev.level).toBeOneOf(["A", "S"]);
+    const bd = ev.breakdown as Record<string, unknown>;
+    expect(bd.selectionScore as number).toBeGreaterThanOrEqual(86);
+    expect(bd.maxLevel).toBe("S");
+  });
+
+  test("a weak event is not promoted", async () => {
+    await seedV2Event({
+      id: "weak",
+      sourceId: L5,
+      postCount: 1,
+      dims: { aiRelevance: 60, impact: 20, novelty: 20, audienceUsefulness: 20, evidenceClarity: 20 },
+      publishedAt: ago(0.2),
+    });
+
+    await recomputeScoresV2(NOW, getDb());
+    await checkPromotionV2(NOW, getDb());
+
+    expect((await readLevel("weak")).level).toBe("none");
+  });
+
+  test("events without a selection_score (not yet recomputed) are excluded", async () => {
+    await seedV2Event({ id: "no_recompute", sourceId: L1, postCount: 4, publishedAt: ago(0.2) });
+
+    // Tournament runs WITHOUT a prior recompute -> selection_score is null -> no candidates.
+    const result = await checkPromotionV2(NOW, getDb());
+    expect(result.candidates).toBe(0);
+    expect((await readLevel("no_recompute")).level).toBe("none");
   });
 });
