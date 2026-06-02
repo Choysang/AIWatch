@@ -181,6 +181,13 @@ export const events = pgTable(
     // promotion and only ratchets upward — strong signals re-arming the peak is the explicit
     // anti-decay lever. Null = never promoted, so decay logic short-circuits to qualityScore.
     peakScore: real("peak_score"),
+    // scoring-v2 (SP4) denormalized hot fields. selection_score drives the v2 promotion
+    // tournament + ordering; confidence_score + selection_max_level power explainable display
+    // and the low-confidence tier cap (confidence < 40 => max tier B). Nullable until
+    // recompute-scores-v2 backfills; legacy rows fall back to v1 base/promotion in the job.
+    selectionScore: real("selection_score"),
+    confidenceScore: real("confidence_score"),
+    selectionMaxLevel: text("selection_max_level"),
     // Expert direct-push to B-tier (spec § B / daily selected — "score >= 75, or certified
     // expert direct-push"). Stamped by the admin/expert console; the promotion job treats this
     // flag as an automatic B qualifier regardless of base_score. expertDirectPushBy points at
@@ -208,6 +215,7 @@ export const events = pgTable(
     index("events_selected_idx").on(t.selectedLevel, t.promotedAt),
     index("events_rank_idx").on(t.rankScore),
     index("events_content_type_idx").on(t.contentType),
+    index("events_selection_idx").on(t.selectionScore),
   ],
 );
 
@@ -265,6 +273,13 @@ export const eventScores = pgTable(
     baseScore: real("base_score").notNull(),
     qualityScore: real("quality_score").notNull(),
     promotionScore: real("promotion_score"),
+    // scoring-v2 layers (SP4). Nullable: written only by the v2 creation/recompute path; v1
+    // rows leave them null. The row's scoring_config_version still stamps the v1 base_score;
+    // v2 provenance (scoringV2Config.version) lives in `breakdown`.
+    eventQualityScore: real("event_quality_score"),
+    confidenceScore: real("confidence_score"),
+    selectionScore: real("selection_score"),
+    selectionMaxLevel: text("selection_max_level"),
     rankScore: real("rank_score").notNull(),
     displayScore: smallint("display_score").notNull(),
     breakdown: jsonb("breakdown").notNull(),

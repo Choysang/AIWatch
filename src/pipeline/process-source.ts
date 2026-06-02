@@ -24,6 +24,7 @@ import {
 import { readBudgetCaps } from "@/llm/budget";
 import { checkLlmBudget, recordLlmSpend } from "@/db/queries/llm-spend";
 import { computeBaseScore } from "@/scoring/base-score";
+import { composeScoresV2 } from "@/scoring/compose-v2";
 import { scoringConfig } from "@/scoring/config";
 import { externalHeatScore } from "@/scoring/external-heat";
 import { coldJudgeSchema, type ColdJudge } from "./judge-schema";
@@ -201,6 +202,25 @@ export async function processSource(
         externalHeat,
       });
 
+      // scoring-v2 (SP4) at creation: a single fresh post, no reactions/comments yet, so
+      // multi-source corroboration = 0 and expert/comment signals are neutral. The recompute
+      // job re-derives all five layers as signals accumulate.
+      const v2 = composeScoresV2({
+        zeroGatePassed: true, // reaching here means the $0 gate already passed
+        dimensions: {
+          aiRelevance: judgment.aiRelevance,
+          impact: judgment.impact,
+          novelty: judgment.novelty,
+          audienceUsefulness: judgment.audienceUsefulness,
+          evidenceClarity: judgment.evidenceClarity,
+        },
+        sourceLevel: source.level,
+        sourcePostCount: 1,
+        expertActions: [],
+        validComments: [],
+        contentType: judgment.contentType,
+      });
+
       const provider = resolveProvider("cold_judge");
       // Provider must still resolve here — if it disappeared between judge() and now
       // (env race), prefer to mark judge_failed rather than stamp the wrong provider.
@@ -230,6 +250,12 @@ export async function processSource(
             rankScore: baseScore,
             displayScore: Math.round(baseScore),
             breakdown,
+          },
+          scoringV2: {
+            eventQualityScore: v2.qualityScore,
+            confidenceScore: v2.confidenceScore,
+            selectionScore: v2.selectionScore,
+            selectionMaxLevel: v2.maxLevel,
           },
         },
         db,

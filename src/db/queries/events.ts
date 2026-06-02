@@ -7,7 +7,7 @@ import { newId } from "@/core/ids";
 import { db as defaultDb, type DB } from "@/db/client";
 import { eventJudgments, eventPosts, events, eventScores, posts } from "@/db/schema";
 import type { ColdJudge } from "@/pipeline/judge-schema";
-import type { ScoreBreakdown, SourceLevel } from "@/scoring/types";
+import type { PromotedLevel, ScoreBreakdown, SourceLevel } from "@/scoring/types";
 
 /** Find an event already holding a post with this canonical URL (same-event merge). */
 export async function findEventIdByCanonicalUrl(
@@ -56,6 +56,14 @@ export interface CreateEventInput {
     displayScore: number;
     breakdown: ScoreBreakdown;
   };
+  /** scoring-v2 layers (SP4). Optional so legacy/test callers stay valid; when present the new
+   *  event_scores columns + denormalized events fields are written. */
+  scoringV2?: {
+    eventQualityScore: number;
+    confidenceScore: number;
+    selectionScore: number;
+    selectionMaxLevel: PromotedLevel;
+  };
 }
 
 /** Create a fresh event from a post, with its first judgment + score, atomically. */
@@ -82,6 +90,9 @@ export async function createEventFromPost(
       media: input.post.media ?? null,
       qualityScore: Math.round(scoring.qualityScore),
       rankScore: scoring.rankScore,
+      selectionScore: input.scoringV2?.selectionScore ?? null,
+      confidenceScore: input.scoringV2?.confidenceScore ?? null,
+      selectionMaxLevel: input.scoringV2?.selectionMaxLevel ?? null,
       publishedAt: input.post.publishedAt,
       lastStrongSignalAt: input.post.publishedAt,
     });
@@ -114,6 +125,10 @@ export async function createEventFromPost(
       judgmentId,
       baseScore: scoring.baseScore,
       qualityScore: scoring.qualityScore,
+      eventQualityScore: input.scoringV2?.eventQualityScore ?? null,
+      confidenceScore: input.scoringV2?.confidenceScore ?? null,
+      selectionScore: input.scoringV2?.selectionScore ?? null,
+      selectionMaxLevel: input.scoringV2?.selectionMaxLevel ?? null,
       rankScore: scoring.rankScore,
       displayScore: scoring.displayScore,
       breakdown: scoring.breakdown,
