@@ -13,6 +13,7 @@ let resetDb: typeof import("@/db/client").resetDb;
 let schema: typeof import("@/db/schema");
 let comments: typeof import("@/db/queries/comments");
 let cr: typeof import("@/db/queries/comment-reactions");
+let notifications: typeof import("@/db/queries/notifications");
 
 function withTimeout(p: Promise<unknown> | undefined, ms: number): Promise<unknown> {
   if (!p) return Promise.resolve();
@@ -41,6 +42,7 @@ beforeAll(async () => {
   schema = await import("@/db/schema");
   comments = await import("@/db/queries/comments");
   cr = await import("@/db/queries/comment-reactions");
+  notifications = await import("@/db/queries/notifications");
 
   await migrate(getDb(), { migrationsFolder: "src/db/migrations" });
 }, 120_000);
@@ -52,6 +54,7 @@ afterAll(async () => {
 }, 60_000);
 
 beforeEach(async () => {
+  await getDb().delete(schema.notifications);
   await getDb().delete(schema.commentReactions);
   await getDb().delete(schema.eventComments);
   await getDb().delete(schema.eventScores);
@@ -84,6 +87,15 @@ async function seedComment(eventId: string, fingerprint: string): Promise<string
     eventId,
     body: "A substantive comment worth liking, with real content here.",
     identity: { userId: null, fingerprint },
+  });
+  return row.id;
+}
+
+async function seedCommentByUser(eventId: string, userId: string): Promise<string> {
+  const row = await comments.addComment({
+    eventId,
+    body: "A substantive comment authored by a logged-in user, real content.",
+    identity: { userId, fingerprint: null },
   });
   return row.id;
 }
@@ -170,6 +182,44 @@ describe("comment reactions (real Postgres)", () => {
       }),
       cr.CommentNotFoundError,
     );
+  });
+
+  test("liking a logged-in user's comment notifies the author; dedupes per actor; self-like is silent", async () => {
+    const sourceId = await seedSource();
+    await seedEvent("evt_crn", sourceId);
+    const commentId = await seedCommentByUser("evt_crn", "usr_author");
+
+    // A different reader likes it → one comment_like notification for the author.
+    await cr.addCommentReaction({ commentId, identity: { userId: null, fingerprint: "fp_liker1" } });
+    expect(await notifications.countUnread("usr_author")).toBe(1);
+
+    // Same actor re-likes (remove + add) → still one (deduped).
+    await cr.removeCommentReaction({ commentId, identity: { userId: null, fingerprint: "fp_liker1" } });
+    await cr.addCommentReaction({ commentId, identity: { userId: null, fingerprint: "fp_liker1" } });
+    expect(await notifications.countUnread("usr_author")).toBe(1);
+
+    // A second distinct actor → a second notification.
+    await cr.addCommentReaction({ commentId, identity: { userId: "usr_other", fingerprint: null } });
+    expect(await notifications.countUnread("usr_author")).toBe(2);
+
+    // The author liking their own comment notifies no one.
+    await cr.addCommentReaction({ commentId, identity: { userId: "usr_author", fingerprint: null } });
+    expect(await notifications.countUnread("usr_author")).toBe(2);
+
+    const list = await notifications.listNotifications("usr_author");
+    expect(list.every((n) => n.kind === "comment_like")).toBe(true);
+    expect(list[0]!.eventId).toBe("evt_crn");
+  });
+
+  test("liking an anonymous-authored comment notifies no one", async () => {
+    const sourceId = await seedSource();
+    await seedEvent("evt_cra", sourceId);
+    const commentId = await seedComment("evt_cra", "fp_anon_author");
+
+    await cr.addCommentReaction({ commentId, identity: { userId: null, fingerprint: "fp_liker" } });
+    // No addressable recipient (anonymous author) → no notifications anywhere.
+    const all = await getDb().select().from(schema.notifications);
+    expect(all.length).toBe(0);
   });
 
   test("getViewerCommentReactions maps liked comments for the viewer", async () => {

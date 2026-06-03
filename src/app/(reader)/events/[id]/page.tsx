@@ -15,6 +15,7 @@ import { getViewerReactions } from "@/db/queries/reactions";
 import { messages } from "@/i18n";
 import { formatDateTime } from "@/app/_lib/format";
 import { CommentsSection } from "../../comments-section";
+import { MastheadAccount } from "../../masthead-account";
 import { ReactionButtons } from "../../reaction-buttons";
 
 export const dynamic = "force-dynamic";

@@ -1,61 +1,30 @@
-"use client";
+// Login / register page (SP3.2). Server component: it reads and sanitises the post-auth
+// redirect target (`next`) and hands a safe value to the client form. Readers land back on
+// the page they came from; admins reach the console via `?next=/_admin` (set by the admin
+// guard), so neither flow is hard-coded to the other's destination.
 
-// Minimal email/password login (Slice 0). On success, go to the admin console.
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { authClient } from "@/app/_lib/auth-client";
-import { messages } from "@/i18n";
+import { LoginForm } from "./login-form";
 
-export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+// Only allow same-origin absolute paths. Reject protocol-relative ("//evil.com") and any
+// absolute URL so `next` can never become an open redirect.
+function safeNext(raw: string | string[] | undefined): string {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (!value) return "/";
+  if (!value.startsWith("/") || value.startsWith("//")) return "/";
+  return value;
+}
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setPending(true);
-    const { error } = await authClient.signIn.email({ email, password });
-    setPending(false);
-    if (error) {
-      setError(error.message ?? "登录失败");
-      return;
-    }
-    router.push("/_admin");
-    router.refresh();
-  }
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
+  const next = safeNext(sp.next);
 
   return (
     <main className="page">
-      <form className="login-card card" onSubmit={onSubmit}>
-        <h1 style={{ fontFamily: "var(--font-serif)", marginTop: 0 }}>
-          {messages.appName} · 登录
-        </h1>
-        <label htmlFor="email">邮箱</label>
-        <input
-          id="email"
-          type="email"
-          autoComplete="username"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <label htmlFor="password">密码</label>
-        <input
-          id="password"
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <button type="submit" disabled={pending}>
-          {pending ? "登录中…" : "登录"}
-        </button>
-        {error && <p className="error-text">{error}</p>}
-      </form>
+      <LoginForm next={next} />
     </main>
   );
 }

@@ -9,6 +9,8 @@ import { newId } from "@/core/ids";
 import { recordAudit } from "@/db/audit";
 import { db as defaultDb, type DB } from "@/db/client";
 import { contributions, sources } from "@/db/schema";
+import { createNotification } from "@/db/queries/notifications";
+import { messages } from "@/i18n";
 import { can } from "@/auth/rbac";
 import { resolveTransition, type ReviewAction } from "@/contributions/review";
 import type { ParsedSubmission } from "@/contributions/schema";
@@ -202,6 +204,24 @@ export async function applyContribution(
       after: { sourceId, url: sourceInput.url, enabled: true, fromContribution: id },
       reason: note ?? null,
     });
+
+    // SP3.3: notify the recommender that their source was accepted. Only when the original
+    // submission carried a logged-in user id, and never self-notify (a reviewer applying
+    // their own recommendation). System notification: no actor.
+    if (row.contributorUserId && row.contributorUserId !== reviewer.id) {
+      await createNotification(
+        {
+          userId: row.contributorUserId,
+          kind: "source_approved",
+          actorId: null,
+          title: messages.notifications.title.sourceApproved,
+          body: sourceInput.name,
+          targetType: "source",
+          targetId: sourceId,
+        },
+        tx,
+      );
+    }
 
     return { id, status: to, appliedTargetId: sourceId };
   });

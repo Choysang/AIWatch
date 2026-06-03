@@ -58,7 +58,7 @@ function sourceReviewItem(row: ContributionRow): SourceRecommendationReviewItem 
 
 export default async function AdminPage() {
   const session = await getSession();
-  if (!session) redirect("/login");
+  if (!session) redirect("/login?next=/_admin");
 
   const role = (session.user as { role?: string }).role;
   if (!isConsoleRole(role)) {

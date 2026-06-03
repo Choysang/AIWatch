@@ -48,6 +48,13 @@ export const contentTypeEnum = pgEnum("content_type", [
 // Comment reactions (SP3 point 7): readers can like a comment. Only "like" for V1
 // (KISS — no star/downvote); the enum leaves room to extend without a column rename.
 export const commentReactionKindEnum = pgEnum("comment_reaction_kind", ["like"]);
+// SP3.3 point 7: reader notifications. comment_reply/comment_like are reader-driven;
+// source_approved reuses the existing contribution-apply path (notify the recommender).
+export const notificationKindEnum = pgEnum("notification_kind", [
+  "comment_reply",
+  "comment_like",
+  "source_approved",
+]);
 export const eventRelationEnum = pgEnum("event_relation", ["same_event", "related"]);
 export const triggerReasonEnum = pgEnum("trigger_reason", [
   "initial", "official_update", "major_correction", "new_evidence", "manual_rejudge",
@@ -426,6 +433,34 @@ export const commentReactions = pgTable(
   ],
 );
 
+// --- notifications (SP3.3 point 7: reader inbox) ---
+// Only logged-in users have an inbox (anonymous fingerprints aren't reliably addressable).
+// `actorId` is the triggering identity token (userId OR fingerprint) — kept for display and
+// for the comment_like dedup index, so repeated like/unlike by the same actor doesn't spam.
+// `eventId` is a click-through convenience (notifications about comments link to the event).
+// System notifications (source_approved) carry a null actorId. read_at IS NULL = unread.
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(), // recipient (always a logged-in user)
+    kind: notificationKindEnum("kind").notNull(),
+    actorId: text("actor_id"), // who triggered it (userId or fingerprint); null = system
+    title: text("title").notNull(),
+    body: text("body"),
+    targetType: text("target_type"), // 'event' | 'comment' | 'source'
+    targetId: text("target_id"),
+    eventId: text("event_id"), // click-through target for the reader UI, when applicable
+    readAt: ts("read_at"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("notifications_user_idx").on(t.userId, t.createdAt),
+    // Partial unique for comment_like dedup is defined in SQL (migration 0015): drizzle's
+    // uniqueIndex can't express the WHERE clause. See comment_reactions for the same pattern.
+  ],
+);
+
 // --- audit_logs (append-only; spec: Audit Requirements) ---
 // before/after capture the change; secret values are never stored (decision: secret-
 // related config checks log the check, not the secret).
@@ -501,6 +536,7 @@ export const schema = {
   eventReactions,
   eventComments,
   commentReactions,
+  notifications,
   auditLogs,
   llmSpendLedger,
   feedback,

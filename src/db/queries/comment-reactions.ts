@@ -12,6 +12,8 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { newId } from "@/core/ids";
 import { db as defaultDb, type DB, type Tx } from "@/db/client";
 import { commentReactions, eventComments } from "@/db/schema";
+import { createNotification } from "@/db/queries/notifications";
+import { messages } from "@/i18n";
 
 export interface CommentReactionIdentity {
   /** Exactly one of userId / fingerprint must be set. */
@@ -84,6 +86,21 @@ async function readLikeCount(tx: Tx, commentId: string): Promise<CommentLikeResu
   return { commentId: row.id, likeCount: row.likeCount };
 }
 
+/** The liked comment's author + event, for addressing the comment_like notification. */
+async function readCommentTarget(
+  tx: Tx,
+  commentId: string,
+): Promise<{ userId: string | null; eventId: string }> {
+  const rows = await tx
+    .select({ userId: eventComments.userId, eventId: eventComments.eventId })
+    .from(eventComments)
+    .where(eq(eventComments.id, commentId))
+    .limit(1);
+  const row = rows[0];
+  if (!row) throw new CommentNotFoundError(commentId);
+  return { userId: row.userId, eventId: row.eventId };
+}
+
 /**
  * Like a comment. Idempotent: returns the current count even when the (identity)
  * already liked it. Throws CommentNotFoundError if the comment doesn't exist.
@@ -110,6 +127,25 @@ export async function addCommentReaction(
       .update(eventComments)
       .set({ likeCount: sql`${eventComments.likeCount} + 1` })
       .where(eq(eventComments.id, args.commentId));
+
+    // SP3.3: notify the comment's author of a new like. Addressable only when the author is
+    // a logged-in user; never self-notify; deduped per (author, comment, actor) so repeated
+    // like/unlike doesn't spam (the dedup lives in createNotification).
+    const target = await readCommentTarget(tx, args.commentId);
+    if (target.userId && target.userId !== args.identity.userId) {
+      await createNotification(
+        {
+          userId: target.userId,
+          kind: "comment_like",
+          actorId: args.identity.userId ?? args.identity.fingerprint,
+          title: messages.notifications.title.commentLike,
+          targetType: "comment",
+          targetId: args.commentId,
+          eventId: target.eventId,
+        },
+        tx,
+      );
+    }
 
     return readLikeCount(tx, args.commentId);
   });

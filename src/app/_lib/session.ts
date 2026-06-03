@@ -4,19 +4,9 @@
 import { headers } from "next/headers";
 import { auth } from "@/auth/auth";
 
-// Console roles allowed to view the admin area (decision 10). Plain "user" is excluded.
-const CONSOLE_ROLES = new Set([
-  "owner",
-  "admin",
-  "selected_author",
-  "moderator",
-  "readonly_operator",
-]);
+// Re-exported from the import-clean module so client components can share the same set.
+export { isConsoleRole } from "@/auth/console-roles";
 
 export async function getSession() {
   return auth.api.getSession({ headers: await headers() });
-}
-
-export function isConsoleRole(role: string | null | undefined): boolean {
-  return Boolean(role && CONSOLE_ROLES.has(role));
 }

@@ -13,6 +13,7 @@ let getDb: typeof import("@/db/client").getDb;
 let resetDb: typeof import("@/db/client").resetDb;
 let schema: typeof import("@/db/schema");
 let comments: typeof import("@/db/queries/comments");
+let notifications: typeof import("@/db/queries/notifications");
 
 function withTimeout(p: Promise<unknown> | undefined, ms: number): Promise<unknown> {
   if (!p) return Promise.resolve();
@@ -40,6 +41,7 @@ beforeAll(async () => {
   ({ getDb, resetDb } = await import("@/db/client"));
   schema = await import("@/db/schema");
   comments = await import("@/db/queries/comments");
+  notifications = await import("@/db/queries/notifications");
 
   await migrate(getDb(), { migrationsFolder: "src/db/migrations" });
 }, 120_000);
@@ -51,6 +53,8 @@ afterAll(async () => {
 }, 60_000);
 
 beforeEach(async () => {
+  await getDb().delete(schema.notifications);
+  await getDb().delete(schema.commentReactions);
   await getDb().delete(schema.eventComments);
   await getDb().delete(schema.eventScores);
   await getDb().delete(schema.eventJudgments);
@@ -396,5 +400,55 @@ describe("comment replies (SP3.1)", () => {
     expect(sections.highQuality.length).toBe(2);
     expect(sections.highQuality[0]!.id).toBe(high.id); // more-liked first
     expect(sections.highQuality[1]!.id).toBe(low.id);
+  });
+
+  test("replying to a logged-in user's comment notifies the author (not self)", async () => {
+    const sourceId = await seedSource();
+    await seedEvent({ id: "evt_rn", sourceId, title: "Some descriptive event title" });
+    const author = await seedUser("usr_parent");
+    const parent = await comments.addComment({
+      eventId: "evt_rn",
+      body: "Top-level comment by a logged-in author, substantive content.",
+      identity: { userId: author, fingerprint: null },
+    });
+
+    // Anonymous reader replies → author gets one comment_reply notification.
+    await comments.addComment({
+      eventId: "evt_rn",
+      body: "A thoughtful reply from an anonymous reader, real substance.",
+      identity: { userId: null, fingerprint: "fp_replier" },
+      parentId: parent.id,
+    });
+    const list = await notifications.listNotifications("usr_parent");
+    expect(list).toHaveLength(1);
+    expect(list[0]!.kind).toBe("comment_reply");
+    expect(list[0]!.eventId).toBe("evt_rn");
+
+    // The author replying to their own comment notifies no one.
+    await comments.addComment({
+      eventId: "evt_rn",
+      body: "Author follows up on their own comment, still substantive.",
+      identity: { userId: author, fingerprint: null },
+      parentId: parent.id,
+    });
+    expect(await notifications.countUnread("usr_parent")).toBe(1);
+  });
+
+  test("replying to an anonymous-authored comment notifies no one", async () => {
+    const sourceId = await seedSource();
+    await seedEvent({ id: "evt_rn2", sourceId, title: "Another descriptive title here" });
+    const parent = await comments.addComment({
+      eventId: "evt_rn2",
+      body: "Top-level comment by an anonymous reader, substantive content.",
+      identity: { userId: null, fingerprint: "fp_anon_parent" },
+    });
+    await comments.addComment({
+      eventId: "evt_rn2",
+      body: "A reply that has nowhere to be delivered, but real substance.",
+      identity: { userId: null, fingerprint: "fp_replier" },
+      parentId: parent.id,
+    });
+    const all = await getDb().select().from(schema.notifications);
+    expect(all.length).toBe(0);
   });
 });

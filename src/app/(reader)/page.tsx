@@ -21,6 +21,7 @@ import { modelAccent } from "@/app/_lib/model-accent";
 import { buildTimelineTree } from "@/app/_lib/timeline-tree";
 import { CollapsibleGroup } from "./collapsible-group";
 import { EventCard } from "./event-card";
+import { MastheadAccount } from "./masthead-account";
 import { ParticleBackground } from "./particle-background";
 import { SearchBar } from "./search-bar";
 import { SpotlightCard } from "./spotlight-card";
@@ -158,6 +159,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           <Link href="/about">{m.nav.about}</Link>
           <Link href="/recommend-source">{m.nav.recommendSource}</Link>
           <Link href="/feedback">{m.nav.feedback}</Link>
+          <MastheadAccount />
         </nav>
       </header>
 

@@ -75,9 +75,36 @@ afterAll(async () => {
 }, 60_000);
 
 beforeEach(async () => {
+  await getDb().delete(schema.notifications);
   await getDb().delete(schema.auditLogs);
   await getDb().delete(schema.contributions);
   await getDb().delete(schema.sources);
+});
+
+describe("source_approved notification (SP3.3)", () => {
+  test("applying a contribution from a logged-in recommender notifies them", async () => {
+    const notifications = await import("@/db/queries/notifications");
+    // Submitted while logged in → contributorUserId is captured.
+    const { id } = await jobs.submitContribution(recommendation(), { userId: "usr_reco" }, getDb());
+    await jobs.reviewContribution(id, "approve", ADMIN, undefined, getDb());
+    await jobs.applyContribution(id, ADMIN, "importing", getDb());
+
+    const list = await notifications.listNotifications("usr_reco");
+    expect(list).toHaveLength(1);
+    expect(list[0]!.kind).toBe("source_approved");
+    expect(list[0]!.body).toBe("Example AI");
+    expect(list[0]!.targetType).toBe("source");
+  });
+
+  test("an anonymous recommendation produces no notification on apply", async () => {
+    const notifications = await import("@/db/queries/notifications");
+    const { id } = await jobs.submitContribution(recommendation(), { fingerprint: "fp_anon" }, getDb());
+    await jobs.reviewContribution(id, "approve", ADMIN, undefined, getDb());
+    await jobs.applyContribution(id, ADMIN, undefined, getDb());
+
+    const all = await getDb().select().from(schema.notifications);
+    expect(all.length).toBe(0);
+  });
 });
 
 describe("submitContribution", () => {

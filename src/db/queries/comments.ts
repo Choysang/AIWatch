@@ -21,6 +21,14 @@ import { classifyComment, type CommentCategory, type CommentClassification } fro
 import { newId } from "@/core/ids";
 import { db as defaultDb, type DB, type Tx } from "@/db/client";
 import { eventComments, events, user as userTable } from "@/db/schema";
+import { createNotification } from "@/db/queries/notifications";
+import { messages } from "@/i18n";
+
+/** Trim a comment body to a short single-line excerpt for notification previews. */
+function excerpt(body: string, max = 120): string {
+  const oneLine = body.trim().replace(/\s+/g, " ");
+  return oneLine.length > max ? `${oneLine.slice(0, max)}…` : oneLine;
+}
 
 export interface CommentIdentity {
   /** Exactly one of userId / fingerprint must be set. */
@@ -115,9 +123,17 @@ async function fetchEventTitle(tx: Tx, eventId: string): Promise<string> {
  * be top-level (single-level threads — a reply-to-reply re-targets the top-level
  * ancestor at the UI layer, never the data layer). Throws InvalidParentError otherwise.
  */
-async function assertValidParent(tx: Tx, eventId: string, parentId: string): Promise<void> {
+async function fetchValidParent(
+  tx: Tx,
+  eventId: string,
+  parentId: string,
+): Promise<{ userId: string | null }> {
   const rows = await tx
-    .select({ eventId: eventComments.eventId, parentId: eventComments.parentId })
+    .select({
+      eventId: eventComments.eventId,
+      parentId: eventComments.parentId,
+      userId: eventComments.userId,
+    })
     .from(eventComments)
     .where(eq(eventComments.id, parentId))
     .limit(1);
@@ -129,6 +145,7 @@ async function assertValidParent(tx: Tx, eventId: string, parentId: string): Pro
   if (parent.parentId !== null) {
     throw new InvalidParentError("replies are single-level; cannot reply to a reply");
   }
+  return { userId: parent.userId };
 }
 
 async function isExpertUser(tx: Tx, userId: string | null): Promise<boolean> {
@@ -189,7 +206,7 @@ export async function addComment(
 
   return db.transaction(async (tx) => {
     const title = await fetchEventTitle(tx, args.eventId);
-    if (parentId !== null) await assertValidParent(tx, args.eventId, parentId);
+    const parent = parentId !== null ? await fetchValidParent(tx, args.eventId, parentId) : null;
     const bodyHash = hashBody(trimmed);
 
     // Dedupe inside the transaction. The partial unique indexes also enforce this at
@@ -221,6 +238,24 @@ export async function addComment(
         .update(events)
         .set({ lastStrongSignalAt: new Date() })
         .where(eq(events.id, args.eventId));
+    }
+
+    // SP3.3: notify the parent comment's author of a new reply. Only addressable when the
+    // author is a logged-in user, and never self-notify (replying to your own comment).
+    if (parent && parent.userId && parent.userId !== args.identity.userId) {
+      await createNotification(
+        {
+          userId: parent.userId,
+          kind: "comment_reply",
+          actorId: args.identity.userId ?? args.identity.fingerprint,
+          title: messages.notifications.title.commentReply,
+          body: excerpt(trimmed),
+          targetType: "event",
+          targetId: args.eventId,
+          eventId: args.eventId,
+        },
+        tx,
+      );
     }
 
     const inserted = await findExisting(tx, args.eventId, args.identity, bodyHash);

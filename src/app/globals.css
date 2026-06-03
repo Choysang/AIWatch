@@ -1136,6 +1136,139 @@ a {
   margin-top: 0.8rem;
 }
 
+/* A button that reads as a link — used for register/sign-in toggles and sign-out, where
+   the action is text-weight, not a primary CTA. */
+.link-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  margin-top: 0.8rem;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-align: left;
+}
+.link-button:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.link-button:disabled {
+  color: var(--ink-faint);
+  cursor: default;
+  text-decoration: none;
+}
+
+/* --- masthead account cluster (SP3.2/SP3.3) --- */
+/* Sits at the end of the reader masthead <nav>; inherits its baseline alignment. */
+.masthead-account {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+.masthead-account-link {
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+.masthead-account-link:hover {
+  color: var(--accent);
+}
+.masthead-account-name {
+  color: var(--ink);
+  font-weight: 600;
+  max-width: 12ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.masthead-account .link-button {
+  margin-top: 0; /* the cluster is baseline-aligned; no top offset here */
+}
+.masthead-bell {
+  position: relative;
+  display: inline-flex;
+  text-decoration: none;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+.masthead-bell-badge {
+  position: absolute;
+  top: -0.5rem;
+  left: 0.7rem;
+  min-width: 1.1rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--paper);
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1.1rem;
+  text-align: center;
+}
+
+/* --- notifications inbox (SP3.3) --- */
+.notification-list {
+  list-style: none;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.notification-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+.notification-item {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper-raised);
+}
+.notification-link:hover .notification-item {
+  border-color: var(--accent);
+}
+.notification-item.unread {
+  border-left: 3px solid var(--accent);
+}
+.notification-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+.notification-title {
+  font-weight: 600;
+  color: var(--ink);
+}
+.notification-body {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notification-time {
+  color: var(--ink-faint);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.notification-dot {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
 /* --- changelog --- */
 .changelog {
   list-style: none;
