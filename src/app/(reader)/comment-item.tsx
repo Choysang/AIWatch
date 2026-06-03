@@ -24,6 +24,13 @@ interface CommentItemProps {
   comment: CommentView;
   /** Top-level comments can be replied to; nested replies cannot. */
   canReply: boolean;
+  /**
+   * SP3 point C: inline (feed) usage passes false so a reply re-fetches the client list
+   * instead of refreshing the whole SSR feed. Detail-page usage keeps the default refresh.
+   */
+  refreshOnSubmit?: boolean;
+  /** SP3 point C: called after a reply is submitted, so an inline list can reload. */
+  onChanged?: () => void;
 }
 
 async function postCommentLike(commentId: string, op: "add" | "remove"): Promise<number> {
@@ -75,7 +82,13 @@ function CommentLikeButton({ comment }: { comment: CommentView }) {
   );
 }
 
-export function CommentItem({ eventId, comment, canReply }: CommentItemProps) {
+export function CommentItem({
+  eventId,
+  comment,
+  canReply,
+  refreshOnSubmit = true,
+  onChanged,
+}: CommentItemProps) {
   const m = messages.comments;
   const [replyOpen, setReplyOpen] = useState(false);
 
@@ -105,14 +118,25 @@ export function CommentItem({ eventId, comment, canReply }: CommentItemProps) {
           eventId={eventId}
           parentId={comment.id}
           variant="reply"
-          onSubmitted={() => setReplyOpen(false)}
+          refreshOnSubmit={refreshOnSubmit}
+          onSubmitted={() => {
+            setReplyOpen(false);
+            onChanged?.();
+          }}
         />
       )}
 
       {comment.replies.length > 0 && (
         <ul className="comment-replies">
           {comment.replies.map((r) => (
-            <CommentItem key={r.id} eventId={eventId} comment={r} canReply={false} />
+            <CommentItem
+              key={r.id}
+              eventId={eventId}
+              comment={r}
+              canReply={false}
+              refreshOnSubmit={refreshOnSubmit}
+              onChanged={onChanged}
+            />
           ))}
         </ul>
       )}

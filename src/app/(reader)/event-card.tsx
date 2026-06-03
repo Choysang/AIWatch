@@ -10,6 +10,7 @@ import { groupForSourceType } from "@/public/source-groups";
 import { formatDateTime } from "@/app/_lib/format";
 import { extractImageUrl } from "@/app/_lib/media";
 import { CommentTicker } from "./comment-ticker";
+import { InlineComments } from "./inline-comments";
 import { ReactionButtons } from "./reaction-buttons";
 
 const MAX_TAGS = 4;
@@ -173,6 +174,10 @@ export function EventCard({
           initialStarred={starred}
         />
       </div>
+
+      {/* SP3 point C: inline discussion entry point on every card (the feed's only path to
+          comments now that the "view details" link is gone). Lazy-loaded on expand. */}
+      <InlineComments eventId={event.id} />
     </article>
   );
 }

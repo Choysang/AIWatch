@@ -133,6 +133,12 @@ export const zh = {
     reply: "回复",
     replyPlaceholder: "回复这条评论…",
     replySubmit: "发表回复",
+    // SP3 point C: inline comments in the feed (expand on a card without leaving the feed).
+    inlineToggle: "讨论",
+    inlineCountSuffix: "条讨论",
+    inlineCollapse: "收起讨论",
+    inlineLoading: "加载讨论…",
+    inlineError: "讨论加载失败，请稍后再试。",
   },
   selectedLabel: {
     none: "",

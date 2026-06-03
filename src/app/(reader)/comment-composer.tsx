@@ -20,6 +20,12 @@ interface CommentComposerProps {
   variant?: "comment" | "reply";
   /** SP3.1: called after a successful submit (e.g. to collapse a reply box). */
   onSubmitted?: () => void;
+  /**
+   * SP3 point C: detail-page composers refresh the SSR shell to surface the new row;
+   * inline (feed) composers re-fetch their own client list instead, so they pass false
+   * and reload via onSubmitted. Defaults to the detail-page behaviour.
+   */
+  refreshOnSubmit?: boolean;
 }
 
 interface ComposerState {
@@ -32,6 +38,7 @@ export function CommentComposer({
   parentId,
   variant = "comment",
   onSubmitted,
+  refreshOnSubmit = true,
 }: CommentComposerProps) {
   const m = messages.comments;
   const router = useRouter();
@@ -64,8 +71,9 @@ export function CommentComposer({
         onSubmitted?.();
         // Re-fetch the SSR shell so newly-public comments appear. Low-value rows
         // won't surface — the absence of a new row in the refreshed page is the
-        // UX signal that the comment was classifier-filtered.
-        router.refresh();
+        // UX signal that the comment was classifier-filtered. Inline (feed) composers
+        // skip this and reload their own client list via onSubmitted instead.
+        if (refreshOnSubmit) router.refresh();
       } catch {
         setState((s) => ({ ...s, error: m.submitError }));
       }
