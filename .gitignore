@@ -10,6 +10,9 @@
 .env.local
 .env.*.local
 
+# deploy artifacts: proprietary source export + local src tarball (never publish)
+.deploy/
+
 # build / cache
 /dist
 /build
