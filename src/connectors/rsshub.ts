@@ -6,6 +6,7 @@
 // and trips that source's breaker. Per spec, hard-tier failure reduces coverage, not
 // system availability — other connectors keep running.
 
+import { safeFetch } from "@/net/safe-fetch";
 import { parseFeed } from "./rss";
 import type { ConnectorSource, RawPost, SourceConnector } from "./types";
 
@@ -32,7 +33,10 @@ export class RsshubConnector implements SourceConnector {
 
   constructor(options: RsshubConnectorOptions = {}) {
     this.baseUrlOverride = options.baseUrl;
-    this.fetchImpl = options.fetchImpl ?? fetch;
+    // Default to the SSRF/timeout/byte-capped safeFetch; tests still inject a plain stub.
+    this.fetchImpl =
+      options.fetchImpl ??
+      ((url, init) => safeFetch(url, { headers: init?.headers as Record<string, string> | undefined }));
   }
 
   async fetch(source: ConnectorSource): Promise<RawPost[]> {

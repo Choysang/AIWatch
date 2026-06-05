@@ -3,7 +3,7 @@
 - **Date:** 2026-06-05
 - **Branch:** `feat/spend-guard-and-reader-polish`
 - **Baseline commit:** `491049e` (existing WIP checkpointed); `08e30eb` (ignore `.deploy/`)
-- **Status:** Findings approved, scope = **全修 (CRITICAL+HIGH+MEDIUM+LOW)**. Implementation pending.
+- **Status:** **IMPLEMENTED & VERIFIED (2026-06-06), UNCOMMITTED.** Scope = 全修 (CRITICAL+HIGH+MEDIUM+LOW). All items 1–9 done; verification (typecheck, 416 unit tests incl. new env+safe-fetch suites, `next build`) green. Not committed: the working tree carries unrelated in-flight WIP (spend-guard/reader-polish: new judge prompt + aiScore gating in `process-source.ts`, source-categories scripts) that predates this pass, so a clean isolated hardening commit needs the user to sequence it (commit/stash their WIP first, per the original "baseline first" plan). Only `process-source.ts` (L1 swap) overlaps that WIP; every other hardening change is in a file that was clean before this pass.
 - **Note:** User plans to `/clear` context, then resume. This doc + memory `project-public-launch-hardening` are the durable handoff.
 
 ## 1. Context & goal
@@ -91,6 +91,23 @@ Evidence is `file:line` from the 2026-06-05 read-only audit. Already-good postur
 - `bun test tests/integration` (embedded-postgres; may be slow/flaky on Windows — see memory `reference-dev-environment`)
 - `bun run build` (ensure CSP/headers config compiles; no client bundle regressions)
 - Manual: `curl -I` the running app, confirm headers present; confirm reader + `/_admin` render with CSP enabled (no console CSP violations).
+
+## 5b. Implementation notes (2026-06-06)
+
+What shipped, by item:
+- **E1** — `src/config/env.ts` (`checkEnv()` pure + testable, `validateEnv()` throws in prod / warns in dev), wired at `src/instrumentation.ts` `register()` (nodejs runtime only, dynamic import) and at the top of `worker/index.ts`. Requires in prod: `DATABASE_URL`, strong `BETTER_AUTH_SECRET` (≥32, ≠ placeholder), `CONTRIBUTION_SALT` (≥16). `READER_ID_SECRET` is a warn-not-error (it safely falls back to the already-validated `BETTER_AUTH_SECRET`) — a deliberate deviation from the spec's "require" to preserve the documented fallback; if set it must be ≥32.
+- **H1** — `next.config.ts` `headers()` for `/:path*`: nosniff, `X-Frame-Options: DENY`, Referrer-Policy, Permissions-Policy always; HSTS prod-only; CSP shipped **Report-Only** by default, flip to enforce with `CSP_ENFORCE=1` (note in code: strict `script-src 'self'` needs a nonce middleware before enforcing, or Next's streamed inline bootstrap is blocked).
+- **H2** — `src/net/safe-fetch.ts` (`safeFetch` + `isPrivateAddress`): timeout (10s), byte cap (5MB, streamed), redirect cap (3, re-validates each hop), SSRF block of loopback/private/link-local/reserved v4+v6 incl. IPv4-mapped, `allowHosts` bypass, injectable `fetchImpl`/`lookupImpl`. `rss.ts` + `rsshub.ts` refactored onto it (rsshub keeps its test-injection seam). 18 unit tests in `safe-fetch.test.ts`.
+- **M1** — `_runtime.ts clientIp()` reads `TRUSTED_PROXY_HOPS` from the right of XFF (default 0 = directly-connected peer).
+- **M2** — better-auth `rateLimit` (global 100/60s + 5/60s on sign-in/sign-up, 3/60s forget-password; per-instance memory store).
+- **M3** — `db/client.ts` `sslConfig()`: prod requires TLS unless `DATABASE_SSL=disable`; `DATABASE_SSL_NO_VERIFY=1` / `DATABASE_SSL_CA` escape hatches.
+- **M4** — closed by E1.
+- **M5** — `docker-compose.yml` parameterizes `POSTGRES_USER/PASSWORD/DB` + `DATABASE_URL`; Postgres now binds `127.0.0.1:5432` by default (override `POSTGRES_BIND`).
+- **L1** — `src/log.ts` thin level+scrub seam; swapped the 2 `process-source.ts` console sites. Entry-point console (worker boot, CLI scripts) left as-is by design.
+- `.env.example` documents all new knobs (`LOG_LEVEL`, `TRUSTED_PROXY_HOPS`, `DATABASE_SSL*`, `CSP_ENFORCE`, `CONTRIBUTION_SALT`).
+- **S1** (`.gitattributes`) — NOT done (optional; deferred to avoid CRLF renormalization noise mid-WIP).
+
+Remaining manual verification (needs running app): `curl -I` to confirm headers present; click through reader + `/_admin` with `CSP_ENFORCE=1` to catch CSP violations before enforcing.
 
 ## 6. Resume after `/clear`
 

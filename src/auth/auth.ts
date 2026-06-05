@@ -25,6 +25,19 @@ export const auth = betterAuth({
       role: { type: "string", required: false, defaultValue: "user", input: false },
     },
   },
+  // Auth brute-force guard (M2). Per-instance in-memory store (single-instance assumption;
+  // a shared Postgres/Redis store is the future multi-instance upgrade). Global default
+  // plus tight limits on the credential endpoints.
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 100,
+    customRules: {
+      "/sign-in/email": { window: 60, max: 5 },
+      "/sign-up/email": { window: 60, max: 5 },
+      "/forget-password": { window: 60, max: 3 },
+    },
+  },
 });
 
 export type Auth = typeof auth;

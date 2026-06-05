@@ -2,6 +2,7 @@
 // is exercised against recorded fixtures via parseFeed (no live network in tests).
 
 import { XMLParser } from "fast-xml-parser";
+import { safeFetch } from "@/net/safe-fetch";
 import type { ConnectorSource, RawPost, SourceConnector } from "./types";
 
 const parser = new XMLParser({
@@ -175,7 +176,7 @@ export class RssConnector implements SourceConnector {
     if (!target) {
       throw new Error(`[rss] source ${source.id} has no connectorRef/url to fetch`);
     }
-    const res = await fetch(target, {
+    const res = await safeFetch(target, {
       headers: { "user-agent": "AIWatch/0.1 (+https://aiwatch.local)" },
     });
     if (!res.ok) {

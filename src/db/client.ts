@@ -14,13 +14,26 @@ export type Tx = Parameters<Parameters<DB["transaction"]>[0]>[0];
 let realPool: pg.Pool | null = null;
 let realDb: DB | null = null;
 
+// TLS policy for the pg pool (M3). In production we require TLS so DB credentials and rows
+// never cross the wire in clear text. Escape hatches for the common self-host cases:
+//   DATABASE_SSL=disable      → no TLS (only for a trusted private network / local socket)
+//   DATABASE_SSL_NO_VERIFY=1  → TLS on, but accept self-signed certs (managed PG default)
+//   DATABASE_SSL_CA=<pem>     → pin a CA bundle (rejectUnauthorized stays on)
+function sslConfig(): pg.PoolConfig["ssl"] {
+  if (process.env.NODE_ENV !== "production") return undefined;
+  if (process.env.DATABASE_SSL === "disable") return undefined;
+  const ca = process.env.DATABASE_SSL_CA;
+  const rejectUnauthorized = process.env.DATABASE_SSL_NO_VERIFY !== "1";
+  return ca ? { ca, rejectUnauthorized } : { rejectUnauthorized };
+}
+
 function init(): DB {
   if (!realDb) {
     const connectionString = process.env.DATABASE_URL;
     if (!connectionString) {
       throw new Error("DATABASE_URL is not set");
     }
-    realPool = new pg.Pool({ connectionString });
+    realPool = new pg.Pool({ connectionString, ssl: sslConfig() });
     realDb = drizzle(realPool, { schema, casing: "snake_case" });
   }
   return realDb;

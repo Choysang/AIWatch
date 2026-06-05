@@ -3,6 +3,7 @@
 // and runs its own migrations on start. Never imports src/app.
 
 import { run } from "graphile-worker";
+import { validateEnv } from "@/config/env";
 import { checkPromotionV2Task } from "./tasks/check-promotion-v2";
 import { crawlSource } from "./tasks/crawl-source";
 import { enqueueDueSources } from "./tasks/enqueue-due-sources";
@@ -14,6 +15,9 @@ import {
 import { recomputeScoresV2Task } from "./tasks/recompute-scores-v2";
 import { recomputeRankScoresTask } from "./tasks/recompute-rank-scores";
 import { suggestSourceReviewTask } from "./tasks/suggest-source-review";
+
+// Fail-fast on a misconfigured environment before opening the worker runtime (E1).
+validateEnv();
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
