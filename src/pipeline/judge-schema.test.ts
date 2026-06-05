@@ -12,6 +12,7 @@ const valid = {
   novelty: 60,
   audienceUsefulness: 65,
   evidenceClarity: 75,
+  title: "中文标题",
   summary: "摘要",
   category: "模型",
   contentType: "model_release" as const,

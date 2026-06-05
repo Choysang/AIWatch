@@ -73,6 +73,26 @@ describe("parseFeed", () => {
     </item>
   </channel>
 </rss>`);
-    expect(posts[0]!.media).toEqual({ url: "https://pbs.twimg.com/media/demo.jpg" });
+    expect(posts[0]!.media).toEqual({ type: "image", url: "https://pbs.twimg.com/media/demo.jpg" });
+  });
+
+  test("extracts video media with poster from RSSHub-style feed entries", () => {
+    const posts = parseFeed(`<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
+  <channel>
+    <item>
+      <title>Video post</title>
+      <link>https://x.com/OpenAI/status/456</link>
+      <description><![CDATA[Demo <video poster="https://pbs.twimg.com/media/poster.jpg"><source src="https://video.twimg.com/ext_tw_video/demo.mp4" /></video>]]></description>
+      <media:content url="https://video.twimg.com/ext_tw_video/demo.mp4" medium="video" />
+      <media:thumbnail url="https://pbs.twimg.com/media/poster.jpg" />
+    </item>
+  </channel>
+</rss>`);
+    expect(posts[0]!.media).toEqual({
+      type: "video",
+      url: "https://video.twimg.com/ext_tw_video/demo.mp4",
+      poster: "https://pbs.twimg.com/media/poster.jpg",
+    });
   });
 });

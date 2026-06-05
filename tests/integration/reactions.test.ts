@@ -132,12 +132,14 @@ async function seedEvent(opts: {
 async function readEventCounts(id: string): Promise<{
   likeCount: number;
   starCount: number;
+  viewCount: number;
   rankScore: number | null;
 }> {
   const rows = await getDb()
     .select({
       likeCount: schema.events.likeCount,
       starCount: schema.events.starCount,
+      viewCount: schema.events.viewCount,
       rankScore: schema.events.rankScore,
     })
     .from(schema.events)
@@ -296,6 +298,10 @@ describe("event reactions + rank-score recompute (real Postgres)", () => {
         });
       }
     }
+    await getDb()
+      .update(schema.events)
+      .set({ viewCount: 120 })
+      .where(eq(schema.events.id, "evt_mid"));
 
     const result = await recompute.recomputeRankScores(NOW);
     expect(result.updated).toBeGreaterThan(0);
@@ -309,6 +315,7 @@ describe("event reactions + rank-score recompute (real Postgres)", () => {
         baseScore: 50,
         likeCount: row.likeCount,
         starCount: row.starCount,
+        viewCount: row.viewCount,
         ageHours: ages[evtId]!,
       });
       expect(row.rankScore).toBeCloseTo(expected.rankScore, 5);

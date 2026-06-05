@@ -10,7 +10,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { messages } from "@/i18n";
 import { CONTENT_TYPES, SOURCE_TYPES, type ContentType, type SourceType } from "@/public/query";
 import {
@@ -52,20 +52,43 @@ function isGroupActive(selected: Set<SourceType>, group: SourceGroup): boolean {
   return GROUP_MEMBERS[group].every((t) => selected.has(t));
 }
 
+function isOnlyGroupActive(selected: Set<SourceType>, group: SourceGroup): boolean {
+  const members = GROUP_MEMBERS[group];
+  return selected.size === members.length && members.every((t) => selected.has(t));
+}
+
 export function SearchBar() {
   const m = messages.search;
   const router = useRouter();
   const params = useSearchParams();
-  const [text, setText] = useState(params.get("q") ?? "");
-  const [fromVal, setFromVal] = useState(params.get("from") ?? "");
-  const [toVal, setToVal] = useState(params.get("to") ?? "");
+  const queryParam = params.get("q") ?? "";
+  const fromParam = params.get("from") ?? "";
+  const toParam = params.get("to") ?? "";
+  const [text, setText] = useState(queryParam);
+  const [fromVal, setFromVal] = useState(fromParam);
+  const [toVal, setToVal] = useState(toParam);
 
   // Current selections, with the same defaults the server applies (see parsePublicQuery).
   const mode = params.get("mode") === "selected" ? "selected" : "all";
   const hasCustomRange = Boolean(params.get("from") || params.get("to"));
+  const [showCustomRange, setShowCustomRange] = useState(hasCustomRange);
+  const showRangeControls = showCustomRange || hasCustomRange;
   const since = params.get("since") ?? (mode === "selected" ? "week" : "all");
   const selectedSourceTypes = parseSourceTypeParam(params.get("sourceTypes"));
   const selectedContentTypes = parseContentTypeParam(params.get("contentTypes"));
+  const nativeSubmitParams = Array.from(params.entries()).filter(([key]) => key !== "q");
+
+  useEffect(() => {
+    setText(queryParam);
+  }, [queryParam]);
+
+  useEffect(() => {
+    setFromVal(fromParam);
+  }, [fromParam]);
+
+  useEffect(() => {
+    setToVal(toParam);
+  }, [toParam]);
 
   const navigate = useCallback(
     (mutate: (next: URLSearchParams) => void) => {
@@ -84,12 +107,14 @@ export function SearchBar() {
     });
 
   // Selecting a rolling window clears any custom range (they are mutually exclusive).
-  const selectWindow = (value: string) =>
+  const selectWindow = (value: string) => {
+    setShowCustomRange(false);
     navigate((next) => {
       next.set("since", value);
       next.delete("from");
       next.delete("to");
     });
+  };
 
   const applyRange = () =>
     navigate((next) => {
@@ -104,28 +129,26 @@ export function SearchBar() {
   const toggleSourceGroup = (group: SourceGroup) =>
     navigate((next) => {
       const current = parseSourceTypeParam(next.get("sourceTypes"));
-      const turnOff = isGroupActive(current, group);
-      for (const t of groupMembers(group)) {
-        if (turnOff) current.delete(t);
-        else current.add(t);
+      if (isOnlyGroupActive(current, group)) {
+        next.delete("sourceTypes");
+      } else {
+        const members = new Set(groupMembers(group));
+        next.set("sourceTypes", SOURCE_TYPES.filter((t) => members.has(t)).join(","));
       }
-      if (current.size === 0) next.delete("sourceTypes");
-      // Preserve enum order for a stable URL regardless of click order.
-      else next.set("sourceTypes", SOURCE_TYPES.filter((t) => current.has(t)).join(","));
     });
 
   const toggleContentType = (value: ContentType) =>
     navigate((next) => {
       const current = parseContentTypeParam(next.get("contentTypes"));
-      if (current.has(value)) current.delete(value);
-      else current.add(value);
-      if (current.size === 0) next.delete("contentTypes");
-      else next.set("contentTypes", CONTENT_TYPES.filter((t) => current.has(t)).join(","));
+      if (current.size === 1 && current.has(value)) next.delete("contentTypes");
+      else next.set("contentTypes", value);
     });
 
   const submitQuery = (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = text.trim();
+    const data = new FormData(e.currentTarget as HTMLFormElement);
+    const trimmed = String(data.get("q") ?? "").trim();
+    setText(trimmed);
     setParam("q", trimmed || undefined);
   };
 
@@ -133,6 +156,7 @@ export function SearchBar() {
     setText("");
     setFromVal("");
     setToVal("");
+    setShowCustomRange(false);
     router.push("/");
   };
 
@@ -148,7 +172,10 @@ export function SearchBar() {
 
   return (
     <section className="search" aria-label={m.submit}>
-      <form className="search-row" role="search" onSubmit={submitQuery}>
+      <form className="search-row" role="search" action="/" method="get" onSubmit={submitQuery}>
+        {nativeSubmitParams.map(([key, value], index) => (
+          <input key={`${key}:${index}`} type="hidden" name={key} value={value} />
+        ))}
         <input
           type="search"
           className="search-input"
@@ -191,31 +218,40 @@ export function SearchBar() {
             {m.window[value]}
           </button>
         ))}
-        <span className={`chip chip-static ${hasCustomRange ? "is-active" : ""}`} aria-hidden="true">
+        <button
+          type="button"
+          className={`chip ${showRangeControls ? "is-active" : ""}`}
+          aria-pressed={showRangeControls}
+          onClick={() => setShowCustomRange(true)}
+        >
           {m.customLabel}
-        </span>
-        <input
-          type="date"
-          className="search-date"
-          value={fromVal}
-          max={toVal || undefined}
-          aria-label={m.dateFromLabel}
-          onChange={(e) => setFromVal(e.target.value)}
-        />
-        <span className="date-sep" aria-hidden="true">
-          –
-        </span>
-        <input
-          type="date"
-          className="search-date"
-          value={toVal}
-          min={fromVal || undefined}
-          aria-label={m.dateToLabel}
-          onChange={(e) => setToVal(e.target.value)}
-        />
-        <button type="button" className="chip" onClick={applyRange}>
-          {m.dateApply}
         </button>
+        {showRangeControls && (
+          <>
+            <input
+              type="date"
+              className="search-date"
+              value={fromVal}
+              max={toVal || undefined}
+              aria-label={m.dateFromLabel}
+              onChange={(e) => setFromVal(e.target.value)}
+            />
+            <span className="date-sep" aria-hidden="true">
+              –
+            </span>
+            <input
+              type="date"
+              className="search-date"
+              value={toVal}
+              min={fromVal || undefined}
+              aria-label={m.dateToLabel}
+              onChange={(e) => setToVal(e.target.value)}
+            />
+            <button type="button" className="chip" onClick={applyRange}>
+              {m.dateApply}
+            </button>
+          </>
+        )}
       </div>
 
       <div className="filter-group" role="group" aria-label={m.sourceGroupLabel}>

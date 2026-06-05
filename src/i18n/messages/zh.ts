@@ -101,6 +101,7 @@ export const zh = {
     source: "来源",
     original: "原文链接",
     summaryNote: "摘要由 LLM 生成，请以原文为准。",
+    views: (count: number) => `浏览 ${count}`,
     like: "有用",
     liked: "已标记有用",
     star: "深读",
@@ -114,10 +115,10 @@ export const zh = {
   },
   comments: {
     heading: "讨论",
-    sections: {
-      expertViews: "专家观点",
-      highQuality: "高质量讨论",
-      latest: "最新评论",
+    sortLabel: "评论排序",
+    sort: {
+      latest: "最新",
+      hot: "最热",
     },
     expertBadge: "专家",
     empty: "暂无评论。",
@@ -139,6 +140,7 @@ export const zh = {
     inlineCollapse: "收起讨论",
     inlineLoading: "加载讨论…",
     inlineError: "讨论加载失败，请稍后再试。",
+    pollingError: "评论刷新失败，稍后会自动重试。",
   },
   selectedLabel: {
     none: "",

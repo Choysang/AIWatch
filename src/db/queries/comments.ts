@@ -1,11 +1,7 @@
 // Event comments query layer (Slice 9; spec: Comments And Follow-Up).
 //
-// Comments are centered on the *event*, not the post (spec line 463). The list view
-// has three sections (spec lines 465-469):
-//   - Expert views: comments where isExpert was true at insert time.
-//   - High-quality discussion: valid + non-expert. (V1: any comment classified valid;
-//     a future slice will rank by reaction count + reply depth.)
-//   - Latest comments: chronological tail of valid comments.
+// Comments are centered on the *event*, not the post. Reader UI shows a single comment
+// list sorted either by latest activity or hotness (likes, then recency).
 //
 // The classifier (`src/comments/classifier`) is deterministic — no LLM — and runs
 // synchronously inside addComment. Low-value comments are stored (so admins can audit
@@ -57,7 +53,12 @@ export interface CommentWithReplies extends CommentRow {
   replies: CommentRow[];
 }
 
+export type CommentSort = "latest" | "hot";
+
 export interface CommentSections {
+  sort: CommentSort;
+  items: CommentWithReplies[];
+  // Legacy shape retained for older callers during the UI transition.
   expertViews: CommentWithReplies[];
   highQuality: CommentWithReplies[];
   latest: CommentWithReplies[];
@@ -90,6 +91,10 @@ export class InvalidParentError extends Error {
     super(message);
     this.name = "InvalidParentError";
   }
+}
+
+export function parseCommentSort(raw: string | null): CommentSort {
+  return raw === "hot" ? "hot" : "latest";
 }
 
 function assertIdentity(identity: CommentIdentity): void {
@@ -264,69 +269,59 @@ export async function addComment(
   });
 }
 
-/**
- * List comments for an event in three sections (spec lines 465-469). Low-value comments
- * never surface here. Section sizes default to a reasonable UI page; callers can
- * override. `latest` may overlap with the other two sections — that's intentional, the
- * UI renders sections as distinct affordances.
- */
+/** List valid top-level comments for an event. Replies are nested underneath. */
 export async function listEventComments(
   eventId: string,
-  opts: { expertLimit?: number; highQualityLimit?: number; latestLimit?: number } = {},
+  opts: {
+    sort?: CommentSort;
+    limit?: number;
+    /** Legacy option accepted as a list limit for older callers. */
+    latestLimit?: number;
+  } = {},
   db: DB = defaultDb,
 ): Promise<CommentSections> {
-  const expertLimit = opts.expertLimit ?? 5;
-  const highQualityLimit = opts.highQualityLimit ?? 10;
-  const latestLimit = opts.latestLimit ?? 20;
+  const sort = opts.sort ?? "latest";
+  const limit = opts.limit ?? opts.latestLimit ?? 30;
 
-  // Sections list TOP-LEVEL comments only (parent_id IS NULL); replies nest underneath
-  // (fetched once below). The table is indexed on (event_id, created_at) and parent_id.
+  // List TOP-LEVEL comments only (parent_id IS NULL); replies nest underneath.
+  // The table is indexed on (event_id, created_at) and parent_id.
   const validTopLevel = and(
     eq(eventComments.eventId, eventId),
     eq(eventComments.classification, "valid"),
     isNull(eventComments.parentId),
   );
 
-  const [expertViews, highQuality, latest] = await Promise.all([
-    db
-      .select()
-      .from(eventComments)
-      .where(and(validTopLevel, eq(eventComments.isExpert, true)))
-      .orderBy(asc(eventComments.createdAt))
-      .limit(expertLimit),
-    // SP3.1: high-quality discussion now ranks by likes (then recency), not pure recency.
-    db
-      .select()
-      .from(eventComments)
-      .where(and(validTopLevel, eq(eventComments.isExpert, false)))
-      .orderBy(desc(eventComments.likeCount), desc(eventComments.createdAt))
-      .limit(highQualityLimit),
-    db
-      .select()
-      .from(eventComments)
-      .where(validTopLevel)
-      .orderBy(desc(eventComments.createdAt))
-      .limit(latestLimit),
-  ]);
+  const rows =
+    sort === "hot"
+      ? await db
+          .select()
+          .from(eventComments)
+          .where(validTopLevel)
+          .orderBy(desc(eventComments.likeCount), desc(eventComments.createdAt))
+          .limit(limit)
+      : await db
+          .select()
+          .from(eventComments)
+          .where(validTopLevel)
+          .orderBy(desc(eventComments.createdAt))
+          .limit(limit);
 
-  const topLevel = [
-    ...(expertViews as CommentRow[]),
-    ...(highQuality as CommentRow[]),
-    ...(latest as CommentRow[]),
-  ];
+  const items = rows as CommentRow[];
   const repliesByParent = await fetchRepliesByParent(
     db,
-    topLevel.map((c) => c.id),
+    items.map((c) => c.id),
   );
-  const nest = (c: CommentRow): CommentWithReplies => ({
+  const withReplies = items.map((c): CommentWithReplies => ({
     ...c,
     replies: repliesByParent.get(c.id) ?? [],
-  });
+  }));
 
   return {
-    expertViews: (expertViews as CommentRow[]).map(nest),
-    highQuality: (highQuality as CommentRow[]).map(nest),
-    latest: (latest as CommentRow[]).map(nest),
+    sort,
+    items: withReplies,
+    expertViews: [],
+    highQuality: [],
+    latest: withReplies,
   };
 }
 

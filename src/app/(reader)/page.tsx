@@ -8,7 +8,7 @@
 
 import { cookies } from "next/headers";
 import Link from "next/link";
-import { Suspense, type CSSProperties } from "react";
+import { type CSSProperties } from "react";
 import { getSession } from "@/app/_lib/session";
 import { READER_ID_COOKIE, verifyReaderId } from "@/auth/reader-id";
 import { searchEvents, type EventCard as EventCardData } from "@/db/queries/feed";
@@ -16,13 +16,14 @@ import { getViewerReactions } from "@/db/queries/reactions";
 import { getTopCommentsForEvents } from "@/db/queries/comments";
 import { messages } from "@/i18n";
 import { parsePublicQuery, type PublicQuery } from "@/public/query";
-import { formatTimeOfDay } from "@/app/_lib/format";
+import { formatDateTime, formatTimeOfDay } from "@/app/_lib/format";
 import { modelAccent } from "@/app/_lib/model-accent";
 import { buildTimelineTree } from "@/app/_lib/timeline-tree";
 import { CollapsibleGroup } from "./collapsible-group";
 import { EventCard } from "./event-card";
 import { MastheadAccount } from "./masthead-account";
 import { ParticleBackground } from "./particle-background";
+import { ReaderSidebar, type SidebarEventItem } from "./reader-sidebar";
 import { SearchBar } from "./search-bar";
 import { SpotlightCard } from "./spotlight-card";
 
@@ -141,6 +142,14 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       query.dateTo ||
       query.mode === "selected",
   );
+  const sidebarItems: SidebarEventItem[] = events.slice(0, 8).map((event) => ({
+    id: event.id,
+    title: event.title,
+    sourceName: event.sourceName,
+    when: formatDateTime(event.publishedAt ?? event.promotedAt ?? event.createdAt),
+    selectedLabel: event.selectedLabel,
+    viewCount: event.viewCount,
+  }));
 
   return (
     <main className="page reader-home">
@@ -168,11 +177,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       </h2>
       <p className="section-intro">{m.home.subheading}</p>
 
-      {/* SearchBar reads useSearchParams; a Suspense boundary keeps that from opting the
-          whole page out of server rendering (Next.js CSR-bailout). */}
-      <Suspense fallback={<section className="search" aria-hidden="true" />}>
-        <SearchBar />
-      </Suspense>
+      <SearchBar />
+      <ReaderSidebar items={sidebarItems} />
 
       {events.length === 0 ? (
         <div className="empty">{isFiltered ? m.search.empty : m.home.empty}</div>

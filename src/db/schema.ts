@@ -105,7 +105,7 @@ export const sources = pgTable(
     onboardedAt: ts("onboarded_at"), // 接入日期
     enabled: boolean("enabled").notNull().default(true),
     archivedAt: ts("archived_at"),
-    fetchFrequency: interval("fetch_frequency").notNull().default("30 minutes"),
+    fetchFrequency: interval("fetch_frequency").notNull().default("10 minutes"),
     lastFetchAt: ts("last_fetch_at"),
     nextFetchAt: ts("next_fetch_at"),
     failureCount: integer("failure_count").notNull().default(0),
@@ -208,6 +208,9 @@ export const events = pgTable(
     // maintained transactionally by addReaction/removeReaction (Slice 7).
     likeCount: integer("like_count").notNull().default(0),
     starCount: integer("star_count").notNull().default(0),
+    // Reader attention signal. Incremented when a reader opens the detail page or original
+    // source link from a card; used as a lightweight heat input during score recomputation.
+    viewCount: integer("view_count").notNull().default(0),
     selectedLevel: selectedLevelEnum("selected_level").notNull().default("none"),
     selectedLabel: text("selected_label"),
     // Explainable promotion snapshot, written ONLY by the promotion job (decision: selected

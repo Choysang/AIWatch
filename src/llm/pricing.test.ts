@@ -20,11 +20,22 @@ describe("getPrice", () => {
   test("KNOWN_MODEL_PRICES covers every default route in routing.ts", async () => {
     // Soft coupling: if a default route is ever pointed at a model with no price,
     // this test fails so spend_guard can't silently miss it.
+    const savedProvider = process.env.LLM_NEWS_PROVIDER;
+    const savedModel = process.env.LLM_NEWS_MODEL;
+    delete process.env.LLM_NEWS_PROVIDER;
+    delete process.env.LLM_NEWS_MODEL;
     const { llmRouting } = await import("./routing");
-    for (const [task, route] of Object.entries(llmRouting)) {
-      if (route.provider === "stub") continue;
-      const price = getPrice(route.provider, route.model);
-      if (!price) throw new Error(`missing price for ${task} (${route.provider}/${route.model})`);
+    try {
+      for (const [task, route] of Object.entries(llmRouting)) {
+        if (route.provider === "stub") continue;
+        const price = getPrice(route.provider, route.model);
+        if (!price) throw new Error(`missing price for ${task} (${route.provider}/${route.model})`);
+      }
+    } finally {
+      if (savedProvider === undefined) delete process.env.LLM_NEWS_PROVIDER;
+      else process.env.LLM_NEWS_PROVIDER = savedProvider;
+      if (savedModel === undefined) delete process.env.LLM_NEWS_MODEL;
+      else process.env.LLM_NEWS_MODEL = savedModel;
     }
     // Sanity: the table isn't empty.
     expect(KNOWN_MODEL_PRICES.length).toBeGreaterThan(0);

@@ -40,7 +40,7 @@ export async function getDueSources(limit = 50, db: DB = defaultDb): Promise<Due
         or(isNull(sources.nextFetchAt), lte(sources.nextFetchAt, sql`now()`)),
       ),
     )
-    .orderBy(asc(sql`${sources.nextFetchAt} nulls first`))
+    .orderBy(sql`${sources.nextFetchAt} asc nulls first`)
     .limit(limit);
   return rows;
 }

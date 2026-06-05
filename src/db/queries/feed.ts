@@ -36,6 +36,7 @@ export interface EventCard {
   media: unknown;
   likeCount: number;
   starCount: number;
+  viewCount: number;
 }
 
 // Shared card projection so every reader feed query returns the same shape.
@@ -67,6 +68,7 @@ const cardColumns = {
   url: posts.url,
   likeCount: events.likeCount,
   starCount: events.starCount,
+  viewCount: events.viewCount,
 } as const;
 
 /** Most recent events first (All AI Dynamics default sort). */
@@ -135,7 +137,31 @@ export async function searchEvents(
   if (filter.q) {
     const like = `%${filter.q}%`;
     conds.push(
-      sql`(${events.title} ilike ${like} or ${events.summary} ilike ${like} or ${sources.name} ilike ${like} or exists (select 1 from unnest(${events.tags}) tag where tag ilike ${like}))`,
+      sql`(
+        ${events.title} ilike ${like}
+        or ${events.summary} ilike ${like}
+        or ${events.recommendationReason} ilike ${like}
+        or ${events.category} ilike ${like}
+        or ${events.contentType}::text ilike ${like}
+        or exists (select 1 from unnest(${events.tags}) tag where tag ilike ${like})
+        or ${sources.name} ilike ${like}
+        or ${sources.handle} ilike ${like}
+        or ${sources.url} ilike ${like}
+        or ${sources.platform}::text ilike ${like}
+        or ${sources.sourceType}::text ilike ${like}
+        or ${sources.brandTag} ilike ${like}
+        or ${sources.recommendedBy} ilike ${like}
+        or ${sources.recommendReason} ilike ${like}
+        or exists (select 1 from unnest(${sources.categories}) category where category ilike ${like})
+        or ${posts.authorName} ilike ${like}
+        or ${posts.authorHandle} ilike ${like}
+        or ${posts.url} ilike ${like}
+        or ${posts.platform}::text ilike ${like}
+        or ${posts.rawTitle} ilike ${like}
+        or ${posts.displayTitle} ilike ${like}
+        or ${posts.summary} ilike ${like}
+        or ${posts.rawContent} ilike ${like}
+      )`,
     );
   }
 

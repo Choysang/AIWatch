@@ -14,6 +14,7 @@ export interface PublicItem {
   summary: string | null;
   recommendation_reason: string | null;
   quality_score: number | null;
+  view_count: number;
   selected_level: SelectedLevel;
   selected_label: string | null;
   category: string | null;

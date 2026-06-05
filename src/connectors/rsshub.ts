@@ -37,7 +37,12 @@ export class RsshubConnector implements SourceConnector {
 
   async fetch(source: ConnectorSource): Promise<RawPost[]> {
     // Read env lazily so the registry can construct one shared instance at import time.
-    const base = (this.baseUrlOverride ?? process.env.RSSHUB_BASE_URL ?? "").trim();
+    const base = (
+      this.baseUrlOverride ??
+      process.env.RSSHUB_BASE_URL ??
+      process.env.RSSHUB_URL ??
+      ""
+    ).trim();
     if (!base) {
       throw new Error(
         `[rsshub] RSSHUB_BASE_URL not configured (fail closed; hard-tier source ${source.id} skipped)`,

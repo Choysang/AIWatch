@@ -6,20 +6,14 @@
 
 import type { EventCard as EventCardData } from "@/db/queries/feed";
 import { messages } from "@/i18n";
-import { groupForSourceType } from "@/public/source-groups";
 import { formatDateTime } from "@/app/_lib/format";
-import { extractImageUrl } from "@/app/_lib/media";
+import { extractCardMedia } from "@/app/_lib/media";
 import { CommentTicker } from "./comment-ticker";
+import { EventCardShell, TrackableDetailLink, TrackableOriginalLink } from "./event-view-tracker";
 import { InlineComments } from "./inline-comments";
 import { ReactionButtons } from "./reaction-buttons";
 
 const MAX_TAGS = 4;
-
-/** Reader-facing label for a source_type, via the four-group consolidation (SP2). */
-function sourceGroupLabel(sourceType: string | null): string | null {
-  const group = groupForSourceType(sourceType);
-  return group ? messages.search.sourceGroup[group] : null;
-}
 
 type ContentTypeKey = keyof typeof messages.search.contentType;
 
@@ -60,26 +54,23 @@ export function EventCard({
   const isSelected = level !== "none";
   const showReason = isSelected && Boolean(event.recommendationReason);
   const showComments = (level === "A" || level === "S") && Boolean(topComments?.length);
-  const imageUrl = extractImageUrl(event.media);
+  const cardMedia = extractCardMedia(event.media);
   const contentLabel = contentTypeLabel(event.contentType);
-  const showSourceInfo = Boolean(
-    event.sourceRecommendedBy ||
-      event.sourceRecommendReason ||
-      event.sourceOnboardedAt,
-  );
+  const detailHref = `/events/${event.id}`;
 
   return (
-    <article className="card">
-      {accentLabel && (
-        <div className="card-meta-row">
-          <span className="model-tag">[ {accentLabel} ]</span>
+    <EventCardShell eventId={event.id} detailHref={detailHref}>
+      <div className="card-meta-row">
+        {accentLabel ? <span className="model-tag">[ {accentLabel} ]</span> : <span />}
+        <span className="card-meta-stats">
+          <span className="view-count">{m.views(event.viewCount)}</span>
           {heat > 0 && (
             <span className="heat" title={m.qualityScore}>
               ◆ {heat}
             </span>
           )}
-        </div>
-      )}
+        </span>
+      </div>
       <div className="card-top">
         {contentLabel && <span className="content-badge">{contentLabel}</span>}
         {event.sourceName && <span className="card-source">{event.sourceName}</span>}
@@ -110,18 +101,24 @@ export function EventCard({
 
       <h2>
         {event.url ? (
-          <a href={event.url} target="_blank" rel="noopener noreferrer">
+          <TrackableOriginalLink eventId={event.id} href={event.url}>
             {event.title}
-          </a>
+          </TrackableOriginalLink>
         ) : (
           event.title
         )}
       </h2>
 
-      {imageUrl && (
+      {cardMedia && (
         <figure className="card-media">
-          {/* eslint-disable-next-line @next/next/no-img-element -- external media, unknown host, no Next loader */}
-          <img src={imageUrl} alt="" loading="lazy" />
+          {cardMedia.type === "video" ? (
+            <video controls preload="metadata" playsInline poster={cardMedia.poster}>
+              <source src={cardMedia.url} />
+            </video>
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element -- external media, unknown host, no Next loader
+            <img src={cardMedia.url} alt="" loading="lazy" />
+          )}
         </figure>
       )}
 
@@ -136,24 +133,6 @@ export function EventCard({
 
       {showComments && topComments && <CommentTicker comments={topComments} />}
 
-      {showSourceInfo && (
-        <aside className="source-info">
-          <div className="source-info-head">
-            {sourceGroupLabel(event.sourceType) && <span>{sourceGroupLabel(event.sourceType)}</span>}
-            {event.sourceOnboardedAt && <time>接入 {formatDateTime(event.sourceOnboardedAt)}</time>}
-          </div>
-          {event.sourceRecommendReason && <p>{event.sourceRecommendReason}</p>}
-          <div className="source-info-foot">
-            {event.sourceRecommendedBy && <span>推荐人 {event.sourceRecommendedBy}</span>}
-            {event.sourceUrl && (
-              <a href={event.sourceUrl} target="_blank" rel="noopener noreferrer">
-                信源主页
-              </a>
-            )}
-          </div>
-        </aside>
-      )}
-
       <div className="card-bottom">
         {event.tags.slice(0, MAX_TAGS).map((tag) => (
           <span className="tag" key={tag}>
@@ -166,6 +145,9 @@ export function EventCard({
             <span className="max">/100</span>
           </span>
         )}
+        <TrackableDetailLink eventId={event.id} href={detailHref}>
+          {m.detail}
+        </TrackableDetailLink>
         <ReactionButtons
           eventId={event.id}
           initialLikeCount={event.likeCount}
@@ -175,9 +157,8 @@ export function EventCard({
         />
       </div>
 
-      {/* SP3 point C: inline discussion entry point on every card (the feed's only path to
-          comments now that the "view details" link is gone). Lazy-loaded on expand. */}
+      {/* SP3 point C: inline discussion preview without leaving the feed. */}
       <InlineComments eventId={event.id} />
-    </article>
+    </EventCardShell>
   );
 }

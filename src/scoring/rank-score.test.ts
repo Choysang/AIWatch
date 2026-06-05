@@ -13,7 +13,8 @@ describe("computeRankScore — pure rank-score with feedback bands", () => {
       expect(rankScore).toBe(80);
       expect(breakdown.likeBoost).toBe(0);
       expect(breakdown.starBoost).toBe(0);
-      expect(breakdown.configVersion).toBe("rank-v1");
+      expect(breakdown.viewBoost).toBe(0);
+      expect(breakdown.configVersion).toBe("rank-v2");
     }
   });
 
@@ -119,6 +120,25 @@ describe("computeRankScore — pure rank-score with feedback bands", () => {
     }
   });
 
+  test("monotone: more views adds a small saturated boost", () => {
+    const base = computeRankScore({
+      baseScore: 50,
+      likeCount: 0,
+      starCount: 0,
+      viewCount: 0,
+      ageHours: 12,
+    }).rankScore;
+    const viewed = computeRankScore({
+      baseScore: 50,
+      likeCount: 0,
+      starCount: 0,
+      viewCount: rankScoreConfig.viewSaturation,
+      ageHours: 12,
+    });
+    expect(viewed.rankScore).toBeGreaterThan(base);
+    expect(viewed.breakdown.viewBoost).toBeCloseTo(rankScoreConfig.viewBoost, 6);
+  });
+
   test("rank_score floor at 0 for defensive negative base inputs", () => {
     const { rankScore } = computeRankScore({
       baseScore: -10,
@@ -137,7 +157,8 @@ describe("computeRankScore — pure rank-score with feedback bands", () => {
       ageHours: 72, // 24h-7d band
     });
     expect(breakdown.bandLabel).toBe("24h-7d");
-    const reconstructed = breakdown.baseScore + breakdown.likeBoost + breakdown.starBoost;
+    const reconstructed =
+      breakdown.baseScore + breakdown.likeBoost + breakdown.starBoost + breakdown.viewBoost;
     expect(rankScore).toBeCloseTo(reconstructed, 9);
     expect(breakdown.likeBoost).toBeGreaterThan(0);
     expect(breakdown.starBoost).toBeGreaterThan(0);
@@ -150,12 +171,15 @@ describe("computeRankScore — pure rank-score with feedback bands", () => {
         baseScore: 0,
         likeCount: 1_000_000,
         starCount: 1_000_000,
+        viewCount: 1_000_000,
         ageHours,
       });
-      maxBoost = Math.max(maxBoost, breakdown.likeBoost + breakdown.starBoost);
+      maxBoost = Math.max(maxBoost, breakdown.likeBoost + breakdown.starBoost + breakdown.viewBoost);
     }
     // Hard bound from config: max(likeBoost+starBoost) across bands.
-    const configCap = Math.max(...rankScoreConfig.bands.map((b) => b.likeBoost + b.starBoost));
+    const configCap =
+      Math.max(...rankScoreConfig.bands.map((b) => b.likeBoost + b.starBoost)) +
+      rankScoreConfig.viewBoost;
     expect(maxBoost).toBeLessThanOrEqual(configCap + 0.0001);
   });
 });

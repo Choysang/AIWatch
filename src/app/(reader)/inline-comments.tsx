@@ -7,9 +7,10 @@
 
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { messages } from "@/i18n";
 import { formatDateTime } from "@/app/_lib/format";
+import type { CommentSort } from "@/db/queries/comments";
 import { CommentComposer } from "./comment-composer";
 import { CommentItem, type CommentView } from "./comment-item";
 
@@ -22,10 +23,9 @@ interface PublicComment {
   replies?: PublicComment[];
 }
 
-interface CommentSectionsPayload {
-  expertViews: PublicComment[];
-  highQuality: PublicComment[];
-  latest: PublicComment[];
+interface CommentsPayload {
+  sort: CommentSort;
+  items: PublicComment[];
 }
 
 function toView(c: PublicComment): CommentView {
@@ -40,44 +40,52 @@ function toView(c: PublicComment): CommentView {
   };
 }
 
-function countTopLevel(s: CommentSectionsPayload): number {
-  return s.expertViews.length + s.highQuality.length + s.latest.length;
-}
+const POLL_MS = 15_000;
 
 export function InlineComments({ eventId }: { eventId: string }) {
   const m = messages.comments;
   const [open, setOpen] = useState(false);
+  const [sort, setSort] = useState<CommentSort>("latest");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
-  const [sections, setSections] = useState<CommentSectionsPayload | null>(null);
+  const [items, setItems] = useState<PublicComment[] | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (nextSort = sort, showLoading = false) => {
+    if (showLoading) setLoading(true);
     setError(false);
     try {
-      const res = await fetch(`/api/events/${encodeURIComponent(eventId)}/comments`, {
-        credentials: "same-origin",
-      });
+      const res = await fetch(
+        `/api/events/${encodeURIComponent(eventId)}/comments?sort=${nextSort}`,
+        { credentials: "same-origin", cache: "no-store" },
+      );
       if (!res.ok) throw new Error(`comments fetch failed: ${res.status}`);
-      const data = (await res.json()) as CommentSectionsPayload;
-      setSections(data);
+      const data = (await res.json()) as CommentsPayload;
+      setItems(data.items ?? []);
     } catch {
       setError(true);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
-  }, [eventId]);
+  }, [eventId, sort]);
 
   const onToggle = useCallback(() => {
-    setOpen((wasOpen) => {
-      // Fetch on first expand only; reopening reuses the cached list (a submit reloads it).
-      if (!wasOpen && sections === null && !loading) void load();
-      return !wasOpen;
-    });
-  }, [sections, loading, load]);
+    setOpen((wasOpen) => !wasOpen);
+  }, []);
+
+  useEffect(() => {
+    if (open) void load(sort, true);
+  }, [load, open, sort]);
+
+  useEffect(() => {
+    if (!open) return;
+    const timer = window.setInterval(() => {
+      if (!document.hidden) void load(sort);
+    }, POLL_MS);
+    return () => window.clearInterval(timer);
+  }, [load, open, sort]);
 
   // Once loaded, show the count even when collapsed so readers can gauge activity.
-  const count = sections ? countTopLevel(sections) : null;
+  const count = items ? items.length : null;
   const toggleLabel = open
     ? m.inlineCollapse
     : count !== null
@@ -102,8 +110,14 @@ export function InlineComments({ eventId }: { eventId: string }) {
           {loading && <p className="inline-comments-status">{m.inlineLoading}</p>}
           {error && <p className="inline-comments-status">{m.inlineError}</p>}
 
-          {sections && !loading && !error && (
-            <InlineSections eventId={eventId} sections={sections} onChanged={load} />
+          {items && !loading && !error && (
+            <InlineList
+              eventId={eventId}
+              sort={sort}
+              items={items}
+              onSortChange={setSort}
+              onChanged={() => void load(sort, true)}
+            />
           )}
         </div>
       )}
@@ -111,46 +125,52 @@ export function InlineComments({ eventId }: { eventId: string }) {
   );
 }
 
-function InlineSections({
+function InlineList({
   eventId,
-  sections,
+  sort,
+  items,
+  onSortChange,
   onChanged,
 }: {
   eventId: string;
-  sections: CommentSectionsPayload;
+  sort: CommentSort;
+  items: PublicComment[];
+  onSortChange: (sort: CommentSort) => void;
   onChanged: () => void;
 }) {
   const m = messages.comments;
-  const groups: Array<[string, PublicComment[]]> = [
-    [m.sections.expertViews, sections.expertViews],
-    [m.sections.highQuality, sections.highQuality],
-    [m.sections.latest, sections.latest],
-  ];
-  const hasAny = groups.some(([, items]) => items.length > 0);
 
-  if (!hasAny) return <p className="inline-comments-status">{m.empty}</p>;
+  if (items.length === 0) return <p className="inline-comments-status">{m.empty}</p>;
 
   return (
     <>
-      {groups.map(([title, items]) =>
-        items.length > 0 ? (
-          <div className="comment-block" key={title}>
-            <h3>{title}</h3>
-            <ul>
-              {items.map((c) => (
-                <CommentItem
-                  key={c.id}
-                  eventId={eventId}
-                  comment={toView(c)}
-                  canReply
-                  refreshOnSubmit={false}
-                  onChanged={onChanged}
-                />
-              ))}
-            </ul>
-          </div>
-        ) : null,
-      )}
+      <div className="comments-sort inline" role="group" aria-label={m.sortLabel}>
+        {(["latest", "hot"] as const).map((value) => (
+          <button
+            key={value}
+            type="button"
+            className={sort === value ? "is-active" : ""}
+            aria-pressed={sort === value}
+            onClick={() => onSortChange(value)}
+          >
+            {m.sort[value]}
+          </button>
+        ))}
+      </div>
+      <div className="comment-block">
+        <ul>
+          {items.map((c) => (
+            <CommentItem
+              key={c.id}
+              eventId={eventId}
+              comment={toView(c)}
+              canReply
+              refreshOnSubmit={false}
+              onChanged={onChanged}
+            />
+          ))}
+        </ul>
+      </div>
     </>
   );
 }

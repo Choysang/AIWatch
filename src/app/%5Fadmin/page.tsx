@@ -120,21 +120,21 @@ export default async function AdminPage() {
           <tbody>
             {promoted.map((ev: PromotedEventRow) => (
               <tr key={ev.id}>
-                <td style={{ maxWidth: 320 }}>{ev.title}</td>
-                <td>
+                <td data-label={pc.title} style={{ maxWidth: 320 }}>{ev.title}</td>
+                <td data-label={pc.level}>
                   <span className={`badge ${ev.selectedLevel}`}>
                     {ev.selectedLabel ?? ev.selectedLevel}
                   </span>
                 </td>
-                <td>{ev.breakdown ? ev.breakdown.promotionScore.toFixed(1) : "—"}</td>
-                <td>{ev.breakdown?.threshold ?? "—"}</td>
-                <td>{ev.breakdown?.windowDays ?? "—"}</td>
-                <td>
+                <td data-label={pc.score}>{ev.breakdown ? ev.breakdown.promotionScore.toFixed(1) : "—"}</td>
+                <td data-label={pc.threshold}>{ev.breakdown?.threshold ?? "—"}</td>
+                <td data-label={pc.window}>{ev.breakdown?.windowDays ?? "—"}</td>
+                <td data-label={pc.rank}>
                   {ev.breakdown
                     ? `${ev.breakdown.rankInWindow} / ${ev.breakdown.slotLimit}`
                     : "—"}
                 </td>
-                <td>{formatDateTime(ev.promotedAt)}</td>
+                <td data-label={pc.promotedAt}>{formatDateTime(ev.promotedAt)}</td>
               </tr>
             ))}
           </tbody>
@@ -160,15 +160,15 @@ export default async function AdminPage() {
           <tbody>
             {reports.map((r: AdminReportRow) => (
               <tr key={`${r.kind}-${r.date}`}>
-                <td>{messages.report.kind[r.kind]}</td>
-                <td style={{ fontVariantNumeric: "tabular-nums" }}>{r.date}</td>
-                <td>
+                <td data-label={rc.kind}>{messages.report.kind[r.kind]}</td>
+                <td data-label={rc.date} style={{ fontVariantNumeric: "tabular-nums" }}>{r.date}</td>
+                <td data-label={rc.status}>
                   <span className={`pill ${r.status === "published" ? "healthy" : "degraded"}`}>
                     {messages.admin.reportStatus[r.status]}
                   </span>
                 </td>
-                <td style={{ color: "var(--ink-faint)", maxWidth: 280 }}>{r.summary ?? ""}</td>
-                <td>{formatDateTime(r.generatedAt)}</td>
+                <td data-label={rc.summary} style={{ color: "var(--ink-faint)", maxWidth: 280 }}>{r.summary ?? ""}</td>
+                <td data-label={rc.generatedAt}>{formatDateTime(r.generatedAt)}</td>
               </tr>
             ))}
           </tbody>
@@ -193,12 +193,12 @@ export default async function AdminPage() {
           <tbody>
             {feedback.map((row: FeedbackRow) => (
               <tr key={row.id}>
-                <td style={{ maxWidth: 520 }}>{row.body}</td>
-                <td style={{ color: "var(--ink-faint)" }}>{row.contact ?? ""}</td>
-                <td style={{ color: "var(--ink-faint)" }}>
+                <td data-label={fc.body} style={{ maxWidth: 520 }}>{row.body}</td>
+                <td data-label={fc.contact} style={{ color: "var(--ink-faint)" }}>{row.contact ?? ""}</td>
+                <td data-label={fc.fingerprint} style={{ color: "var(--ink-faint)" }}>
                   {row.fingerprint ? row.fingerprint.slice(0, 12) : messages.admin.feedbackAnon}
                 </td>
-                <td>{formatDateTime(row.createdAt)}</td>
+                <td data-label={fc.createdAt}>{formatDateTime(row.createdAt)}</td>
               </tr>
             ))}
           </tbody>

@@ -3,12 +3,12 @@ import type { SourceLevel } from "@/scoring/types";
 import { tierFetchFrequency } from "./tiers";
 
 describe("tierFetchFrequency", () => {
-  test("maps each level to its default crawl interval (faster for higher tiers)", () => {
-    expect(tierFetchFrequency("L1")).toBe("10 minutes");
-    expect(tierFetchFrequency("L2")).toBe("20 minutes");
-    expect(tierFetchFrequency("L3")).toBe("45 minutes");
-    expect(tierFetchFrequency("L4")).toBe("2 hours");
-    expect(tierFetchFrequency("L5")).toBe("6 hours");
+  test("maps each level to a crawl interval capped at 10 minutes", () => {
+    expect(tierFetchFrequency("L1")).toBe("5 minutes");
+    expect(tierFetchFrequency("L2")).toBe("10 minutes");
+    expect(tierFetchFrequency("L3")).toBe("10 minutes");
+    expect(tierFetchFrequency("L4")).toBe("10 minutes");
+    expect(tierFetchFrequency("L5")).toBe("10 minutes");
   });
 
   test("covers every source level", () => {

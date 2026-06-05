@@ -74,6 +74,7 @@ export async function recomputeScoresV2(
       promotionScore: eventScores.promotionScore,
       rankScore: eventScores.rankScore,
       displayScore: eventScores.displayScore,
+      viewCount: events.viewCount,
     })
     .from(events)
     .innerJoin(eventScores, eq(eventScores.id, events.currentScoreId))
@@ -129,6 +130,7 @@ export async function recomputeScoresV2(
           sourcePostCount: postCount.get(r.id) ?? 1,
           expertActions: bundle.expertActions,
           validComments: bundle.validComments,
+          viewCount: r.viewCount,
           contentType: r.contentType as ContentType,
         },
         config,

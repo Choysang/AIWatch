@@ -17,6 +17,7 @@ interface Row {
   contentType: string | null;
   tags: string[];
   qualityScore: number | null;
+  viewCount: number;
   selectedLevel: "none" | "B" | "A" | "S";
   selectedLabel: string | null;
   publishedAt: Date | null;
@@ -40,6 +41,7 @@ function toItem(r: Row): PublicItem {
     summary: r.summary,
     recommendation_reason: r.recommendationReason,
     quality_score: r.qualityScore,
+    view_count: r.viewCount,
     selected_level: r.selectedLevel,
     selected_label: r.selectedLabel,
     category: r.category,
@@ -107,6 +109,7 @@ export async function listPublicItems(
       contentType: events.contentType,
       tags: events.tags,
       qualityScore: events.qualityScore,
+      viewCount: events.viewCount,
       selectedLevel: events.selectedLevel,
       selectedLabel: events.selectedLabel,
       publishedAt: events.publishedAt,

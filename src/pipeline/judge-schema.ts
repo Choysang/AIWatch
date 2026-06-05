@@ -23,6 +23,7 @@ export const coldJudgeSchema = z.object({
   novelty: dimension,
   audienceUsefulness: dimension,
   evidenceClarity: dimension,
+  title: z.string().min(1),
   summary: z.string().min(1),
   category: z.string().min(1),
   contentType: z.enum(CONTENT_TYPES),

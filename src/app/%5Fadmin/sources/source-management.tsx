@@ -73,17 +73,23 @@ function sourceProfileLabel(sourceType: string, level: string): string {
   return `${level} ${sourceType}`;
 }
 
-function sourceStatus(row: ManagedSourceRow): { label: string; className: string; title: string } {
+function sourceStatus(row: ManagedSourceRow): { label: string; className: string; reason: string } {
   if (!row.enabled || row.healthStatus === "paused") {
-    return { label: "停用", className: "paused", title: "已停用，不会自动抓取" };
+    return {
+      label: "停用",
+      className: "paused",
+      reason: row.lastError ? `停用原因：${row.lastError}` : "停用原因：已停用，不会自动抓取",
+    };
   }
   if (row.healthStatus === "healthy") {
-    return { label: "正常", className: "healthy", title: "最近抓取请求正常" };
+    return { label: "正常", className: "healthy", reason: "最近抓取请求正常" };
   }
   return {
     label: "不可用",
     className: "unavailable",
-    title: row.lastError ? `最近错误：${row.lastError}` : "最近抓取请求不可用，暂无错误详情",
+    reason: row.lastError
+      ? `不可用原因：${row.lastError}`
+      : `不可用原因：抓取状态为 ${row.healthStatus}，暂无错误详情`,
   };
 }
 
@@ -162,7 +168,7 @@ export function SourceManagementSection(props: {
                 return (
                   <tr key={row.id}>
                     {canModerateSources ? (
-                      <td className="admin-select-col">
+                      <td className="admin-select-col" data-label="选择">
                         <input
                           aria-label={`选择信源 ${row.name}`}
                           form={BULK_DELETE_FORM_ID}
@@ -172,26 +178,30 @@ export function SourceManagementSection(props: {
                         />
                       </td>
                     ) : null}
-                    <td>
+                    <td data-label="名称">
                       <strong>{row.name}</strong>
                       <div className="admin-muted">{row.handle ?? row.url ?? ""}</div>
                     </td>
-                    <td>{platformLabel(row.platform)}</td>
-                    <td>{sourceProfileLabel(row.sourceType, row.level)}</td>
-                    <td>
+                    <td data-label="平台">{platformLabel(row.platform)}</td>
+                    <td data-label="信源定位">{sourceProfileLabel(row.sourceType, row.level)}</td>
+                    <td data-label="抓取方式">
                       {connectorLabel(row.connectorType)}
                       <div className="admin-muted">{row.connectorRef ?? ""}</div>
                     </td>
-                    <td>
-                      <span className={`pill ${status.className}`} title={status.title}>
+                    <td data-label="状态">
+                      <span
+                        aria-label={`${status.label}，${status.reason}`}
+                        className={`pill ${status.className}`}
+                        title={status.reason}
+                      >
                         {status.label}
                       </span>
                     </td>
-                    <td className="admin-soft">{row.recommendReason ?? ""}</td>
-                    <td className="admin-soft">{row.recommendedBy ?? ""}</td>
-                    <td>{formatDateOnly(row.onboardedAt)}</td>
+                    <td data-label="推荐理由" className="admin-soft">{row.recommendReason ?? ""}</td>
+                    <td data-label="推荐人" className="admin-soft">{row.recommendedBy ?? ""}</td>
+                    <td data-label="接入日期">{formatDateOnly(row.onboardedAt)}</td>
                     {canModerateSources ? (
-                      <td>
+                      <td data-label="操作">
                         <div className="admin-row-actions">
                           <form method="post" action="/api/_admin/sources">
                             <input name="_action" type="hidden" value="delete" />

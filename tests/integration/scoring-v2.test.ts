@@ -79,6 +79,7 @@ interface SeedV2Opts {
   contentType?: "model_release" | "product_release" | "tech_share" | "discussion" | null;
   dims?: { aiRelevance: number; impact: number; novelty: number; audienceUsefulness: number; evidenceClarity: number };
   baseScore?: number;
+  viewCount?: number;
   /** Number of independent posts merged into the event (drives corroboration). */
   postCount?: number;
   publishedAt?: Date;
@@ -107,6 +108,7 @@ async function seedV2Event(opts: SeedV2Opts): Promise<void> {
     publishedAt,
     lastStrongSignalAt: publishedAt,
     selectedLevel: "none",
+    viewCount: opts.viewCount ?? 0,
   });
   await getDb().insert(schema.eventJudgments).values({
     id: jId,
@@ -200,6 +202,18 @@ describe("recomputeScoresV2 (real Postgres)", () => {
     const corroborated = await readEvent("corroborated");
     expect(corroborated.confidenceScore!).toBeGreaterThan(single.confidenceScore!);
     expect(corroborated.selectionScore!).toBeGreaterThan(single.selectionScore!);
+  });
+
+  test("views raise selection without changing confidence", async () => {
+    await seedV2Event({ id: "cold", sourceId: L3, viewCount: 0 });
+    await seedV2Event({ id: "viewed", sourceId: L3, viewCount: 200 });
+
+    await recomputeScoresV2(NOW, getDb());
+
+    const cold = await readEvent("cold");
+    const viewed = await readEvent("viewed");
+    expect(viewed.confidenceScore!).toBeCloseTo(cold.confidenceScore!, 6);
+    expect(viewed.selectionScore!).toBeGreaterThan(cold.selectionScore!);
   });
 
   test("events without a content_type are skipped (pre-backfill)", async () => {

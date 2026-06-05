@@ -16,6 +16,8 @@ const ENV_VARS = [
   "QWEN_BASE_URL",
   "OPENAI_COMPATIBLE_BASE_URL",
   "LLM_STUB_FALLBACK",
+  "LLM_NEWS_PROVIDER",
+  "LLM_NEWS_MODEL",
 ];
 
 let saved: Record<string, string | undefined>;
@@ -94,5 +96,16 @@ describe("resolveProvider — fail-closed semantics", () => {
     process.env.OPENAI_API_KEY = "x";
     expect(providerConfigured("openai")).toBe(true);
     expect(providerConfigured("stub")).toBe(true);
+  });
+
+  test("cold_judge can be routed to an OpenAI-compatible news model from env", async () => {
+    process.env.LLM_NEWS_PROVIDER = "openai_compatible";
+    process.env.LLM_NEWS_MODEL = "Pro/moonshotai/Kimi-K2.6";
+    process.env.OPENAI_COMPATIBLE_API_KEY = "sk-test";
+    process.env.OPENAI_COMPATIBLE_BASE_URL = "http://localhost:4001/v1";
+    const { llmRouting, resolveProvider } = await freshRouting();
+    expect(llmRouting.cold_judge.provider).toBe("openai_compatible");
+    expect(llmRouting.cold_judge.model).toBe("Pro/moonshotai/Kimi-K2.6");
+    expect(resolveProvider("cold_judge")?.name).toBe("openai_compatible");
   });
 });

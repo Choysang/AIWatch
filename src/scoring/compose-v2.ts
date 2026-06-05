@@ -52,6 +52,8 @@ export interface ComposeV2Inputs {
   sourcePostCount: number;
   expertActions: readonly ExpertAction[];
   validComments: readonly ValidComment[];
+  /** Card/detail/original click count; default 0 for cold-start scoring. */
+  viewCount?: number;
   /** Optional — citations aren't tracked in V1 (defaults to neutral). */
   citations?: readonly Citation[];
   contentType: ContentType;
@@ -115,6 +117,7 @@ export function composeScoresV2(
       confidenceScore: confidence.confidenceScore,
       commentQualityScore: comment.commentQualityScore,
       citationQualityScore: citation.citationQualityScore,
+      viewCount: inputs.viewCount ?? 0,
       contentType: inputs.contentType,
     },
     config,

@@ -8,7 +8,9 @@
 //      signal adds the configured max; a zero signal subtracts it. This preserves cold-start
 //      events (neutral signals don't move the score) while letting real discussion/citations
 //      push it.
-//   3. content_type multiplier (open point D2, locked): discussion ×0.9, model_release ×1.05,
+//   3. Reader view increment: a small log-saturated bonus, counted only after the user opens
+//      the detail page or original source from a card.
+//   4. content_type multiplier (open point D2, locked): discussion ×0.9, model_release ×1.05,
 //      others ×1.0 — classification influences selection, a core point-8 goal.
 // Final score is clamped to [0,100].
 //
@@ -29,6 +31,8 @@ export interface SelectionScoreInputs {
   commentQualityScore: number;
   /** citation_quality_score, 0-100 (neutral 50). */
   citationQualityScore: number;
+  /** Reader card-open/original-open count. */
+  viewCount?: number;
   contentType: ContentType;
 }
 
@@ -37,6 +41,7 @@ export interface SelectionScoreBreakdown {
   gated: number;
   commentBonus: number;
   citationBonus: number;
+  viewBonus: number;
   contentTypeMultiplier: number;
   selectionScore: number;
   /** Highest tier this event may reach given its confidence (open point C1). */
@@ -61,12 +66,23 @@ function signalBonus(score: number, max: number): number {
   return centered * max;
 }
 
+function saturateCount(count: number, saturation: number): number {
+  if (!Number.isFinite(count) || count <= 0 || saturation <= 0) return 0;
+  return Math.min(1, Math.log1p(count) / Math.log1p(saturation));
+}
+
 export function computeSelectionScore(
   inputs: SelectionScoreInputs,
   config: ScoringV2Config = scoringV2Config,
 ): SelectionScoreResult {
-  const { confidenceGateFloor, commentBonusMax, citationBonusMax, confidenceCapToBBelow } =
-    config.selection;
+  const {
+    confidenceGateFloor,
+    commentBonusMax,
+    citationBonusMax,
+    viewBonusMax,
+    viewSaturation,
+    confidenceCapToBBelow,
+  } = config.selection;
 
   const conf = clamp0to100(inputs.confidenceScore);
   const gateFactor = confidenceGateFloor + (1 - confidenceGateFloor) * (conf / 100);
@@ -74,9 +90,12 @@ export function computeSelectionScore(
 
   const commentBonus = signalBonus(inputs.commentQualityScore, commentBonusMax);
   const citationBonus = signalBonus(inputs.citationQualityScore, citationBonusMax);
+  const viewBonus = saturateCount(inputs.viewCount ?? 0, viewSaturation) * viewBonusMax;
 
   const contentTypeMultiplier = config.contentTypeSelectionMultiplier[inputs.contentType];
-  const selectionScore = clamp0to100((gated + commentBonus + citationBonus) * contentTypeMultiplier);
+  const selectionScore = clamp0to100(
+    (gated + commentBonus + citationBonus + viewBonus) * contentTypeMultiplier,
+  );
 
   const maxLevel: PromotedLevel = conf < confidenceCapToBBelow ? "B" : "S";
 
@@ -88,6 +107,7 @@ export function computeSelectionScore(
       gated,
       commentBonus,
       citationBonus,
+      viewBonus,
       contentTypeMultiplier,
       selectionScore,
       maxLevel,

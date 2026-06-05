@@ -62,6 +62,25 @@ describe("computeSelectionScore", () => {
     expect(weak).toBeCloseTo(50 - 8 - 6, 6);
   });
 
+  test("views add a small saturated selection bonus", () => {
+    const base = computeSelectionScore({
+      qualityScore: 50,
+      confidenceScore: 100,
+      contentType: "product_release",
+      viewCount: 0,
+      ...neutralSignals,
+    }).selectionScore;
+    const viewed = computeSelectionScore({
+      qualityScore: 50,
+      confidenceScore: 100,
+      contentType: "product_release",
+      viewCount: 200,
+      ...neutralSignals,
+    });
+    expect(viewed.selectionScore).toBeGreaterThan(base);
+    expect(viewed.breakdown.viewBonus).toBeCloseTo(4, 6);
+  });
+
   test("confidence below the cap floor restricts the max tier to B (open point C1)", () => {
     expect(
       computeSelectionScore({

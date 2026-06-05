@@ -1,5 +1,5 @@
 // Event detail page (Slice 10). Lives at /events/[id]. SSR-fetches the event, the
-// reader's reaction state (cookie or session), and the comment sections — then renders
+// reader's reaction state (cookie or session), and comments — then renders
 // the same visual shape as a feed card but with the comments composer + listing below.
 // notFound() on missing events keeps the route honest for crawlers/Skill consumers.
 
@@ -7,6 +7,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSession } from "@/app/_lib/session";
+import { extractCardMedia } from "@/app/_lib/media";
 import { READER_ID_COOKIE, verifyReaderId } from "@/auth/reader-id";
 import { getEventDetail } from "@/db/queries/event-detail";
 import { listEventComments, type CommentSections } from "@/db/queries/comments";
@@ -15,7 +16,7 @@ import { getViewerReactions } from "@/db/queries/reactions";
 import { messages } from "@/i18n";
 import { formatDateTime } from "@/app/_lib/format";
 import { CommentsSection } from "../../comments-section";
-import { MastheadAccount } from "../../masthead-account";
+import { TrackableOriginalLink } from "../../event-view-tracker";
 import { ReactionButtons } from "../../reaction-buttons";
 
 export const dynamic = "force-dynamic";
@@ -41,14 +42,12 @@ export async function generateMetadata({
   return { title: messages.appName };
 }
 
-/** Flatten every comment id (top-level + nested replies) across all three sections. */
+/** Flatten every comment id (top-level + nested replies). */
 function collectCommentIds(sections: CommentSections): string[] {
   const ids = new Set<string>();
-  for (const list of [sections.expertViews, sections.highQuality, sections.latest]) {
-    for (const c of list) {
-      ids.add(c.id);
-      for (const r of c.replies) ids.add(r.id);
-    }
+  for (const c of sections.items) {
+    ids.add(c.id);
+    for (const r of c.replies) ids.add(r.id);
   }
   return [...ids];
 }
@@ -103,6 +102,7 @@ export default async function EventDetailPage({
   const selectedLabel = event.selectedLabel ?? m.selectedLabel[level];
   const author = event.authorName ?? event.sourceName ?? "";
   const handle = event.authorHandle ? ` ${event.authorHandle}` : "";
+  const cardMedia = extractCardMedia(event.media);
 
   return (
     <main className="page">
@@ -119,6 +119,12 @@ export default async function EventDetailPage({
       </header>
 
       <article className="card card-detail">
+        <div className="card-meta-row">
+          <span />
+          <span className="card-meta-stats">
+            <span className="view-count">{card.views(event.viewCount)}</span>
+          </span>
+        </div>
         <div className="card-top">
           {event.sourceName && <span className="card-source">{event.sourceName}</span>}
           {author && author !== event.sourceName && (
@@ -141,13 +147,26 @@ export default async function EventDetailPage({
 
         <h2>
           {event.url ? (
-            <a href={event.url} target="_blank" rel="noopener noreferrer">
+            <TrackableOriginalLink eventId={event.id} href={event.url}>
               {event.title}
-            </a>
+            </TrackableOriginalLink>
           ) : (
             event.title
           )}
         </h2>
+
+        {cardMedia && (
+          <figure className="card-media">
+            {cardMedia.type === "video" ? (
+              <video controls preload="metadata" playsInline poster={cardMedia.poster}>
+                <source src={cardMedia.url} />
+              </video>
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element -- external media, unknown host, no Next loader
+              <img src={cardMedia.url} alt="" loading="lazy" />
+            )}
+          </figure>
+        )}
 
         {event.summary && <p className="summary">{event.summary}</p>}
 
@@ -180,7 +199,12 @@ export default async function EventDetailPage({
         </div>
       </article>
 
-      <CommentsSection eventId={event.id} sections={sections} likedIds={likedIds} />
+      <CommentsSection
+        eventId={event.id}
+        comments={sections.items}
+        initialSort={sections.sort}
+        likedIds={likedIds}
+      />
 
       <p className="note">{card.summaryNote}</p>
     </main>

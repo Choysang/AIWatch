@@ -31,6 +31,8 @@ export async function recomputeRankScores(
   }
   const likeSat = rankScoreConfig.likeSaturation;
   const starSat = rankScoreConfig.starSaturation;
+  const viewSat = rankScoreConfig.viewSaturation;
+  const viewBoost = rankScoreConfig.viewBoost;
 
   // age_hours = (now - coalesce(published_at, created_at)) in hours.
   // like_norm / star_norm = log1p saturation, clamped 0..1.
@@ -46,6 +48,7 @@ export async function recomputeRankScores(
         s.base_score AS base_score,
         e.like_count AS like_count,
         e.star_count AS star_count,
+        e.view_count AS view_count,
         EXTRACT(EPOCH FROM (${now}::timestamptz - COALESCE(e.published_at, e.created_at))) / 3600.0
           AS age_hours
       FROM events e
@@ -69,7 +72,9 @@ export async function recomputeRankScores(
                 WHEN age_hours < ${b1.maxAgeHours} THEN ${b1.starBoost}::float
                 WHEN age_hours < ${b2.maxAgeHours} THEN ${b2.starBoost}::float
                 ELSE ${b3.starBoost}::float
-              END,
+              END
+          + LEAST(GREATEST(LN(1 + view_count::float) / LN(1 + ${viewSat}::float), 0), 1)
+            * ${viewBoost}::float,
           0
         ) AS new_rank
       FROM inputs

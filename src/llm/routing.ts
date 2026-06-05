@@ -38,6 +38,26 @@ export interface RouteConfig {
 // downstream caches (judgments, recomputes) can detect a routing drift.
 export const routingConfigVersion = "routing-v2";
 
+const PROVIDERS: LlmProviderName[] = [
+  "openai",
+  "anthropic",
+  "google",
+  "deepseek",
+  "qwen",
+  "openai_compatible",
+  "stub",
+];
+
+function configuredProvider(envName: string, fallback: LlmProviderName): LlmProviderName {
+  const value = process.env[envName]?.trim();
+  if (!value) return fallback;
+  return PROVIDERS.includes(value as LlmProviderName) ? (value as LlmProviderName) : fallback;
+}
+
+function configuredModel(envName: string, fallback: string): string {
+  return process.env[envName]?.trim() || fallback;
+}
+
 // Default routes only target providers with a real adapter implemented today
 // (openai / deepseek / qwen / openai_compatible — all OpenAI-shape). Anthropic and
 // Google remain in PROVIDER_ENV / LlmProviderName so future routes / overrides can
@@ -45,7 +65,16 @@ export const routingConfigVersion = "routing-v2";
 // fails closed for those names.
 export const llmRouting: Record<LlmTask, RouteConfig> = {
   prefilter: { provider: "deepseek", model: "deepseek-chat", promptVersion: "prefilter-v1", maxInputTokens: 2000, maxOutputTokens: 200, temperature: 0 },
-  cold_judge: { provider: "openai", model: "gpt-4.1-mini", promptVersion: "cold-judge-v1", maxInputTokens: 4000, maxOutputTokens: 800, temperature: 0.2 },
+  get cold_judge() {
+    return {
+      provider: configuredProvider("LLM_NEWS_PROVIDER", "openai"),
+      model: configuredModel("LLM_NEWS_MODEL", "gpt-4.1-mini"),
+      promptVersion: "cold-judge-v1",
+      maxInputTokens: 4000,
+      maxOutputTokens: 800,
+      temperature: 0.2,
+    };
+  },
   comment_classification: { provider: "deepseek", model: "deepseek-chat", promptVersion: "comment-classify-v1", maxInputTokens: 6000, maxOutputTokens: 1200, temperature: 0 },
   // merge_detection was google/gemini-2.5-flash; route to deepseek until the Google
   // adapter ships (decision: Alignment-Closeout slice, 2026-05-28).

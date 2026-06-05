@@ -33,6 +33,14 @@ export default function SkillInstallPage() {
       </div>
 
       <div className="card" style={{ marginTop: "1.25rem" }}>
+        <h2 style={{ fontFamily: "var(--font-serif)" }}>个性化播报</h2>
+        <p className="summary">
+          用于长期播报时，Agent 应先询问用户最想看什么、不想看什么、输出深度、播报时间、
+          存放位置，以及是否发送到邮箱或短信。Skill 文件里已经写入这套提问流程。
+        </p>
+      </div>
+
+      <div className="card" style={{ marginTop: "1.25rem" }}>
         <h2 style={{ fontFamily: "var(--font-serif)" }}>只读端点</h2>
         <ul>
           <li>

@@ -17,6 +17,9 @@ export interface RankScoreConfig {
   /** Count at which the like-normalized signal reaches ~98%. */
   likeSaturation: number;
   starSaturation: number;
+  viewSaturation: number;
+  /** Max points contributed by card/detail/source opens at saturation. */
+  viewBoost: number;
   /** Time-banded boost weights. Bands are evaluated in order; the first whose
    *  `maxAgeHours` is strictly greater than `ageHours` wins. Last band must use
    *  `Infinity` to catch 7d+. */
@@ -31,9 +34,11 @@ export interface RankScoreConfig {
 }
 
 export const rankScoreConfig: RankScoreConfig = {
-  version: "rank-v1",
+  version: "rank-v2",
   likeSaturation: 100,
   starSaturation: 20,
+  viewSaturation: 200,
+  viewBoost: 4,
   bands: [
     // 0-6h: cold. External heat dominates base_score; user feedback is sparse.
     { label: "0-6h", maxAgeHours: 6, likeBoost: 2, starBoost: 3 },
@@ -52,6 +57,8 @@ export interface RankScoreInputs {
   likeCount: number;
   /** Non-negative integer. */
   starCount: number;
+  /** Non-negative integer. */
+  viewCount?: number;
   /** Hours since event.publishedAt. Negative inputs are treated as 0. */
   ageHours: number;
 }
@@ -62,6 +69,7 @@ export interface RankScoreBreakdown {
   bandLabel: string;
   likeBoost: number;
   starBoost: number;
+  viewBoost: number;
   rankScore: number;
 }
 
@@ -98,9 +106,11 @@ export function computeRankScore(
   const band = pickBand(inputs.ageHours, config);
   const likeNorm = saturate(inputs.likeCount, config.likeSaturation);
   const starNorm = saturate(inputs.starCount, config.starSaturation);
+  const viewNorm = saturate(inputs.viewCount ?? 0, config.viewSaturation);
   const likeBoost = likeNorm * band.likeBoost;
   const starBoost = starNorm * band.starBoost;
-  const rankScore = Math.max(0, inputs.baseScore + likeBoost + starBoost);
+  const viewBoost = viewNorm * config.viewBoost;
+  const rankScore = Math.max(0, inputs.baseScore + likeBoost + starBoost + viewBoost);
   return {
     rankScore,
     breakdown: {
@@ -109,6 +119,7 @@ export function computeRankScore(
       bandLabel: band.label,
       likeBoost,
       starBoost,
+      viewBoost,
       rankScore,
     },
   };
@@ -122,4 +133,3 @@ export function bandWeightsForAge(
   const band = pickBand(ageHours, config);
   return { label: band.label, likeBoost: band.likeBoost, starBoost: band.starBoost };
 }
-

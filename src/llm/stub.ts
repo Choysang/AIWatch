@@ -9,6 +9,7 @@ export const DEFAULT_JUDGMENT = {
   novelty: 60,
   audienceUsefulness: 65,
   evidenceClarity: 75,
+  title: "示例模型发布事件",
   summary: "（示例）用于离线/演示的占位判断，非真实模型输出。",
   category: "模型",
   contentType: "model_release",

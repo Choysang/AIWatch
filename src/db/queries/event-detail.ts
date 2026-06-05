@@ -23,6 +23,7 @@ export async function getEventDetail(
       summary: events.summary,
       recommendationReason: events.recommendationReason,
       category: events.category,
+      contentType: events.contentType,
       tags: events.tags,
       qualityScore: events.qualityScore,
       selectedLevel: events.selectedLevel,
@@ -33,11 +34,17 @@ export async function getEventDetail(
       sourceName: sources.name,
       sourcePlatform: sources.platform,
       sourceUrl: sources.url,
+      sourceType: sources.sourceType,
+      sourceBrandTag: sources.brandTag,
+      sourceRecommendedBy: sources.recommendedBy,
+      sourceRecommendReason: sources.recommendReason,
+      sourceOnboardedAt: sources.onboardedAt,
       authorName: posts.authorName,
       authorHandle: posts.authorHandle,
       url: posts.url,
       likeCount: events.likeCount,
       starCount: events.starCount,
+      viewCount: events.viewCount,
     })
     .from(events)
     .leftJoin(sources, eq(sources.id, events.mainSourceId))

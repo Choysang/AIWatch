@@ -109,6 +109,7 @@ describe("pipeline spine (real Postgres)", () => {
       expect(ev.currentJudgmentId).not.toBeNull();
       expect(ev.currentScoreId).not.toBeNull();
       expect(ev.mainSourceId).toBe(SOURCE_ID);
+      expect(ev.title).toBe(DEFAULT_JUDGMENT.title);
     }
   });
 

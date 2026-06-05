@@ -54,9 +54,13 @@ export type JudgeFn = (raw: RawPost) => Promise<ColdJudge>;
 
 const COLD_JUDGE_SYSTEM =
   "你是 AIWatch 的判断器。只输出结构化评分（0-100）与中文摘要/分类/标签/推荐理由，不做最终编辑决策。" +
-  "必须从以下四类中选择恰好一个 contentType：model_release（模型发布/权重/榜单）、" +
-  "product_release（产品/功能/API 发布）、tech_share（论文/技术解析/教程/工程实践）、" +
-  "discussion（观点/讨论/行业动态/其他）。无法明确归类时选 discussion。";
+      "必须从以下四类中选择恰好一个 contentType：model_release（模型发布/权重/榜单）、" +
+      "product_release（产品/功能/API 发布）、tech_share（论文/技术解析/教程/工程实践）、" +
+      "discussion（观点/讨论/行业动态/其他）。无法明确归类时选 discussion。" +
+      "必须只返回 JSON 对象，字段为：aiRelevance、impact、novelty、audienceUsefulness、evidenceClarity、" +
+      "title、summary、category、contentType、tags、recommendationReason。五个评分字段必须是 0-100 的整数，" +
+      "title/summary/category/recommendationReason 必须是中文字符串；title 要翻译或改写为简洁中文标题，" +
+      "不要保留英文长句，tags 必须是中文字符串数组。";
 
 function buildJudgePrompt(raw: RawPost): string {
   return [

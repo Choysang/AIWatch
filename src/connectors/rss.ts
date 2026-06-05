@@ -44,38 +44,90 @@ function pickLink(entry: Record<string, unknown>): string | null {
   return null;
 }
 
-function isImageUrl(value: unknown): value is string {
+type ParsedMedia = { type: "image" | "video"; url: string; poster?: string };
+
+function isMediaUrl(value: unknown): value is string {
   return typeof value === "string" && /^https?:\/\//i.test(value);
 }
 
-function imageFromObject(value: unknown): string | null {
+function objectText(obj: Record<string, unknown>, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = obj[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function looksLikeVideo(url: string, hint: string | null): boolean {
+  const text = `${hint ?? ""} ${url}`.toLowerCase();
+  return /\bvideo\b|\.mp4(?:\?|$)|\.webm(?:\?|$)|\.mov(?:\?|$)|\.m3u8(?:\?|$)/.test(text);
+}
+
+function mediaFromObject(value: unknown): ParsedMedia | null {
   if (!value || typeof value !== "object") return null;
   const obj = value as Record<string, unknown>;
-  if (isImageUrl(obj["@_url"])) return obj["@_url"];
-  if (isImageUrl(obj["@_href"])) return obj["@_href"];
-  if (isImageUrl(obj.url)) return obj.url;
-  return null;
+  const url = objectText(obj, ["@_url", "@_href", "url", "href", "src"]);
+  if (!isMediaUrl(url)) return null;
+  const hint = objectText(obj, ["@_medium", "@_type", "medium", "type", "mime"]);
+  const poster = objectText(obj, ["@_poster", "poster", "thumbnail", "thumb"]);
+  if (looksLikeVideo(url, hint)) {
+    return isMediaUrl(poster) ? { type: "video", url, poster } : { type: "video", url };
+  }
+  return { type: "image", url };
+}
+
+function decodeHtml(value: string): string {
+  return value
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
+function attr(tag: string, name: string): string | null {
+  const match = tag.match(new RegExp(`\\b${name}=["']([^"']+)["']`, "i"));
+  return isMediaUrl(match?.[1]) ? match[1] : null;
 }
 
 function imageFromHtml(value: string | null): string | null {
   if (!value) return null;
-  const match = value.match(/<img\b[^>]*\bsrc=["']([^"']+)["']/i);
-  return isImageUrl(match?.[1]) ? match[1] : null;
+  const html = decodeHtml(value);
+  const match = html.match(/<img\b[^>]*\bsrc=["']([^"']+)["']/i);
+  return isMediaUrl(match?.[1]) ? match[1] : null;
 }
 
-function pickImage(entry: Record<string, unknown>, rawContent: string | null): { url: string } | null {
-  const mediaContent = toArray(entry["media:content"] as unknown);
-  for (const media of mediaContent) {
-    const url = imageFromObject(media);
-    if (url) return { url };
+function mediaFromHtml(value: string | null): ParsedMedia | null {
+  if (!value) return null;
+  const html = decodeHtml(value);
+  const videoTag = html.match(/<video\b[^>]*>/i)?.[0] ?? "";
+  const videoSrc =
+    attr(videoTag, "src") ??
+    attr(html.match(/<source\b[^>]*>/i)?.[0] ?? "", "src");
+  if (videoSrc) {
+    const poster = attr(videoTag, "poster") ?? imageFromHtml(html);
+    return poster ? { type: "video", url: videoSrc, poster } : { type: "video", url: videoSrc };
   }
-  const enclosures = toArray(entry.enclosure as unknown);
-  for (const enclosure of enclosures) {
-    const url = imageFromObject(enclosure);
-    if (url) return { url };
+  const image = imageFromHtml(html);
+  return image ? { type: "image", url: image } : null;
+}
+
+function pickMedia(entry: Record<string, unknown>, rawContent: string | null): ParsedMedia | null {
+  const candidates: ParsedMedia[] = [];
+  for (const key of ["media:content", "enclosure", "media:thumbnail"]) {
+    for (const media of toArray(entry[key] as unknown)) {
+      const candidate = mediaFromObject(media);
+      if (candidate) candidates.push(candidate);
+    }
   }
-  const inline = imageFromHtml(rawContent);
-  return inline ? { url: inline } : null;
+  const inline = mediaFromHtml(rawContent);
+  if (inline) candidates.push(inline);
+  const videoWithPoster = candidates.find((media) => media.type === "video" && media.poster);
+  if (videoWithPoster) return videoWithPoster;
+  const video = candidates.find((media) => media.type === "video");
+  const image = candidates.find((media) => media.type === "image");
+  if (video && image) return { ...video, poster: image.url };
+  return video ?? image ?? null;
 }
 
 /** Pure: parse a feed XML string into RawPost[]. The unit-testable core of the connector. */
@@ -108,7 +160,7 @@ export function parseFeed(xml: string): RawPost[] {
       url: pickLink(item),
       rawTitle: asText(item.title),
       rawContent,
-      media: pickImage(item, rawContent),
+      media: pickMedia(item, rawContent),
       publicMetrics: null,
       publishedAt: parseDate(item.pubDate) ?? parseDate(item.published) ?? parseDate(item.updated),
     } satisfies RawPost;

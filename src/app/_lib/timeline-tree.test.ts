@@ -43,6 +43,7 @@ function mk(
     media: null,
     likeCount: 0,
     starCount: 0,
+    viewCount: 0,
   };
 }
 

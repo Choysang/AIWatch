@@ -1,6 +1,6 @@
 // /api/events/[id]/comments — public comments endpoint (Slice 9).
 //
-// GET  → returns three sections {expertViews, highQuality, latest}. CDN-cacheable.
+// GET  → returns one sorted comment list: { sort, items }.
 // POST → creates a comment (idempotent on event+identity+bodyHash). Identity
 //        precedence: session > rid cookie > IP+UA fingerprint. Body is classified
 //        deterministically before insert; low-value bodies are stored (so the rule
@@ -21,10 +21,11 @@ import {
   EventNotFoundError,
   InvalidParentError,
   listEventComments,
+  parseCommentSort,
   type CommentRow,
   type CommentWithReplies,
 } from "@/db/queries/comments";
-import { cacheControl, clientIp, jsonError, publicLimiter } from "../../../public/_runtime";
+import { clientIp, jsonError, publicLimiter } from "../../../public/_runtime";
 
 export const dynamic = "force-dynamic";
 
@@ -73,24 +74,29 @@ function toPublicWithReplies(row: CommentWithReplies): PublicComment {
 }
 
 export async function GET(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   const { id: eventId } = await ctx.params;
   if (!eventId) return jsonError(400, "invalid_event_id");
+  const sort = parseCommentSort(new URL(req.url).searchParams.get("sort"));
 
   try {
-    const sections = await listEventComments(eventId);
+    const sections = await listEventComments(eventId, { sort });
+    const items = sections.items.map(toPublicWithReplies);
     const body = {
-      expertViews: sections.expertViews.map(toPublicWithReplies),
-      highQuality: sections.highQuality.map(toPublicWithReplies),
-      latest: sections.latest.map(toPublicWithReplies),
+      sort: sections.sort,
+      items,
+      // Legacy section fields kept while inline/detail clients migrate.
+      expertViews: [],
+      highQuality: [],
+      latest: items,
     };
     return new Response(JSON.stringify(body), {
       status: 200,
       headers: {
         "content-type": "application/json",
-        "cache-control": cacheControl(30, 120),
+        "cache-control": "no-store",
       },
     });
   } catch {

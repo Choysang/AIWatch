@@ -77,9 +77,17 @@ export async function createEventFromPost(
   const { judgment, scoring } = input;
 
   await db.transaction(async (tx) => {
+    await tx
+      .update(posts)
+      .set({
+        displayTitle: judgment.title.slice(0, 200),
+        titleSource: "ai_generated",
+      })
+      .where(eq(posts.id, input.post.id));
+
     await tx.insert(events).values({
       id: eventId,
-      title: judgment.summary.slice(0, 200),
+      title: judgment.title.slice(0, 200),
       summary: judgment.summary,
       recommendationReason: judgment.recommendationReason,
       category: judgment.category,
@@ -140,13 +148,11 @@ export async function createEventFromPost(
       relation: "same_event",
     });
 
-    // Title from the post's display title is preferred when available; fall back kept above.
     await tx
       .update(events)
       .set({
         currentJudgmentId: judgmentId,
         currentScoreId: scoreId,
-        title: sql`coalesce((select ${posts.displayTitle} from ${posts} where ${posts.id} = ${input.post.id}), ${events.title})`,
         updatedAt: sql`now()`,
       })
       .where(eq(events.id, eventId));

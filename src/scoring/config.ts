@@ -83,6 +83,10 @@ export interface SelectionConfig {
   commentBonusMax: number;
   /** Max points a fully-positive citation signal (100) adds; neutral (50) adds 0. */
   citationBonusMax: number;
+  /** Max points reader views can add after log saturation. */
+  viewBonusMax: number;
+  /** View count where the view signal is considered saturated. */
+  viewSaturation: number;
   /** confidence_score strictly below this caps an event's promotion at tier B (open point C1). */
   confidenceCapToBBelow: number;
 }
@@ -101,7 +105,7 @@ export interface ScoringV2Config {
 }
 
 export const scoringV2Config: ScoringV2Config = {
-  version: "scoring-v2",
+  version: "scoring-v2.1",
   relevanceMin: 50,
   // De-popularized intrinsic quality (externalHeat/userValue removed vs base_score; userValue
   // folds into confidence per open point B1). Re-normalized to sum 1.
@@ -118,6 +122,8 @@ export const scoringV2Config: ScoringV2Config = {
     confidenceGateFloor: 0.5,
     commentBonusMax: 8,
     citationBonusMax: 6,
+    viewBonusMax: 4,
+    viewSaturation: 200,
     confidenceCapToBBelow: 40,
   },
   // discussion is harder to promote; model_release gets a small edge. Open point D2: included.
