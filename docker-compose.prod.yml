@@ -1,0 +1,71 @@
+# Production topology for the pull-only deploy (no image builds on the ECS box).
+#
+# web + worker reference prebuilt GHCR images instead of `build:` — see release.yml for the
+# publish side and .deploy/deploy.sh for the pull/migrate/up side. db + rsshub run from
+# upstream images. This file is self-contained: run it directly, NOT layered on
+# docker-compose.yml.
+#
+#   IMAGE_TAG=<git-sha|latest> docker compose -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.prod.yml run --rm web bun run db:migrate   # one-shot
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Pin a release by exporting IMAGE_TAG to a specific commit SHA; defaults to :latest.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aiwatch}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aiwatch}
+      POSTGRES_DB: ${POSTGRES_DB:-aiwatch}
+    # Intentionally NOT published to the host: web + worker reach it over the compose
+    # network. For local psql use `docker exec aiwatch-db-1 psql -U aiwatch -d aiwatch`.
+    volumes:
+      - aiwatch_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aiwatch} -d ${POSTGRES_DB:-aiwatch}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    image: ${IMAGE_PREFIX:-ghcr.io/choysang/aiwatch}-web:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-aiwatch}:${POSTGRES_PASSWORD:-aiwatch}@db:5432/${POSTGRES_DB:-aiwatch}
+    # Skip migrate-on-boot: the deploy script runs migrations as an isolated one-shot step
+    # before `up -d`, so a bad migration can't wedge the web container's startup loop.
+    command: ["bun", "run", "start"]
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  worker:
+    image: ${IMAGE_PREFIX:-ghcr.io/choysang/aiwatch}-worker:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-aiwatch}:${POSTGRES_PASSWORD:-aiwatch}@db:5432/${POSTGRES_DB:-aiwatch}
+      TZ: ${APP_TZ:-Asia/Shanghai}
+    depends_on:
+      db:
+        condition: service_healthy
+      rsshub:
+        condition: service_started
+
+  rsshub:
+    image: diygod/rsshub:latest
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      CACHE_TYPE: memory
+      TWITTER_AUTH_TOKEN: ${TWITTER_AUTH_TOKEN:-}
+    expose:
+      - "1200"
+
+volumes:
+  aiwatch_pg:

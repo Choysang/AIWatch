@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { RsshubConnector, rsshubUrl } from "./rsshub";
+import { RsshubConnector, rsshubAllowHosts, rsshubUrl } from "./rsshub";
 import type { ConnectorSource } from "./types";
 
 const FEED = `<?xml version="1.0" encoding="UTF-8"?>
@@ -45,6 +45,20 @@ describe("rsshubUrl", () => {
     expect(rsshubUrl("https://rsshub.app", "https://other.host/feed")).toBe(
       "https://other.host/feed",
     );
+  });
+});
+
+describe("rsshubAllowHosts", () => {
+  test("returns the hostname of the configured base URL", () => {
+    // A self-hosted RSSHub resolves to a Docker private IP; the operator-set host is
+    // the exact (and only) host we whitelist past safeFetch's SSRF guard.
+    expect(rsshubAllowHosts("http://rsshub:1200")).toEqual(["rsshub"]);
+    expect(rsshubAllowHosts("https://rsshub.app/")).toEqual(["rsshub.app"]);
+  });
+
+  test("returns an empty list for an unparseable base (no blanket bypass)", () => {
+    expect(rsshubAllowHosts("not a url")).toEqual([]);
+    expect(rsshubAllowHosts("")).toEqual([]);
   });
 });
 
