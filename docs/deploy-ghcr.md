@@ -20,7 +20,10 @@ This avoids the OOM / swap-thrash that on-box `docker build` caused on the 3.5 G
 | `docker-compose.prod.yml` | Production topology referencing GHCR images (no `build:`). db + rsshub from upstream images. web boot skips migrate. |
 | `scripts/deploy-prod.sh` | Pull-only deploy run on the ECS box. |
 
-Images inherit the **repository's visibility** — a private repo produces **private** images.
+GHCR packages are **private by default** when first published, regardless of repository
+visibility. Visibility is managed **per package** (GitHub profile → Packages →
+`aiwatch-web` / `aiwatch-worker` → Package settings → Change visibility). Leave them private
+to keep the images private; the ECS box pulls them with a `read:packages` PAT (see below).
 
 ## Publishing images
 
