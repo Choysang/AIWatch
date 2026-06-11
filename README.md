@@ -47,6 +47,7 @@ bun run worker                   # 终端 2: 长驻 Bun worker (graphile-worker)
 - **LLM 失败闭合(fail-closed)**:`cold_judge` 走真实 provider(`OpenAICompatibleProvider`,默认路由 OpenAI/DeepSeek);缺 key 或响应不合 schema 时,事件标记 `judge_failed`(原因 `no_key` / `bad_payload` / `provider_error`),不沉默降级到 stub。要在开发期使用 stub,显式设 `LLM_STUB_FALLBACK=1`。Anthropic / Google 适配器尚未实现,instantiate 时也会失败闭合。
 - **专家直推**(`expert direct-push`):专家身份用户可以直接将事件推为 B 级,绕过门槛但仍写入 `selected_breakdown.reason="direct_push"` 与审计记录。A / S 仍走 `promotion_score` 闸口。
 - **Source 是数据**(DB 行,后台 CRUD/启停);**Connector 是代码**;订阅控制启用。已落地连接器:`mock` / `rss` / `rsshub`(硬层);其余硬层连接器(github / hn / youtube / huggingface / reddit)注册表里失败闭合,等后续 slice。
+- **信源严选**:唯一正典是 `data/sources/curated_ai_sources.json`(自研严选池,宁缺毋滥);`bun run sources:import:curated --archive-non-curated` 幂等同步,`bun run sources:audit` 做连通性体检。筛选标准与去留记录见 `docs/source_selection_report.md`。
 - **数据边界**:开源仓库只含代码 + schema + mock 样例;真实信源库 / 事件库 / 评分库是运营资产,不随仓库分发。
 - 时间:DB 存 UTC;`APP_TZ`(默认 `Asia/Shanghai`)管报表/显示/语义解析。
 
