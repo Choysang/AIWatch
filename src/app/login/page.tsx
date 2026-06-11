@@ -3,6 +3,7 @@
 // the page they came from; admins reach the console via `?next=/_admin` (set by the admin
 // guard), so neither flow is hard-coded to the other's destination.
 
+import { SubpageNav } from "@/app/subpage-nav";
 import { LoginForm } from "./login-form";
 
 // Only allow same-origin absolute paths. Reject protocol-relative ("//evil.com") and any
@@ -21,10 +22,13 @@ export default async function LoginPage({
 }) {
   const sp = await searchParams;
   const next = safeNext(sp.next);
+  const googleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  const wechatEnabled = Boolean(process.env.WECHAT_CLIENT_ID && process.env.WECHAT_CLIENT_SECRET);
 
   return (
     <main className="page">
-      <LoginForm next={next} />
+      <SubpageNav />
+      <LoginForm googleEnabled={googleEnabled} wechatEnabled={wechatEnabled} next={next} />
     </main>
   );
 }

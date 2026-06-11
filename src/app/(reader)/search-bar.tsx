@@ -1,60 +1,52 @@
 // Reader search + filter bar. URL is the single source of truth (web pattern: URL-as-state),
 // so results stay shareable and the page can be server-rendered. This client component only
 // reads the current params and writes new ones via the router; the homepage does the fetching.
-//
-// SP2: the "等级 B/A/S" chip group was removed from the reader UI (the `level` param still
-// works for the public API). Source filtering is now four reader-facing groups (官方/专家/
-// 媒体/社区) that expand to the underlying source_types. A custom date range overrides the
-// rolling time window when set.
 
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState, useTransition } from "react";
 import { messages } from "@/i18n";
-import { CONTENT_TYPES, SOURCE_TYPES, type ContentType, type SourceType } from "@/public/query";
 import {
-  GROUP_MEMBERS,
-  SOURCE_GROUPS,
-  groupMembers,
-  type SourceGroup,
-} from "@/public/source-groups";
+  EVENT_CATEGORIES,
+  SOURCE_CATEGORIES,
+  type EventCategory,
+  type SourceCategory,
+} from "@/public/query";
+import { AI_SOURCE_CATEGORY_SHORT_LABEL } from "@/sources/ai-source-categories";
 
 type ChipValue = string | undefined;
+type DraftField = { routeValue: string; value: string };
 
 const WINDOWS = ["today", "week", "month", "all"] as const;
-const MODES = ["all", "selected"] as const;
+const SEARCH_MODES = ["latest", "selected"] as const;
+type SearchMode = (typeof SEARCH_MODES)[number];
+type TimeChoice = (typeof WINDOWS)[number] | "custom";
 
-function parseSourceTypeParam(raw: string | null): Set<SourceType> {
-  const set = new Set<SourceType>();
+function draftValue(draft: DraftField, routeValue: string) {
+  return draft.routeValue === routeValue ? draft.value : routeValue;
+}
+
+function parseSourceCategoryParam(raw: string | null): Set<SourceCategory> {
+  const set = new Set<SourceCategory>();
   if (!raw) return set;
-  const known: ReadonlySet<string> = new Set(SOURCE_TYPES);
+  const known: ReadonlySet<string> = new Set(SOURCE_CATEGORIES);
   for (const part of raw.split(",")) {
     const v = part.trim();
-    if (v && known.has(v)) set.add(v as SourceType);
+    if (v && known.has(v)) set.add(v as SourceCategory);
   }
   return set;
 }
 
-function parseContentTypeParam(raw: string | null): Set<ContentType> {
-  const set = new Set<ContentType>();
-  if (!raw) return set;
-  const known: ReadonlySet<string> = new Set(CONTENT_TYPES);
-  for (const part of raw.split(",")) {
-    const v = part.trim();
-    if (v && known.has(v)) set.add(v as ContentType);
-  }
-  return set;
+function normalizeScore(raw: string): string | undefined {
+  if (!raw.trim()) return undefined;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0 || n > 100) return undefined;
+  return String(Math.floor(n));
 }
 
-/** A group reads as "on" only when all of its member source_types are currently selected. */
-function isGroupActive(selected: Set<SourceType>, group: SourceGroup): boolean {
-  return GROUP_MEMBERS[group].every((t) => selected.has(t));
-}
-
-function isOnlyGroupActive(selected: Set<SourceType>, group: SourceGroup): boolean {
-  const members = GROUP_MEMBERS[group];
-  return selected.size === members.length && members.every((t) => selected.has(t));
+function readTimeChoice(raw: string | null): (typeof WINDOWS)[number] {
+  return raw === "today" || raw === "week" || raw === "month" ? raw : "all";
 }
 
 export function SearchBar() {
@@ -64,40 +56,56 @@ export function SearchBar() {
   const queryParam = params.get("q") ?? "";
   const fromParam = params.get("from") ?? "";
   const toParam = params.get("to") ?? "";
-  const [text, setText] = useState(queryParam);
-  const [fromVal, setFromVal] = useState(fromParam);
-  const [toVal, setToVal] = useState(toParam);
+  const minScoreParam = params.get("minScore") ?? "";
+  const hasCustomRange = Boolean(fromParam || toParam);
+  const routeTimeChoice: TimeChoice = hasCustomRange ? "custom" : readTimeChoice(params.get("since"));
 
-  // Current selections, with the same defaults the server applies (see parsePublicQuery).
-  const mode = params.get("mode") === "selected" ? "selected" : "all";
-  const hasCustomRange = Boolean(params.get("from") || params.get("to"));
-  const [showCustomRange, setShowCustomRange] = useState(hasCustomRange);
-  const showRangeControls = showCustomRange || hasCustomRange;
-  const since = params.get("since") ?? (mode === "selected" ? "week" : "all");
-  const selectedSourceTypes = parseSourceTypeParam(params.get("sourceTypes"));
-  const selectedContentTypes = parseContentTypeParam(params.get("contentTypes"));
+  const [textDraft, setTextDraft] = useState<DraftField>({
+    routeValue: queryParam,
+    value: queryParam,
+  });
+  const [fromDraft, setFromDraft] = useState<DraftField>({
+    routeValue: fromParam,
+    value: fromParam,
+  });
+  const [toDraft, setToDraft] = useState<DraftField>({
+    routeValue: toParam,
+    value: toParam,
+  });
+  const [minScoreDraft, setMinScoreDraft] = useState<DraftField>({
+    routeValue: minScoreParam,
+    value: minScoreParam,
+  });
+  const [timeDraft, setTimeDraft] = useState<DraftField>({
+    routeValue: routeTimeChoice,
+    value: routeTimeChoice,
+  });
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  const text = draftValue(textDraft, queryParam);
+  const fromVal = draftValue(fromDraft, fromParam);
+  const toVal = draftValue(toDraft, toParam);
+  const minScoreVal = draftValue(minScoreDraft, minScoreParam);
+  const timeChoice = draftValue(timeDraft, routeTimeChoice) as TimeChoice;
+  const mode: SearchMode = params.get("mode") === "selected" ? "selected" : "latest";
+  const selectedSourceCategories = parseSourceCategoryParam(params.get("sourceCategories"));
+  const selectedEventCategory = params.get("category") as EventCategory | null;
   const nativeSubmitParams = Array.from(params.entries()).filter(([key]) => key !== "q");
-
-  useEffect(() => {
-    setText(queryParam);
-  }, [queryParam]);
-
-  useEffect(() => {
-    setFromVal(fromParam);
-  }, [fromParam]);
-
-  useEffect(() => {
-    setToVal(toParam);
-  }, [toParam]);
+  const hasPanelFilters = Boolean(params.get("since") || fromParam || toParam || minScoreParam);
 
   const navigate = useCallback(
     (mutate: (next: URLSearchParams) => void) => {
       const next = new URLSearchParams(params.toString());
       mutate(next);
       const qs = next.toString();
-      router.push(qs ? `/?${qs}` : "/");
+      const href = qs ? `/?${qs}` : "/";
+      router.prefetch(href);
+      startTransition(() => {
+        router.push(href);
+      });
     },
-    [params, router],
+    [params, router, startTransition],
   );
 
   const setParam = (key: string, value: ChipValue) =>
@@ -106,58 +114,87 @@ export function SearchBar() {
       else next.set(key, value);
     });
 
-  // Selecting a rolling window clears any custom range (they are mutually exclusive).
-  const selectWindow = (value: string) => {
-    setShowCustomRange(false);
+  const setMode = (value: SearchMode) =>
     navigate((next) => {
-      next.set("since", value);
-      next.delete("from");
-      next.delete("to");
+      if (value === "latest") next.delete("mode");
+      else next.set("mode", "selected");
     });
+
+  const selectTime = (value: TimeChoice) => {
+    setTimeDraft({ routeValue: routeTimeChoice, value });
+    if (value !== "custom") {
+      setFromDraft({ routeValue: fromParam, value: "" });
+      setToDraft({ routeValue: toParam, value: "" });
+    }
   };
 
-  const applyRange = () =>
+  const toggleSourceCategory = (category: SourceCategory) =>
     navigate((next) => {
-      if (fromVal) next.set("from", fromVal);
-      else next.delete("from");
-      if (toVal) next.set("to", toVal);
-      else next.delete("to");
-      // A custom range supersedes the rolling window.
-      if (fromVal || toVal) next.delete("since");
-    });
-
-  const toggleSourceGroup = (group: SourceGroup) =>
-    navigate((next) => {
-      const current = parseSourceTypeParam(next.get("sourceTypes"));
-      if (isOnlyGroupActive(current, group)) {
-        next.delete("sourceTypes");
+      const current = parseSourceCategoryParam(next.get("sourceCategories"));
+      if (current.size === 1 && current.has(category)) {
+        next.delete("sourceCategories");
       } else {
-        const members = new Set(groupMembers(group));
-        next.set("sourceTypes", SOURCE_TYPES.filter((t) => members.has(t)).join(","));
+        next.set("sourceCategories", category);
       }
     });
 
-  const toggleContentType = (value: ContentType) =>
+  const toggleEventCategory = (value: EventCategory) =>
     navigate((next) => {
-      const current = parseContentTypeParam(next.get("contentTypes"));
-      if (current.size === 1 && current.has(value)) next.delete("contentTypes");
-      else next.set("contentTypes", value);
+      if (next.get("category") === value) next.delete("category");
+      else next.set("category", value);
     });
 
   const submitQuery = (e: React.FormEvent) => {
     e.preventDefault();
     const data = new FormData(e.currentTarget as HTMLFormElement);
     const trimmed = String(data.get("q") ?? "").trim();
-    setText(trimmed);
+    setTextDraft({ routeValue: queryParam, value: trimmed });
     setParam("q", trimmed || undefined);
   };
 
+  const applyPanelFilters = () =>
+    navigate((next) => {
+      if (timeChoice === "custom") {
+        if (fromVal) next.set("from", fromVal);
+        else next.delete("from");
+        if (toVal) next.set("to", toVal);
+        else next.delete("to");
+        next.delete("since");
+      } else {
+        next.delete("from");
+        next.delete("to");
+        if (timeChoice === "all") next.delete("since");
+        else next.set("since", timeChoice);
+      }
+
+      const score = normalizeScore(minScoreVal);
+      if (score) next.set("minScore", score);
+      else next.delete("minScore");
+    });
+
+  const clearPanelFilters = () => {
+    setTimeDraft({ routeValue: routeTimeChoice, value: "all" });
+    setFromDraft({ routeValue: fromParam, value: "" });
+    setToDraft({ routeValue: toParam, value: "" });
+    setMinScoreDraft({ routeValue: minScoreParam, value: "" });
+    navigate((next) => {
+      next.delete("since");
+      next.delete("from");
+      next.delete("to");
+      next.delete("minScore");
+    });
+  };
+
   const clearAll = () => {
-    setText("");
-    setFromVal("");
-    setToVal("");
-    setShowCustomRange(false);
-    router.push("/");
+    setTextDraft({ routeValue: queryParam, value: "" });
+    setTimeDraft({ routeValue: routeTimeChoice, value: "all" });
+    setFromDraft({ routeValue: fromParam, value: "" });
+    setToDraft({ routeValue: toParam, value: "" });
+    setMinScoreDraft({ routeValue: minScoreParam, value: "" });
+    router.prefetch("/");
+    startTransition(() => {
+      router.push("/");
+    });
   };
 
   const hasFilters =
@@ -167,132 +204,208 @@ export function SearchBar() {
     params.get("since") ||
     params.get("from") ||
     params.get("to") ||
+    params.get("minScore") ||
     params.get("sourceTypes") ||
-    params.get("contentTypes");
+    params.get("sourceCategories") ||
+    params.get("contentTypes") ||
+    params.get("category");
 
   return (
-    <section className="search" aria-label={m.submit}>
-      <form className="search-row" role="search" action="/" method="get" onSubmit={submitQuery}>
-        {nativeSubmitParams.map(([key, value], index) => (
-          <input key={`${key}:${index}`} type="hidden" name={key} value={value} />
-        ))}
-        <input
-          type="search"
-          className="search-input"
-          name="q"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={m.placeholder}
-          aria-label={m.placeholder}
-        />
-        <button type="submit" className="search-submit">
-          {m.submit}
-        </button>
-      </form>
-
-      <div className="filter-group" role="group" aria-label={m.modeLabel}>
-        <span className="filter-label">{m.modeLabel}</span>
-        {MODES.map((value) => (
-          <button
-            key={value}
-            type="button"
-            className={`chip ${mode === value ? "is-active" : ""}`}
-            aria-pressed={mode === value}
-            onClick={() => setParam("mode", value === "all" ? undefined : value)}
-          >
-            {m.mode[value]}
-          </button>
-        ))}
-      </div>
-
-      <div className="filter-group" role="group" aria-label={m.windowLabel}>
-        <span className="filter-label">{m.windowLabel}</span>
-        {WINDOWS.map((value) => (
-          <button
-            key={value}
-            type="button"
-            className={`chip ${!hasCustomRange && since === value ? "is-active" : ""}`}
-            aria-pressed={!hasCustomRange && since === value}
-            onClick={() => selectWindow(value)}
-          >
-            {m.window[value]}
-          </button>
-        ))}
-        <button
-          type="button"
-          className={`chip ${showRangeControls ? "is-active" : ""}`}
-          aria-pressed={showRangeControls}
-          onClick={() => setShowCustomRange(true)}
-        >
-          {m.customLabel}
-        </button>
-        {showRangeControls && (
-          <>
-            <input
-              type="date"
-              className="search-date"
-              value={fromVal}
-              max={toVal || undefined}
-              aria-label={m.dateFromLabel}
-              onChange={(e) => setFromVal(e.target.value)}
-            />
-            <span className="date-sep" aria-hidden="true">
-              –
-            </span>
-            <input
-              type="date"
-              className="search-date"
-              value={toVal}
-              min={fromVal || undefined}
-              aria-label={m.dateToLabel}
-              onChange={(e) => setToVal(e.target.value)}
-            />
-            <button type="button" className="chip" onClick={applyRange}>
-              {m.dateApply}
-            </button>
-          </>
-        )}
-      </div>
-
-      <div className="filter-group" role="group" aria-label={m.sourceGroupLabel}>
-        <span className="filter-label">{m.sourceGroupLabel}</span>
-        {SOURCE_GROUPS.map((group) => {
-          const active = isGroupActive(selectedSourceTypes, group);
-          return (
-            <button
-              key={group}
-              type="button"
-              className={`chip ${active ? "is-active" : ""}`}
-              aria-pressed={active}
-              onClick={() => toggleSourceGroup(group)}
-            >
-              {m.sourceGroup[group]}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="filter-group" role="group" aria-label={m.contentTypeLabel}>
-        <span className="filter-label">{m.contentTypeLabel}</span>
-        {CONTENT_TYPES.map((value) => {
-          const active = selectedContentTypes.has(value);
-          return (
+    <section
+      className={`search ${isPending ? "is-pending" : ""}`}
+      aria-label={m.submit}
+      aria-busy={isPending}
+    >
+      <div className="search-main-row">
+        <div className="search-mode-tabs" role="group" aria-label={m.modeLabel}>
+          {SEARCH_MODES.map((value) => (
             <button
               key={value}
               type="button"
-              className={`chip ${active ? "is-active" : ""}`}
-              aria-pressed={active}
-              onClick={() => toggleContentType(value)}
+              className={`search-mode-tab ${mode === value ? "is-active" : ""}`}
+              aria-pressed={mode === value}
+              onClick={() => setMode(value)}
             >
-              {m.contentType[value]}
+              {m.mode[value]}
             </button>
-          );
-        })}
-        {hasFilters && (
-          <button type="button" className="chip chip-clear" onClick={clearAll}>
-            {m.clear}
-          </button>
-        )}
+          ))}
+        </div>
+
+        <div className="search-filter-line">
+          <div className="search-facet-row" role="group" aria-label={m.sourceCategoryLabel}>
+            <span className="filter-label">{m.sourceCategoryLabel}</span>
+            {SOURCE_CATEGORIES.map((category) => {
+              const active = selectedSourceCategories.has(category);
+              return (
+                <button
+                  key={category}
+                  type="button"
+                  className={`chip ${active ? "is-active" : ""}`}
+                  aria-pressed={active}
+                  onClick={() => toggleSourceCategory(category)}
+                >
+                  {m.sourceCategory[category] ?? AI_SOURCE_CATEGORY_SHORT_LABEL[category]}
+                </button>
+              );
+            })}
+          </div>
+          <div className="search-category-actions">
+            <div className="search-facet-row" role="group" aria-label={m.eventCategoryLabel}>
+              <span className="filter-label">{m.eventCategoryLabel}</span>
+              {EVENT_CATEGORIES.map((value) => {
+                const active = selectedEventCategory === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`chip ${active ? "is-active" : ""}`}
+                    aria-pressed={active}
+                    onClick={() => toggleEventCategory(value)}
+                  >
+                    {m.eventCategory[value]}
+                  </button>
+                );
+              })}
+            </div>
+
+            <form
+              className="search-row search-action-row"
+              role="search"
+              action="/"
+              method="get"
+              onSubmit={submitQuery}
+            >
+          {nativeSubmitParams.map(([key, value]) => (
+            <input key={`${key}:${value}`} type="hidden" name={key} value={value} />
+          ))}
+          <input
+            type="search"
+            className="search-input"
+            name="q"
+            value={text}
+            onChange={(e) => setTextDraft({ routeValue: queryParam, value: e.target.value })}
+            placeholder={m.placeholder}
+            aria-label={m.placeholder}
+          />
+          <div className="search-filter-popover">
+            <button
+              type="button"
+              className={`search-filter-toggle ${filterPanelOpen || hasPanelFilters ? "is-active" : ""}`}
+              aria-expanded={filterPanelOpen}
+              aria-controls="reader-search-filter-panel"
+              onClick={() => setFilterPanelOpen((open) => !open)}
+            >
+              {m.filterButton}
+            </button>
+            {filterPanelOpen && (
+              <div id="reader-search-filter-panel" className="search-filter-panel">
+                <div className="search-filter-panel-head">
+                  <strong>{m.filterPanelTitle}</strong>
+                  <span>{hasPanelFilters ? m.filterPanelActive : m.filterPanelIdle}</span>
+                </div>
+
+                <div className="search-filter-section" role="group" aria-label={m.windowLabel}>
+                  <span className="filter-label">{m.windowLabel}</span>
+                  <div className="search-filter-options">
+                    {WINDOWS.map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={`chip ${timeChoice === value ? "is-active" : ""}`}
+                        aria-pressed={timeChoice === value}
+                        onClick={() => selectTime(value)}
+                      >
+                        {m.window[value]}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className={`chip ${timeChoice === "custom" ? "is-active" : ""}`}
+                      aria-pressed={timeChoice === "custom"}
+                      onClick={() => selectTime("custom")}
+                    >
+                      {m.customLabel}
+                    </button>
+                  </div>
+                  {timeChoice === "custom" && (
+                    <div className="search-date-range">
+                      <input
+                        type="date"
+                        className="search-date"
+                        value={fromVal}
+                        max={toVal || undefined}
+                        aria-label={m.dateFromLabel}
+                        onChange={(e) =>
+                          setFromDraft({ routeValue: fromParam, value: e.target.value })
+                        }
+                      />
+                      <span className="date-sep" aria-hidden="true">
+                        -
+                      </span>
+                      <input
+                        type="date"
+                        className="search-date"
+                        value={toVal}
+                        min={fromVal || undefined}
+                        aria-label={m.dateToLabel}
+                        onChange={(e) =>
+                          setToDraft({ routeValue: toParam, value: e.target.value })
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="search-filter-section" role="group" aria-label={m.scoreLabel}>
+                  <span className="filter-label">{m.scoreLabel}</span>
+                  <div className="search-score-row">
+                    <button
+                      type="button"
+                      className={`chip ${!minScoreVal ? "is-active" : ""}`}
+                      aria-pressed={!minScoreVal}
+                      onClick={() => setMinScoreDraft({ routeValue: minScoreParam, value: "" })}
+                    >
+                      {m.scoreUnlimited}
+                    </button>
+                    <label className="score-input-label">
+                      <span>{m.scoreMinLabel}</span>
+                      <input
+                        type="number"
+                        className="score-input"
+                        name="minScore"
+                        min={0}
+                        max={100}
+                        step={1}
+                        inputMode="numeric"
+                        value={minScoreVal}
+                        placeholder="不限"
+                        onChange={(e) =>
+                          setMinScoreDraft({ routeValue: minScoreParam, value: e.target.value })
+                        }
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="search-filter-actions">
+                  <button type="button" className="chip chip-clear" onClick={clearPanelFilters}>
+                    {m.clearPanel}
+                  </button>
+                  <button type="button" className="search-submit" onClick={applyPanelFilters}>
+                    {m.applyFilters}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+          {hasFilters && (
+            <button type="button" className="chip chip-clear" onClick={clearAll}>
+              {m.clear}
+            </button>
+          )}
+            </form>
+          </div>
+        </div>
       </div>
     </section>
   );

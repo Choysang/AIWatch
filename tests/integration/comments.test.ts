@@ -1,6 +1,6 @@
 // Integration test for the Slice 9 event-comments path against real Postgres.
 // Exercises: add/list semantics, bodyHash dedupe per identity, expert vs non-expert
-// sectioning, deterministic low-value filtering, identity-XOR enforcement, and the
+// flagging, deterministic low-value filtering, identity-XOR enforcement, and the
 // EventNotFoundError surface.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
@@ -9,6 +9,7 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { startEmbeddedPostgres, type PgHandle } from "./helpers/embedded-pg";
 
 let pgHandle: PgHandle | undefined;
+let savedDatabaseUrl: string | undefined;
 let getDb: typeof import("@/db/client").getDb;
 let resetDb: typeof import("@/db/client").resetDb;
 let schema: typeof import("@/db/schema");
@@ -34,10 +35,9 @@ async function expectRejection(
 }
 
 beforeAll(async () => {
-  if (!process.env.DATABASE_URL) {
-    pgHandle = await startEmbeddedPostgres();
-    process.env.DATABASE_URL = pgHandle.connectionString;
-  }
+  savedDatabaseUrl = process.env.DATABASE_URL;
+  pgHandle = await startEmbeddedPostgres();
+  process.env.DATABASE_URL = pgHandle.connectionString;
   ({ getDb, resetDb } = await import("@/db/client"));
   schema = await import("@/db/schema");
   comments = await import("@/db/queries/comments");
@@ -49,7 +49,8 @@ beforeAll(async () => {
 afterAll(async () => {
   await withTimeout(resetDb?.(), 10_000);
   await withTimeout(pgHandle?.stop(), 15_000);
-  if (pgHandle) delete process.env.DATABASE_URL;
+  if (savedDatabaseUrl === undefined) delete process.env.DATABASE_URL;
+  else process.env.DATABASE_URL = savedDatabaseUrl;
 }, 60_000);
 
 beforeEach(async () => {
@@ -96,7 +97,7 @@ async function seedUser(id: string, role: "user" | "expert" = "user"): Promise<s
 }
 
 describe("event comments (real Postgres)", () => {
-  test("addComment stores a valid comment and listEventComments returns it under latest+highQuality", async () => {
+  test("addComment stores a valid comment and listEventComments returns it in items", async () => {
     const sourceId = await seedSource();
     await seedEvent({ id: "evt_c1", sourceId, title: "GPT-5 released" });
     const userId = await seedUser("usr_alice");
@@ -110,10 +111,9 @@ describe("event comments (real Postgres)", () => {
     expect(row.isExpert).toBe(false);
 
     const sections = await comments.listEventComments("evt_c1");
-    expect(sections.latest.length).toBe(1);
-    expect(sections.highQuality.length).toBe(1);
-    expect(sections.expertViews.length).toBe(0);
-    expect(sections.latest[0]!.id).toBe(row.id);
+    expect(sections.items.length).toBe(1);
+    expect(sections.items[0]!.id).toBe(row.id);
+    expect(sections.items[0]!.isExpert).toBe(false);
   });
 
   test("addComment dedupes per (event, identity, bodyHash)", async () => {
@@ -162,7 +162,7 @@ describe("event comments (real Postgres)", () => {
     expect(all.length).toBe(1);
   });
 
-  test("expert role tags comment with isExpert=true and routes to expertViews", async () => {
+  test("expert role tags comment with isExpert=true; expert and regular both surface in items", async () => {
     const sourceId = await seedSource();
     await seedEvent({ id: "evt_c4", sourceId, title: "T" });
     const expertId = await seedUser("usr_expert", "expert");
@@ -180,11 +180,11 @@ describe("event comments (real Postgres)", () => {
     });
 
     const sections = await comments.listEventComments("evt_c4");
-    expect(sections.expertViews.length).toBe(1);
-    expect(sections.expertViews[0]!.isExpert).toBe(true);
-    expect(sections.highQuality.length).toBe(1);
-    expect(sections.highQuality[0]!.isExpert).toBe(false);
-    expect(sections.latest.length).toBe(2); // expert + regular both surface in latest
+    expect(sections.items.length).toBe(2); // expert + regular both surface
+    const expert = sections.items.find((c) => c.isExpert);
+    const regular = sections.items.find((c) => !c.isExpert);
+    expect(expert?.isExpert).toBe(true);
+    expect(regular?.isExpert).toBe(false);
   });
 
   test("title-repost comment is classified low-value and hidden", async () => {
@@ -268,6 +268,41 @@ describe("event comments (real Postgres)", () => {
     });
     const sections = await comments.listEventComments("evt_c8");
     expect(sections.latest.length).toBe(2);
+  });
+
+  test("getTopCommentsForEvents limits recent valid top-level comments per event", async () => {
+    const sourceId = await seedSource();
+    await seedEvent({ id: "evt_top_a", sourceId, title: "A" });
+    await seedEvent({ id: "evt_top_b", sourceId, title: "B" });
+    const base = new Date("2026-05-01T00:00:00Z").getTime();
+    const rows: (typeof schema.eventComments.$inferInsert)[] = [];
+
+    for (let i = 0; i < 5; i++) {
+      rows.push({
+        id: `cmt_top_a_${i}`,
+        eventId: "evt_top_a",
+        fingerprint: `fp_top_a_${i}`,
+        body: `a${i}`,
+        bodyHash: `hash_top_a_${i}`,
+        classification: "valid",
+        createdAt: new Date(base + i * 1000),
+      });
+      rows.push({
+        id: `cmt_top_b_${i}`,
+        eventId: "evt_top_b",
+        fingerprint: `fp_top_b_${i}`,
+        body: `b${i}`,
+        bodyHash: `hash_top_b_${i}`,
+        classification: "valid",
+        createdAt: new Date(base + i * 1000),
+      });
+    }
+
+    await getDb().insert(schema.eventComments).values(rows);
+
+    const top = await comments.getTopCommentsForEvents(["evt_top_a", "evt_top_b"], 3);
+    expect(top.get("evt_top_a")).toEqual(["a4", "a3", "a2"]);
+    expect(top.get("evt_top_b")).toEqual(["b4", "b3", "b2"]);
   });
 });
 
@@ -377,29 +412,36 @@ describe("comment replies (SP3.1)", () => {
     expect(sections.latest[0]!.replies.length).toBe(0);
   });
 
-  test("high-quality section orders by like_count desc", async () => {
+  test("hot sort orders by like_count desc (popularity beats recency)", async () => {
     const sourceId = await seedSource();
     await seedEvent({ id: "evt_r6", sourceId, title: "T" });
-    const low = await comments.addComment({
+    // `popular` is posted FIRST (older); `recent` second (newer). Sorting by likes must
+    // float `popular` to the top despite it being the older comment.
+    const popular = await comments.addComment({
       eventId: "evt_r6",
-      body: "First comment, posted earlier, fewer likes overall here.",
-      identity: { userId: null, fingerprint: "fp_low" },
+      body: "Posted earlier but ends up far more popular by like count.",
+      identity: { userId: null, fingerprint: "fp_popular" },
     });
-    const high = await comments.addComment({
+    const recent = await comments.addComment({
       eventId: "evt_r6",
-      body: "Second comment, posted later, but more popular by far.",
-      identity: { userId: null, fingerprint: "fp_high" },
+      body: "Posted later, newer, but with fewer likes overall here.",
+      identity: { userId: null, fingerprint: "fp_recent" },
     });
-    // Give `high` more likes via the denormalized counter.
+    // Give `popular` more likes via the denormalized counter.
     await getDb()
       .update(schema.eventComments)
       .set({ likeCount: 5 })
-      .where(eq(schema.eventComments.id, high.id));
+      .where(eq(schema.eventComments.id, popular.id));
 
-    const sections = await comments.listEventComments("evt_r6");
-    expect(sections.highQuality.length).toBe(2);
-    expect(sections.highQuality[0]!.id).toBe(high.id); // more-liked first
-    expect(sections.highQuality[1]!.id).toBe(low.id);
+    // hot: popularity wins over recency.
+    const hot = await comments.listEventComments("evt_r6", { sort: "hot" });
+    expect(hot.items.length).toBe(2);
+    expect(hot.items[0]!.id).toBe(popular.id); // more-liked first
+    expect(hot.items[1]!.id).toBe(recent.id);
+
+    // latest: recency wins — proves the two sorts genuinely differ.
+    const latest = await comments.listEventComments("evt_r6", { sort: "latest" });
+    expect(latest.items[0]!.id).toBe(recent.id);
   });
 
   test("replying to a logged-in user's comment notifies the author (not self)", async () => {

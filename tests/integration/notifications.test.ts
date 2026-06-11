@@ -7,6 +7,7 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { startEmbeddedPostgres, type PgHandle } from "./helpers/embedded-pg";
 
 let pgHandle: PgHandle | undefined;
+let savedDatabaseUrl: string | undefined;
 let getDb: typeof import("@/db/client").getDb;
 let resetDb: typeof import("@/db/client").resetDb;
 let schema: typeof import("@/db/schema");
@@ -18,10 +19,9 @@ function withTimeout(p: Promise<unknown> | undefined, ms: number): Promise<unkno
 }
 
 beforeAll(async () => {
-  if (!process.env.DATABASE_URL) {
-    pgHandle = await startEmbeddedPostgres();
-    process.env.DATABASE_URL = pgHandle.connectionString;
-  }
+  savedDatabaseUrl = process.env.DATABASE_URL;
+  pgHandle = await startEmbeddedPostgres();
+  process.env.DATABASE_URL = pgHandle.connectionString;
   ({ getDb, resetDb } = await import("@/db/client"));
   schema = await import("@/db/schema");
   notifications = await import("@/db/queries/notifications");
@@ -31,7 +31,8 @@ beforeAll(async () => {
 afterAll(async () => {
   await withTimeout(resetDb?.(), 10_000);
   await withTimeout(pgHandle?.stop(), 15_000);
-  if (pgHandle) delete process.env.DATABASE_URL;
+  if (savedDatabaseUrl === undefined) delete process.env.DATABASE_URL;
+  else process.env.DATABASE_URL = savedDatabaseUrl;
 }, 60_000);
 
 beforeEach(async () => {
@@ -86,6 +87,45 @@ describe("notifications query layer", () => {
     expect(limited).toHaveLength(2);
     // Newest insert (reply 2) comes first.
     expect(limited[0]!.title).toBe("reply 2");
+  });
+
+  test("listUnreadPreview returns only unread notifications newest-first", async () => {
+    const oldUnread = await notifications.createNotification({
+      userId: "usr_alice",
+      kind: "comment_reply",
+      actorId: "usr_bob",
+      title: "old unread",
+      targetId: "evt_old",
+      eventId: "evt_old",
+    });
+    const read = await notifications.createNotification({
+      userId: "usr_alice",
+      kind: "comment_reply",
+      actorId: "usr_bob",
+      title: "read notification",
+      targetId: "evt_read",
+      eventId: "evt_read",
+    });
+    await notifications.markRead("usr_alice", { ids: [oldUnread!.id, read!.id] });
+    await notifications.createNotification({
+      userId: "usr_alice",
+      kind: "comment_reply",
+      actorId: "usr_bob",
+      title: "new unread",
+      targetId: "evt_new",
+      eventId: "evt_new",
+    });
+    await notifications.createNotification({
+      userId: "usr_carol",
+      kind: "comment_reply",
+      actorId: "usr_bob",
+      title: "carol unread",
+      targetId: "evt_carol",
+      eventId: "evt_carol",
+    });
+
+    const preview = await notifications.listUnreadPreview("usr_alice", { limit: 3 });
+    expect(preview.map((n) => n.title)).toEqual(["new unread"]);
   });
 
   test("comment_like dedupes per (recipient, comment, actor)", async () => {

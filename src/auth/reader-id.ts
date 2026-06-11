@@ -23,18 +23,12 @@ export const READER_ID_COOKIE = COOKIE_NAME;
 export const READER_ID_MAX_AGE_SECONDS = MAX_AGE_SECONDS;
 
 function getSecret(): string {
-  const secret = process.env[SECRET_ENV] ?? process.env[FALLBACK_SECRET_ENV] ?? "";
-  if (!secret) {
-    // Dev-only fallback so local Next dev doesn't crash before .env is wired. We still
-    // refuse to verify in production without an explicit secret.
-    if (process.env.NODE_ENV === "production") {
-      throw new Error(
-        `${SECRET_ENV} (or ${FALLBACK_SECRET_ENV}) must be set in production`,
-      );
-    }
-    return "aiwatch-reader-id-dev";
+  const secret = process.env[SECRET_ENV] ?? "";
+  if (secret) return secret;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(`${SECRET_ENV} must be set in production`);
   }
-  return secret;
+  return process.env[FALLBACK_SECRET_ENV] ?? "aiwatch-reader-id-dev";
 }
 
 function b64url(bytes: Uint8Array): string {

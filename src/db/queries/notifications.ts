@@ -108,6 +108,22 @@ export async function listNotifications(
   return rows as NotificationRow[];
 }
 
+/** Unread notifications for the masthead hover preview, newest-first. */
+export async function listUnreadPreview(
+  userId: string,
+  opts: { limit?: number } = {},
+  db: DB = defaultDb,
+): Promise<NotificationRow[]> {
+  const limit = opts.limit ?? 5;
+  const rows = await db
+    .select()
+    .from(notifications)
+    .where(and(eq(notifications.userId, userId), isNull(notifications.readAt)))
+    .orderBy(desc(notifications.createdAt))
+    .limit(limit);
+  return rows as NotificationRow[];
+}
+
 /** Count of unread (read_at IS NULL) notifications for the bell badge. */
 export async function countUnread(userId: string, db: DB = defaultDb): Promise<number> {
   const rows = await db

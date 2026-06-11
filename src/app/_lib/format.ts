@@ -19,6 +19,21 @@ export function formatDateTime(value: Date | string | null | undefined): string 
   return dateTimeFmt.format(date);
 }
 
+export function formatRelativeTime(
+  value: Date | string | null | undefined,
+  now: Date = new Date(),
+): string {
+  const date = toDate(value);
+  if (!date) return "";
+  const diffMs = Math.max(0, now.getTime() - date.getTime());
+  const minutes = Math.floor(diffMs / 60_000);
+  if (minutes < 1) return "刚刚";
+  if (minutes < 60) return `${minutes} 分钟前`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} 小时前`;
+  return `${Math.floor(hours / 24)} 天前`;
+}
+
 const dateOnlyFmt = new Intl.DateTimeFormat("zh-CN", {
   timeZone: APP_TZ,
   year: "numeric",
@@ -78,4 +93,14 @@ const timeOfDayFmt = new Intl.DateTimeFormat("zh-CN", {
 export function formatTimeOfDay(value: Date | string | null | undefined): string {
   const date = toDate(value);
   return date ? timeOfDayFmt.format(date) : "";
+}
+
+/**
+ * ISO-8601 instant for a `<time dateTime>` attribute, or `undefined` when the value is
+ * missing/invalid. The visible text stays APP_TZ-localized; this is the machine-readable
+ * instant for assistive tech and crawlers.
+ */
+export function toIsoAttr(value: Date | string | null | undefined): string | undefined {
+  const date = toDate(value);
+  return date ? date.toISOString() : undefined;
 }

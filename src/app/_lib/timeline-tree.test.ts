@@ -41,8 +41,10 @@ function mk(
     authorHandle: null,
     url: null,
     media: null,
+    sourceCount: 1,
     likeCount: 0,
     starCount: 0,
+    downCount: 0,
     viewCount: 0,
   };
 }

@@ -12,6 +12,33 @@ import {
 
 const SECRET = "test-reader-secret-do-not-use-in-prod";
 
+async function withEnv<T>(
+  patch: Record<string, string | undefined>,
+  fn: () => Promise<T>,
+): Promise<T> {
+  const previous = new Map<string, string | undefined>();
+  for (const key of Object.keys(patch)) {
+    previous.set(key, process.env[key]);
+    const value = patch[key];
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+  try {
+    return await fn();
+  } finally {
+    for (const [key, value] of previous) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  }
+}
+
 describe("reader-id cookie", () => {
   test("mint produces a verifiable token", async () => {
     const token = await mintReaderId(SECRET);
@@ -66,5 +93,18 @@ describe("reader-id cookie", () => {
     expect(header).toContain("HttpOnly");
     expect(header).toContain("SameSite=Lax");
     expect(header).toContain("Max-Age=");
+  });
+
+  test("production default secret refuses to fall back to BETTER_AUTH_SECRET", async () => {
+    await withEnv(
+      {
+        NODE_ENV: "production",
+        READER_ID_SECRET: undefined,
+        BETTER_AUTH_SECRET: "x".repeat(32),
+      },
+      async () => {
+        await expect(mintReaderId()).rejects.toThrow("READER_ID_SECRET");
+      },
+    );
   });
 });

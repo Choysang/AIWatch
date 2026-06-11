@@ -1,13 +1,5 @@
-// $0 deterministic pre-gate: drops obvious noise BEFORE any LLM call.
-// Cheap first cut (AI-relatedness, ads, empty reposts) ahead of the cheap prefilter model.
-
-const AI_KEYWORDS = [
-  "ai", "人工智能", "llm", "大模型", "model", "模型", "gpt", "claude", "gemini",
-  "llama", "qwen", "deepseek", "mistral", "agent", "智能体", "machine learning",
-  "机器学习", "deep learning", "深度学习", "neural", "transformer", "diffusion",
-  "rag", "mcp", "openai", "anthropic", "huggingface", "hugging face", "推理",
-  "训练", "inference", "fine-tune", "微调", "多模态", "multimodal", "embedding",
-];
+// $0 deterministic pre-gate: drops only structural junk BEFORE any LLM call.
+// It must never decide value by keyword presence; quiet text-only insights still pass.
 
 const AD_KEYWORDS = [
   "限时优惠", "立即购买", "加微信", "扫码", "代理加盟", "点击下载", "免费领取",
@@ -21,7 +13,7 @@ export interface GateInput {
   hasAddedText?: boolean;
 }
 
-export type GateReason = "empty" | "empty_repost" | "ad" | "non_ai";
+export type GateReason = "empty" | "empty_repost" | "ad" | "too_short" | "symbol_noise";
 
 export interface GateResult {
   pass: boolean;
@@ -33,6 +25,10 @@ function hasAny(text: string, keywords: string[]): boolean {
   return keywords.some((k) => lower.includes(k.toLowerCase()));
 }
 
+function meaningfulLength(text: string): number {
+  return (text.match(/[\p{L}\p{N}]/gu) ?? []).length;
+}
+
 export function deterministicGate(input: GateInput): GateResult {
   const text = `${input.title ?? ""}\n${input.content ?? ""}`.trim();
   if (text.length === 0) return { pass: false, reason: "empty" };
@@ -40,6 +36,7 @@ export function deterministicGate(input: GateInput): GateResult {
     return { pass: false, reason: "empty_repost" };
   }
   if (hasAny(text, AD_KEYWORDS)) return { pass: false, reason: "ad" };
-  if (!hasAny(text, AI_KEYWORDS)) return { pass: false, reason: "non_ai" };
+  if (meaningfulLength(text) < 8) return { pass: false, reason: "too_short" };
+  if (meaningfulLength(text) / text.length < 0.35) return { pass: false, reason: "symbol_noise" };
   return { pass: true };
 }

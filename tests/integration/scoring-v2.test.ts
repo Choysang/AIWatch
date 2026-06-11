@@ -11,6 +11,7 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { startEmbeddedPostgres, type PgHandle } from "./helpers/embedded-pg";
 
 let pgHandle: PgHandle | undefined;
+let savedDatabaseUrl: string | undefined;
 let getDb: typeof import("@/db/client").getDb;
 let resetDb: typeof import("@/db/client").resetDb;
 let schema: typeof import("@/db/schema");
@@ -30,10 +31,9 @@ function withTimeout(p: Promise<unknown> | undefined, ms: number): Promise<unkno
 }
 
 beforeAll(async () => {
-  if (!process.env.DATABASE_URL) {
-    pgHandle = await startEmbeddedPostgres();
-    process.env.DATABASE_URL = pgHandle.connectionString;
-  }
+  savedDatabaseUrl = process.env.DATABASE_URL;
+  pgHandle = await startEmbeddedPostgres();
+  process.env.DATABASE_URL = pgHandle.connectionString;
   ({ getDb, resetDb } = await import("@/db/client"));
   schema = await import("@/db/schema");
   ({ recomputeScoresV2 } = await import("@/db/jobs/recompute-scores-v2"));
@@ -62,7 +62,8 @@ beforeAll(async () => {
 afterAll(async () => {
   await withTimeout(resetDb?.(), 10_000);
   await withTimeout(pgHandle?.stop(), 15_000);
-  if (pgHandle) delete process.env.DATABASE_URL;
+  if (savedDatabaseUrl === undefined) delete process.env.DATABASE_URL;
+  else process.env.DATABASE_URL = savedDatabaseUrl;
 }, 60_000);
 
 beforeEach(async () => {
@@ -76,13 +77,15 @@ beforeEach(async () => {
 interface SeedV2Opts {
   id: string;
   sourceId?: string;
-  contentType?: "model_release" | "product_release" | "tech_share" | "discussion" | null;
+  contentType?: "release" | "research" | "howto" | "opinion" | "news" | null;
   dims?: { aiRelevance: number; impact: number; novelty: number; audienceUsefulness: number; evidenceClarity: number };
   baseScore?: number;
   viewCount?: number;
   /** Number of independent posts merged into the event (drives corroboration). */
   postCount?: number;
   publishedAt?: Date;
+  selectedLevel?: "none" | "B" | "A" | "S";
+  directPushAt?: Date | null;
 }
 
 async function seedV2Event(opts: SeedV2Opts): Promise<void> {
@@ -98,7 +101,7 @@ async function seedV2Event(opts: SeedV2Opts): Promise<void> {
   const baseScore = opts.baseScore ?? 80;
   const jId = `ej_${opts.id}`;
   const sId = `es_${opts.id}`;
-  const contentType = opts.contentType === undefined ? "product_release" : opts.contentType;
+  const contentType = opts.contentType === undefined ? "howto" : opts.contentType;
 
   await getDb().insert(schema.events).values({
     id: opts.id,
@@ -107,8 +110,10 @@ async function seedV2Event(opts: SeedV2Opts): Promise<void> {
     mainSourceId: sourceId,
     publishedAt,
     lastStrongSignalAt: publishedAt,
-    selectedLevel: "none",
+    selectedLevel: opts.selectedLevel ?? "none",
     viewCount: opts.viewCount ?? 0,
+    expertDirectPushAt: opts.directPushAt ?? null,
+    expertDirectPushBy: opts.directPushAt ? "tester" : null,
   });
   await getDb().insert(schema.eventJudgments).values({
     id: jId,
@@ -269,7 +274,7 @@ describe("checkPromotionV2 (real Postgres)", () => {
       id: "strong",
       sourceId: L1,
       postCount: 4,
-      contentType: "model_release",
+      contentType: "release",
       dims: { aiRelevance: 90, impact: 90, novelty: 80, audienceUsefulness: 80, evidenceClarity: 90 },
       publishedAt: ago(0.2),
     });
@@ -307,5 +312,79 @@ describe("checkPromotionV2 (real Postgres)", () => {
     const result = await checkPromotionV2(NOW, getDb());
     expect(result.candidates).toBe(0);
     expect((await readLevel("no_recompute")).level).toBe("none");
+  });
+
+  test("enforces slot limits and cascades overflow to the next tier", async () => {
+    const tightConfig = (await import("@/scoring/config")).scoringConfig;
+    const config = {
+      ...tightConfig,
+      promotion: { ...tightConfig.promotion, slots: { B: 2, A: 1, S: 1 } },
+    };
+    for (const [id, impact] of [
+      ["s1", 98],
+      ["s2", 96],
+      ["s3", 94],
+    ] as const) {
+      await seedV2Event({
+        id,
+        sourceId: L1,
+        postCount: 4,
+        contentType: "release",
+        dims: { aiRelevance: 95, impact, novelty: 90, audienceUsefulness: 90, evidenceClarity: 95 },
+        publishedAt: ago(0.2),
+      });
+    }
+
+    await recomputeScoresV2(NOW, getDb());
+    await checkPromotionV2(NOW, getDb(), config);
+
+    expect((await readLevel("s1")).level).toBe("S");
+    expect((await readLevel("s2")).level).toBe("A");
+    expect((await readLevel("s3")).level).toBe("B");
+  });
+
+  test("never downgrades an already-selected event and is idempotent", async () => {
+    await seedV2Event({
+      id: "keep_s",
+      sourceId: L5,
+      selectedLevel: "S",
+      dims: { aiRelevance: 80, impact: 40, novelty: 40, audienceUsefulness: 40, evidenceClarity: 40 },
+      publishedAt: ago(0.2),
+    });
+    await seedV2Event({
+      id: "idem",
+      sourceId: L1,
+      postCount: 4,
+      contentType: "release",
+      dims: { aiRelevance: 95, impact: 95, novelty: 90, audienceUsefulness: 90, evidenceClarity: 95 },
+      publishedAt: ago(0.2),
+    });
+
+    await recomputeScoresV2(NOW, getDb());
+    await checkPromotionV2(NOW, getDb());
+    const first = await readLevel("idem");
+
+    await checkPromotionV2(new Date(NOW.getTime() + 60_000), getDb());
+    const second = await readLevel("idem");
+
+    expect((await readLevel("keep_s")).level).toBe("S");
+    expect(second.level).toBe(first.level);
+  });
+
+  test("expert direct-push forces B regardless of selection score", async () => {
+    await seedV2Event({
+      id: "push_me",
+      sourceId: L5,
+      directPushAt: NOW,
+      dims: { aiRelevance: 60, impact: 10, novelty: 10, audienceUsefulness: 10, evidenceClarity: 10 },
+      publishedAt: ago(0.2),
+    });
+
+    await recomputeScoresV2(NOW, getDb());
+    await checkPromotionV2(NOW, getDb());
+
+    const ev = await readLevel("push_me");
+    expect(ev.level).toBe("B");
+    expect((ev.breakdown as Record<string, unknown>).directPushed).toBe(true);
   });
 });

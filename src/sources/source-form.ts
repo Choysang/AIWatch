@@ -2,6 +2,13 @@ import { z } from "zod";
 import type { ConnectorType } from "@/connectors/types";
 import type { Platform, SourceLevel } from "@/scoring/types";
 import type { SourceTypeValue } from "@/db/queries/sources";
+import {
+  AI_SOURCE_CATEGORIES,
+  AI_SOURCE_CATEGORY_DESCRIPTION,
+  AI_SOURCE_CATEGORY_META,
+  inferAiSourceCategory,
+  normalizeAiSourceCategories,
+} from "@/sources/ai-source-categories";
 import { deriveConnector } from "./source-ref";
 
 export const PLATFORMS = [
@@ -9,7 +16,10 @@ export const PLATFORMS = [
   "rss", "news", "youtube", "bilibili", "huggingface", "weibo",
 ] as const;
 
-export const SOURCE_PROFILES = [
+export const SOURCE_PROFILES = AI_SOURCE_CATEGORIES;
+export const DEFAULT_SOURCE_PROFILE = "official";
+
+export const LEGACY_SOURCE_PROFILES = [
   "official_first_party",
   "core_people",
   "community_practice",
@@ -17,12 +27,15 @@ export const SOURCE_PROFILES = [
   "technical_supplement",
 ] as const;
 
+export const ALL_SOURCE_PROFILE_VALUES = [
+  ...SOURCE_PROFILES,
+  ...LEGACY_SOURCE_PROFILES,
+] as const;
+
 export const SOURCE_PROFILE_LABEL: Record<(typeof SOURCE_PROFILES)[number], string> = {
-  official_first_party: "一手官方（官网、官方账号）",
-  core_people: "核心人物（创始人、研究/产品/工程负责人）",
-  community_practice: "社区实践（开发者、社区讨论、开源项目）",
-  media_info: "媒体资讯（媒体、行业报道）",
-  technical_supplement: "技术补充（教程、经验、长尾博客）",
+  official: AI_SOURCE_CATEGORY_DESCRIPTION.official,
+  industry_leader: AI_SOURCE_CATEGORY_DESCRIPTION.industry_leader,
+  technical_share: AI_SOURCE_CATEGORY_DESCRIPTION.technical_share,
 };
 
 export const PLATFORM_LABEL: Record<(typeof PLATFORMS)[number], string> = {
@@ -46,7 +59,7 @@ const blankToUndefined = (v: unknown): unknown =>
 const optionalText = (max: number) =>
   z.preprocess(blankToUndefined, z.string().trim().max(max).optional());
 
-export const sourceProfileSchema = z.enum(SOURCE_PROFILES);
+export const sourceProfileSchema = z.enum(ALL_SOURCE_PROFILE_VALUES);
 export const sourceTypeSchema = z.enum([
   "official", "employee", "expert", "kol", "media", "community", "open_source_project",
 ]);
@@ -56,8 +69,8 @@ export const sourceFormSchema = z.object({
   name: z.preprocess((v) => (typeof v === "string" ? v.trim() : v), z.string().min(1).max(200)),
   platform: z.enum(PLATFORMS),
   sourceProfile: sourceProfileSchema.optional(),
-  sourceType: sourceTypeSchema.optional(),
-  level: sourceLevelSchema.optional(),
+  sourceType: z.preprocess(blankToUndefined, sourceTypeSchema.optional()),
+  level: z.preprocess(blankToUndefined, sourceLevelSchema.optional()),
   connectorType: z.enum([
     "rss", "github", "hn", "youtube_rss", "huggingface", "reddit", "rsshub", "mock", "manual",
   ]).optional(),
@@ -76,7 +89,15 @@ export function sourceMetaFromProfile(input: {
   sourceType?: SourceTypeValue;
   level?: SourceLevel;
 }): { sourceType: SourceTypeValue; level: SourceLevel } {
+  if (input.sourceType && input.level) {
+    return { sourceType: input.sourceType, level: input.level };
+  }
+
   switch (input.sourceProfile) {
+    case "official":
+    case "industry_leader":
+    case "technical_share":
+      return AI_SOURCE_CATEGORY_META[input.sourceProfile];
     case "official_first_party":
       return { sourceType: "official", level: "L1" };
     case "core_people":
@@ -126,6 +147,18 @@ export function toCreateSourceInput(input: SourceFormInput): {
     connectorRef: input.connectorRef,
   });
   const sourceMeta = sourceMetaFromProfile(input);
+  const categories = normalizeAiSourceCategories(parseCategories(input.categories));
+  const sourceCategory =
+    categories[0] ??
+    inferAiSourceCategory({
+      sourceProfile: input.sourceProfile,
+      sourceType: sourceMeta.sourceType,
+      level: sourceMeta.level,
+      platform: input.platform,
+      name: input.name,
+      handle: input.handle,
+      url: input.url,
+    });
   return {
     name: input.name,
     platform: input.platform,
@@ -135,7 +168,7 @@ export function toCreateSourceInput(input: SourceFormInput): {
     handle: input.handle ?? null,
     url: input.url ?? null,
     connectorRef: connector.connectorRef,
-    categories: parseCategories(input.categories),
+    categories: [sourceCategory],
     brandTag: null,
     recommendedBy: input.recommendedBy ?? null,
     recommendReason: input.recommendReason ?? null,

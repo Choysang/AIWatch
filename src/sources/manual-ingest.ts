@@ -32,5 +32,5 @@ export async function ingestManualPost(
   if (!source) {
     throw new SourceNotFoundError(`source ${sourceId} not found`);
   }
-  return processSource(source, [toRawPost(input)], { db, judge: deps.judge });
+  return processSource(source, [toRawPost(input)], { db, judge: deps.judge, incremental: false });
 }

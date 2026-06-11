@@ -2,7 +2,7 @@
 // The input is validated server-side, then ingested through processSource via
 // ingestManualPost so judging, scoring, dedup and spend_guard remain identical to crawls.
 
-import { getSession } from "@/app/_lib/session";
+import { getSession, isAdminRole } from "@/app/_lib/session";
 import { jsonError } from "@/app/api/public/_runtime";
 import { can } from "@/auth/rbac";
 import { recordAudit } from "@/db/audit";
@@ -17,6 +17,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const userId = (session?.user as { id?: string } | undefined)?.id;
   const role = (session?.user as { role?: string } | undefined)?.role ?? "user";
   if (!userId) return jsonError(401, "unauthorized");
+  if (!isAdminRole(role)) return jsonError(403, "forbidden");
   if (!can(role, "source.moderate")) return jsonError(403, "forbidden");
 
   const { id } = await ctx.params;

@@ -2,24 +2,33 @@
 
 // Masthead account cluster (SP3.2 + SP3.3). Lives in the reader masthead's <nav>. Anonymous
 // readers see a single "登录 / 注册" link that returns them to the current page after auth;
-// logged-in readers see a notification bell (with unread badge), their name, an optional
-// console link, and sign-out. Fully client-side: the session comes from better-auth's
-// useSession and the unread count is fetched on mount (refreshes on every navigation — not
-// real-time, matching the SP3 design's "SSR + 进页刷新" decision).
+// logged-in readers see their name, an optional console link, and sign-out. The notification
+// bell is exported separately so the reader page can place it beside the sidebar toggle.
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { authClient } from "@/app/_lib/auth-client";
 import { isConsoleRole } from "@/auth/console-roles";
 import { messages } from "@/i18n";
 
-function NotificationBell() {
+interface NotificationPreviewItem {
+  id: string;
+  title: string;
+  body: string | null;
+  eventId: string | null;
+}
+
+export function NotificationBell() {
+  const router = useRouter();
   const [count, setCount] = useState(0);
+  const [items, setItems] = useState<NotificationPreviewItem[] | null>(null);
+  const previewLoading = useRef(false);
   const t = messages.account;
 
   useEffect(() => {
     let cancelled = false;
+    router.prefetch("/notifications");
     fetch("/api/notifications/unread-count", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : { count: 0 }))
       .then((d: { count?: number }) => {
@@ -31,15 +40,53 @@ function NotificationBell() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [router]);
+
+  const loadPreview = useCallback(() => {
+    if (items !== null || previewLoading.current) return;
+    previewLoading.current = true;
+    fetch("/api/notifications/preview", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { count: 0, items: [] }))
+      .then((d: { count?: number; items?: NotificationPreviewItem[] }) => {
+        setCount(typeof d.count === "number" ? d.count : 0);
+        setItems(Array.isArray(d.items) ? d.items : []);
+      })
+      .catch(() => {
+        setItems([]);
+      })
+      .finally(() => {
+        previewLoading.current = false;
+      });
+  }, [items]);
+
+  const prepareNotifications = useCallback(() => {
+    router.prefetch("/notifications");
+    loadPreview();
+  }, [loadPreview, router]);
 
   return (
-    <Link href="/notifications" className="masthead-bell" aria-label={t.notifications}>
-      <span aria-hidden="true">🔔</span>
-      {count > 0 && (
-        <span className="masthead-bell-badge">{count > 99 ? "99+" : count}</span>
-      )}
-    </Link>
+    <span
+      className="masthead-bell-wrap"
+      onMouseEnter={prepareNotifications}
+      onPointerEnter={prepareNotifications}
+      onFocus={prepareNotifications}
+    >
+      <Link href="/notifications" className="masthead-bell" aria-label={t.notifications}>
+        <span aria-hidden="true">🔔</span>
+        {count > 0 && (
+          <span className="masthead-bell-badge">{count > 99 ? "99+" : count}</span>
+        )}
+      </Link>
+      <span className="masthead-notification-preview" role="status">
+        <strong>{count > 0 ? `${count} 条未读` : "暂无未读"}</strong>
+        {(items ?? []).slice(0, 3).map((item) => (
+          <span key={item.id} className="masthead-notification-item">
+            <span>{item.title}</span>
+            {item.body && <small>{item.body}</small>}
+          </span>
+        ))}
+      </span>
+    </span>
   );
 }
 
@@ -75,7 +122,6 @@ export function MastheadAccount() {
 
   return (
     <span className="masthead-account">
-      <NotificationBell />
       <span className="masthead-account-name">{displayName}</span>
       {isConsoleRole(user.role) && <Link href="/_admin">{t.console}</Link>}
       <button type="button" className="link-button" onClick={onSignOut} disabled={signingOut}>

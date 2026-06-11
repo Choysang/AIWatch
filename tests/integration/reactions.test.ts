@@ -9,6 +9,7 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { startEmbeddedPostgres, type PgHandle } from "./helpers/embedded-pg";
 
 let pgHandle: PgHandle | undefined;
+let savedDatabaseUrl: string | undefined;
 let getDb: typeof import("@/db/client").getDb;
 let resetDb: typeof import("@/db/client").resetDb;
 let schema: typeof import("@/db/schema");
@@ -38,10 +39,9 @@ async function expectRejection(
 }
 
 beforeAll(async () => {
-  if (!process.env.DATABASE_URL) {
-    pgHandle = await startEmbeddedPostgres();
-    process.env.DATABASE_URL = pgHandle.connectionString;
-  }
+  savedDatabaseUrl = process.env.DATABASE_URL;
+  pgHandle = await startEmbeddedPostgres();
+  process.env.DATABASE_URL = pgHandle.connectionString;
   ({ getDb, resetDb } = await import("@/db/client"));
   schema = await import("@/db/schema");
   reactions = await import("@/db/queries/reactions");
@@ -54,7 +54,8 @@ beforeAll(async () => {
 afterAll(async () => {
   await withTimeout(resetDb?.(), 10_000);
   await withTimeout(pgHandle?.stop(), 15_000);
-  if (pgHandle) delete process.env.DATABASE_URL;
+  if (savedDatabaseUrl === undefined) delete process.env.DATABASE_URL;
+  else process.env.DATABASE_URL = savedDatabaseUrl;
 }, 60_000);
 
 beforeEach(async () => {
@@ -132,6 +133,7 @@ async function seedEvent(opts: {
 async function readEventCounts(id: string): Promise<{
   likeCount: number;
   starCount: number;
+  downCount: number;
   viewCount: number;
   rankScore: number | null;
 }> {
@@ -139,6 +141,7 @@ async function readEventCounts(id: string): Promise<{
     .select({
       likeCount: schema.events.likeCount,
       starCount: schema.events.starCount,
+      downCount: schema.events.downCount,
       viewCount: schema.events.viewCount,
       rankScore: schema.events.rankScore,
     })
@@ -170,6 +173,35 @@ describe("event reactions + rank-score recompute (real Postgres)", () => {
     expect(after2.likeCount).toBe(0);
     const persisted2 = await readEventCounts("evt_a");
     expect(persisted2.likeCount).toBe(0);
+  });
+
+  test("down reaction increments denormalized count, removes cleanly, and conflicts with like", async () => {
+    const sourceId = await seedSource();
+    await seedEvent({ id: "evt_down", sourceId, publishedAt: NOW, baseScore: 50 });
+
+    const afterDown = await reactions.addReaction({
+      eventId: "evt_down",
+      kind: "down",
+      identity: { userId: "usr_down", fingerprint: null },
+    });
+    expect(afterDown.downCount).toBe(1);
+    expect(afterDown.likeCount).toBe(0);
+
+    const afterLike = await reactions.addReaction({
+      eventId: "evt_down",
+      kind: "like",
+      identity: { userId: "usr_down", fingerprint: null },
+    });
+    expect(afterLike.likeCount).toBe(1);
+    expect(afterLike.downCount).toBe(0);
+
+    const afterRemove = await reactions.removeReaction({
+      eventId: "evt_down",
+      kind: "like",
+      identity: { userId: "usr_down", fingerprint: null },
+    });
+    expect(afterRemove.likeCount).toBe(0);
+    expect(afterRemove.downCount).toBe(0);
   });
 
   test("addReaction is idempotent per identity+kind (partial unique index holds)", async () => {
@@ -315,9 +347,10 @@ describe("event reactions + rank-score recompute (real Postgres)", () => {
         baseScore: 50,
         likeCount: row.likeCount,
         starCount: row.starCount,
-        viewCount: row.viewCount,
-        ageHours: ages[evtId]!,
-      });
+      viewCount: row.viewCount,
+      downCount: row.downCount,
+      ageHours: ages[evtId]!,
+    });
       expect(row.rankScore).toBeCloseTo(expected.rankScore, 5);
     }
 
@@ -345,6 +378,11 @@ describe("event reactions + rank-score recompute (real Postgres)", () => {
       identity: { userId: null, fingerprint: "rid_viewer" },
     });
     await reactions.addReaction({
+      eventId: "evt_v2",
+      kind: "down",
+      identity: { userId: null, fingerprint: "rid_viewer" },
+    });
+    await reactions.addReaction({
       eventId: "evt_v3",
       kind: "star",
       identity: { userId: null, fingerprint: "rid_other" },
@@ -354,8 +392,8 @@ describe("event reactions + rank-score recompute (real Postgres)", () => {
       ["evt_v1", "evt_v2", "evt_v3"],
       { userId: null, fingerprint: "rid_viewer" },
     );
-    expect(viewerMap.get("evt_v1")).toEqual({ liked: true, starred: false });
-    expect(viewerMap.get("evt_v2")).toEqual({ liked: false, starred: true });
+    expect(viewerMap.get("evt_v1")).toEqual({ liked: true, starred: false, downed: false });
+    expect(viewerMap.get("evt_v2")).toEqual({ liked: false, starred: true, downed: true });
     expect(viewerMap.get("evt_v3")).toBeUndefined(); // belongs to another identity
   });
 

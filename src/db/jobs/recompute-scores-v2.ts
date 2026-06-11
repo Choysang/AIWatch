@@ -1,7 +1,7 @@
 // Recompute the scoring-v2 layers (SP4) for events in the candidacy window.
 //
-// scoring-v1's recompute (recompute-promotion-scores) derives promotion_score from base_score
-// plus reader/expert signals. This v2 job re-derives the full layered model — event_quality,
+// scoring-v1's legacy promotion_score mixed base_score plus reader/expert signals.
+// This v2 job re-derives the full layered model — event_quality,
 // confidence (incl. multi-source corroboration), and selection — from the immutable judgment
 // dimensions + source level + merged-post count + the same reader/expert signal bundle.
 //
@@ -12,9 +12,9 @@
 // fields (selection_score / confidence_score / selection_max_level) onto events, which the v2
 // tournament (4.2b) reads.
 //
-// Events whose content_type is still NULL (legacy rows pending backfill-content-type) are
-// skipped — the selection layer needs the classification multiplier. Run the content-type
-// backfill first.
+// Events whose content_type is still NULL (legacy rows pending the dual-axis backfill) are
+// skipped — the selection layer needs the classification multiplier. Run
+// `bun run db:backfill:domain-content-type` first.
 
 import { eq, inArray, sql } from "drizzle-orm";
 import { newId } from "@/core/ids";

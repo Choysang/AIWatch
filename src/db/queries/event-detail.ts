@@ -44,6 +44,7 @@ export async function getEventDetail(
       url: posts.url,
       likeCount: events.likeCount,
       starCount: events.starCount,
+      downCount: events.downCount,
       viewCount: events.viewCount,
     })
     .from(events)

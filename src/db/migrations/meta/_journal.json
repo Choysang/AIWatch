@@ -127,6 +127,48 @@
       "when": 1780658400000,
       "tag": "0017_event_view_count",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1780690000000,
+      "tag": "0018_pipeline_contract",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1780700000000,
+      "tag": "0019_event_subtree_cascade",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1780800000000,
+      "tag": "0020_search_trgm",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1780900000000,
+      "tag": "0021_dual_axis",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1780929872206,
+      "tag": "0022_event_view_dedupe",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1781107200000,
+      "tag": "0023_event_down_reaction",
+      "breakpoints": true
     }
   ]
 }

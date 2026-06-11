@@ -1,21 +1,16 @@
-// Integration tests for the Scoring Integrity slice (Phase B):
-//   - recomputePromotionScores: signal loading + compose + event_scores append + events update
-//   - directPushEvent: stamps flag, writes audit row, idempotent
-//   - checkPromotion with direct-push bypass + promotion_score-driven A/S tiers
-
+// Integration tests for direct-push and strong-signal timestamp behavior.
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { startEmbeddedPostgres, type PgHandle } from "./helpers/embedded-pg";
 
 let pgHandle: PgHandle | undefined;
+let savedDatabaseUrl: string | undefined;
 let getDb: typeof import("@/db/client").getDb;
 let resetDb: typeof import("@/db/client").resetDb;
 let schema: typeof import("@/db/schema");
-let recompute: typeof import("@/db/jobs/recompute-promotion-scores").recomputePromotionScores;
 let directPush: typeof import("@/db/jobs/direct-push").directPushEvent;
 let DirectPushForbiddenError: typeof import("@/db/jobs/direct-push").DirectPushForbiddenError;
-let checkPromotion: typeof import("@/db/jobs/check-promotion").checkPromotion;
 let addReaction: typeof import("@/db/queries/reactions").addReaction;
 let addComment: typeof import("@/db/queries/comments").addComment;
 
@@ -43,17 +38,14 @@ async function expectRejection(
 }
 
 beforeAll(async () => {
-  if (!process.env.DATABASE_URL) {
-    pgHandle = await startEmbeddedPostgres();
-    process.env.DATABASE_URL = pgHandle.connectionString;
-  }
+  savedDatabaseUrl = process.env.DATABASE_URL;
+  pgHandle = await startEmbeddedPostgres();
+  process.env.DATABASE_URL = pgHandle.connectionString;
   ({ getDb, resetDb } = await import("@/db/client"));
   schema = await import("@/db/schema");
-  ({ recomputePromotionScores: recompute } = await import("@/db/jobs/recompute-promotion-scores"));
   const directModule = await import("@/db/jobs/direct-push");
   directPush = directModule.directPushEvent;
   DirectPushForbiddenError = directModule.DirectPushForbiddenError;
-  ({ checkPromotion } = await import("@/db/jobs/check-promotion"));
   ({ addReaction } = await import("@/db/queries/reactions"));
   ({ addComment } = await import("@/db/queries/comments"));
 
@@ -74,7 +66,8 @@ beforeAll(async () => {
 afterAll(async () => {
   await withTimeout(resetDb?.(), 10_000);
   await withTimeout(pgHandle?.stop(), 15_000);
-  if (pgHandle) delete process.env.DATABASE_URL;
+  if (savedDatabaseUrl === undefined) delete process.env.DATABASE_URL;
+  else process.env.DATABASE_URL = savedDatabaseUrl;
 }, 60_000);
 
 beforeEach(async () => {
@@ -157,104 +150,6 @@ async function seedExpertUser(opts: {
   return opts.id;
 }
 
-describe("recomputePromotionScores (real Postgres)", () => {
-  test("cold event (no signals) gets neutral aggregates and persists peak_score", async () => {
-    await seedScoredEvent({ id: "cold", baseScore: 80 });
-
-    const result = await recompute(NOW, getDb());
-    expect(result.candidates).toBe(1);
-    expect(result.recomputed).toBe(1);
-
-    const ev = (
-      await getDb()
-        .select({ peakScore: schema.events.peakScore, qualityScore: schema.events.qualityScore })
-        .from(schema.events)
-        .where(eq(schema.events.id, "cold"))
-    )[0]!;
-    // promotion_score = 80*0.55 + 50*0.20 + 50*0.15 + 50*0.10 = 66.5
-    expect(ev.peakScore).toBeCloseTo(66.5, 1);
-    // Cold event with level=none -> displayScore = qualityScore (handled by display-score:
-    // level=none short-circuits to qualityScore). Quality_score for a fresh recompute is
-    // the new display_score, which for cold equals the rounded promotion_score.
-    expect(ev.qualityScore).toBe(67);
-  });
-
-  test("expert star raises promotion_score above cold baseline", async () => {
-    await seedExpertUser({ id: "u_expert", role: "expert", weight: 1.5, domains: ["llm"] });
-    await seedScoredEvent({ id: "warm", baseScore: 80, category: "llm" });
-
-    await getDb().insert(schema.eventReactions).values({
-      id: "rx_1",
-      eventId: "warm",
-      kind: "star",
-      userId: "u_expert",
-    });
-
-    await recompute(NOW, getDb());
-
-    const ev = (
-      await getDb()
-        .select({ peakScore: schema.events.peakScore })
-        .from(schema.events)
-        .where(eq(schema.events.id, "warm"))
-    )[0]!;
-    // Domain-matched expert star is real signal -> promotion_score > cold 66.5.
-    expect(ev.peakScore).toBeGreaterThan(66.5);
-  });
-
-  test("non-expert reactions do not move promotion_score above cold baseline", async () => {
-    await seedExpertUser({ id: "u_reader", role: "user" });
-    await seedScoredEvent({ id: "reader_only", baseScore: 80 });
-
-    await getDb().insert(schema.eventReactions).values({
-      id: "rx_r",
-      eventId: "reader_only",
-      kind: "star",
-      userId: "u_reader",
-    });
-
-    await recompute(NOW, getDb());
-    const ev = (
-      await getDb()
-        .select({ peakScore: schema.events.peakScore })
-        .from(schema.events)
-        .where(eq(schema.events.id, "reader_only"))
-    )[0]!;
-    expect(ev.peakScore).toBeCloseTo(66.5, 1);
-  });
-
-  test("peak_score ratchets upward only (no decay on the persisted peak)", async () => {
-    await seedScoredEvent({ id: "ratchet", baseScore: 80 });
-    // Pre-stamp a high prior peak; new compute produces 66.5 < 92 -> peak stays at 92.
-    await getDb()
-      .update(schema.events)
-      .set({ peakScore: 92 })
-      .where(eq(schema.events.id, "ratchet"));
-
-    await recompute(NOW, getDb());
-
-    const ev = (
-      await getDb()
-        .select({ peakScore: schema.events.peakScore })
-        .from(schema.events)
-        .where(eq(schema.events.id, "ratchet"))
-    )[0]!;
-    expect(ev.peakScore).toBe(92);
-  });
-
-  test("appends a new event_scores row per recompute (append-only history)", async () => {
-    await seedScoredEvent({ id: "history", baseScore: 80 });
-    await recompute(NOW, getDb());
-    await recompute(new Date(NOW.getTime() + 60_000), getDb());
-
-    const rows = await getDb()
-      .select({ id: schema.eventScores.id })
-      .from(schema.eventScores)
-      .where(eq(schema.eventScores.eventId, "history"));
-    expect(rows.length).toBeGreaterThanOrEqual(3); // initial + 2 recomputes
-  });
-});
-
 describe("directPushEvent (real Postgres)", () => {
   test("stamps flag, writes audit row, re-arms last_strong_signal_at", async () => {
     await seedScoredEvent({ id: "to_push", baseScore: 60 });
@@ -312,78 +207,6 @@ describe("directPushEvent (real Postgres)", () => {
         .where(eq(schema.events.id, "guarded"))
     )[0]!;
     expect(ev.pushAt).toBeNull();
-  });
-});
-
-describe("checkPromotion + direct-push (real Postgres)", () => {
-  test("direct-pushed event with low base_score is promoted to B", async () => {
-    await seedScoredEvent({ id: "low_score", baseScore: 60, publishedAt: ago(0.3) });
-    await directPush("low_score", { id: "u_admin", role: "admin" }, undefined);
-
-    await checkPromotion(NOW, getDb());
-
-    const ev = (
-      await getDb()
-        .select({ level: schema.events.selectedLevel, breakdown: schema.events.selectedBreakdown })
-        .from(schema.events)
-        .where(eq(schema.events.id, "low_score"))
-    )[0]!;
-    expect(ev.level).toBe("B");
-    expect((ev.breakdown as Record<string, unknown>).directPushed).toBe(true);
-  });
-
-  test("A tier uses promotion_score, not raw base_score", async () => {
-    // base 80 (B-eligible), but published 3d ago (outside B 24h window). After recompute
-    // with strong expert signals, promotion_score climbs above the A threshold (86).
-    await seedExpertUser({ id: "u_e1", role: "expert", weight: 1.5, domains: ["ai"] });
-    await seedExpertUser({ id: "u_e2", role: "expert", weight: 1.5, domains: ["ai"] });
-    await seedScoredEvent({
-      id: "a_climb",
-      // Need base high enough that 0.55*base + 0.20*100 + 0.15*50 + 0.10*~90 >= 86.
-      // base=92 -> ~87.1.
-      baseScore: 92,
-      publishedAt: ago(3),
-      category: "ai",
-    });
-
-    await getDb().insert(schema.eventReactions).values([
-      { id: "rx_a1", eventId: "a_climb", kind: "star", userId: "u_e1" },
-      { id: "rx_a2", eventId: "a_climb", kind: "star", userId: "u_e2" },
-    ]);
-    await getDb().insert(schema.eventComments).values([
-      {
-        id: "cmt_1",
-        eventId: "a_climb",
-        userId: "u_e1",
-        body: "good",
-        bodyHash: "h1",
-        category: "praise",
-        classification: "valid",
-        isExpert: true,
-      },
-      {
-        id: "cmt_2",
-        eventId: "a_climb",
-        userId: "u_e2",
-        body: "useful",
-        bodyHash: "h2",
-        category: "handson",
-        classification: "valid",
-        isExpert: true,
-      },
-    ]);
-
-    await recompute(NOW, getDb());
-    await checkPromotion(NOW, getDb());
-
-    const ev = (
-      await getDb()
-        .select({ level: schema.events.selectedLevel, breakdown: schema.events.selectedBreakdown })
-        .from(schema.events)
-        .where(eq(schema.events.id, "a_climb"))
-    )[0]!;
-    expect(ev.level).toBe("A");
-    expect((ev.breakdown as Record<string, unknown>).promotionScore as number).toBeGreaterThanOrEqual(86);
   });
 });
 

@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { auth } from "@/auth/auth";
 
 // Re-exported from the import-clean module so client components can share the same set.
-export { isConsoleRole } from "@/auth/console-roles";
+export { isAdminRole, isConsoleRole } from "@/auth/console-roles";
 
 export async function getSession() {
   return auth.api.getSession({ headers: await headers() });

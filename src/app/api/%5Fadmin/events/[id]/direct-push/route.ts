@@ -2,9 +2,9 @@
 // Form-encoded optional `reason`. Enforces login + event.directPush capability (in the
 // job). Every push writes an audit row. The folder is %5Fadmin so it serves at the literal
 // /api/_admin path (unlinked from public nav). The flag is honored on the NEXT
-// checkPromotion run (the route doesn't trigger a tournament — it just stamps the lever).
+// promotion job run (the route doesn't trigger a tournament — it just stamps the lever).
 
-import { getSession } from "@/app/_lib/session";
+import { getSession, isAdminRole } from "@/app/_lib/session";
 import {
   DirectPushForbiddenError,
   DirectPushNotFoundError,
@@ -19,6 +19,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const userId = (session?.user as { id?: string } | undefined)?.id;
   const role = (session?.user as { role?: string } | undefined)?.role ?? "user";
   if (!userId) return jsonError(401, "unauthorized");
+  if (!isAdminRole(role)) return jsonError(403, "forbidden");
 
   const { id } = await ctx.params;
   const form = await req.formData();

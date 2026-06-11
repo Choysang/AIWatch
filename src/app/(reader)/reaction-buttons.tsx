@@ -1,4 +1,4 @@
-// Reaction buttons (Slice 8): two toggle buttons (like / star) per event card.
+// Reaction buttons (Slice 8): quick useful/useless feedback plus like / star counts per event card.
 // Optimistic updates with rollback on failure. Calls POST /api/events/[id]/reactions.
 // Identity comes from the request cookie/session — this component just sends ops.
 
@@ -11,22 +11,27 @@ interface ReactionButtonsProps {
   eventId: string;
   initialLikeCount: number;
   initialStarCount: number;
+  initialDownCount: number;
   initialLiked: boolean;
   initialStarred: boolean;
+  initialDowned: boolean;
 }
 
-type Kind = "like" | "star";
+type Kind = "like" | "star" | "down";
 
 interface State {
   likeCount: number;
   starCount: number;
+  downCount: number;
   liked: boolean;
   starred: boolean;
+  downed: boolean;
 }
 
 interface ReactionResponse {
   likeCount: number;
   starCount: number;
+  downCount: number;
 }
 
 async function postReaction(
@@ -50,14 +55,18 @@ export function ReactionButtons({
   eventId,
   initialLikeCount,
   initialStarCount,
+  initialDownCount,
   initialLiked,
   initialStarred,
+  initialDowned,
 }: ReactionButtonsProps) {
   const [state, setState] = useState<State>({
     likeCount: initialLikeCount,
     starCount: initialStarCount,
+    downCount: initialDownCount,
     liked: initialLiked,
     starred: initialStarred,
+    downed: initialDowned,
   });
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -67,16 +76,30 @@ export function ReactionButtons({
     (kind: Kind) => {
       // Snapshot the pre-toggle state so we can roll back on failure.
       const prev = state;
-      const isOn = kind === "like" ? prev.liked : prev.starred;
+      const isOn = kind === "like" ? prev.liked : kind === "star" ? prev.starred : prev.downed;
       const op = isOn ? "remove" : "add";
       const delta = isOn ? -1 : 1;
+      const nextLiked = kind === "like" ? !prev.liked : kind === "down" && op === "add" ? false : prev.liked;
+      const nextDowned = kind === "down" ? !prev.downed : kind === "like" && op === "add" ? false : prev.downed;
 
       // Optimistic update.
       setState({
-        likeCount: kind === "like" ? Math.max(0, prev.likeCount + delta) : prev.likeCount,
+        likeCount:
+          kind === "like"
+            ? Math.max(0, prev.likeCount + delta)
+            : kind === "down" && op === "add" && prev.liked
+              ? Math.max(0, prev.likeCount - 1)
+              : prev.likeCount,
         starCount: kind === "star" ? Math.max(0, prev.starCount + delta) : prev.starCount,
-        liked: kind === "like" ? !prev.liked : prev.liked,
+        downCount:
+          kind === "down"
+            ? Math.max(0, prev.downCount + delta)
+            : kind === "like" && op === "add" && prev.downed
+              ? Math.max(0, prev.downCount - 1)
+              : prev.downCount,
+        liked: nextLiked,
         starred: kind === "star" ? !prev.starred : prev.starred,
+        downed: nextDowned,
       });
       setError(null);
 
@@ -88,6 +111,7 @@ export function ReactionButtons({
               ...cur,
               likeCount: result.likeCount,
               starCount: result.starCount,
+              downCount: result.downCount,
             }));
           })
           .catch(() => {
@@ -102,9 +126,33 @@ export function ReactionButtons({
 
   return (
     <div className="reactions" aria-live="polite">
+      <div className="quick-feedback" aria-label={m.quickFeedback}>
+        <button
+          type="button"
+          className={`quick-feedback-button is-positive ${state.liked ? "on" : ""}`}
+          aria-pressed={state.liked}
+          aria-label={state.liked ? m.liked : m.like}
+          title={state.liked ? m.liked : m.like}
+          disabled={isPending}
+          onClick={() => toggle("like")}
+        >
+          <span aria-hidden="true">👍</span>
+        </button>
+        <button
+          type="button"
+          className={`quick-feedback-button is-negative ${state.downed ? "on" : ""}`}
+          aria-pressed={state.downed}
+          aria-label={state.downed ? m.downed : m.down}
+          title={state.downed ? m.downed : m.down}
+          disabled={isPending}
+          onClick={() => toggle("down")}
+        >
+          <span aria-hidden="true">👎</span>
+        </button>
+      </div>
       <button
         type="button"
-        className={`reaction ${state.liked ? "on" : ""}`}
+        className={`reaction reaction-like ${state.liked ? "on" : ""}`}
         aria-pressed={state.liked}
         aria-label={state.liked ? m.liked : m.like}
         disabled={isPending}
@@ -115,7 +163,7 @@ export function ReactionButtons({
       </button>
       <button
         type="button"
-        className={`reaction ${state.starred ? "on" : ""}`}
+        className={`reaction reaction-star ${state.starred ? "on" : ""}`}
         aria-pressed={state.starred}
         aria-label={state.starred ? m.starred : m.star}
         disabled={isPending}

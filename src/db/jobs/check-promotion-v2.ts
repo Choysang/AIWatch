@@ -2,7 +2,7 @@
 // + confidence cap (selection_max_level), runs the v2 tournament, and persists B/A/S decisions.
 // selected_level/label/promoted_at/selected_breakdown are written ONLY here. Never downgrades.
 //
-// Supersedes check-promotion.ts: every tier gates on selection_score, and the confidence cap
+// Supersedes the v1 promotion job: every tier gates on selection_score, and the confidence cap
 // prevents low-trust items from exceeding B. Only events that recompute-scores-v2 has scored
 // (selection_score not null) participate; legacy/unclassified events are excluded until the
 // content-type backfill + a v2 recompute have run.

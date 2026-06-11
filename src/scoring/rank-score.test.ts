@@ -8,13 +8,15 @@ describe("computeRankScore — pure rank-score with feedback bands", () => {
         baseScore: 80,
         likeCount: 0,
         starCount: 0,
+        downCount: 0,
         ageHours,
       });
       expect(rankScore).toBe(80);
       expect(breakdown.likeBoost).toBe(0);
       expect(breakdown.starBoost).toBe(0);
       expect(breakdown.viewBoost).toBe(0);
-      expect(breakdown.configVersion).toBe("rank-v2");
+      expect(breakdown.downPenalty).toBe(0);
+      expect(breakdown.configVersion).toBe("rank-v3");
     }
   });
 
@@ -149,19 +151,65 @@ describe("computeRankScore — pure rank-score with feedback bands", () => {
     expect(rankScore).toBe(0);
   });
 
+  test("down feedback lowers rank_score with a bounded penalty", () => {
+    const baseline = computeRankScore({
+      baseScore: 50,
+      likeCount: 0,
+      starCount: 0,
+      downCount: 0,
+      ageHours: 12,
+    });
+    const downvoted = computeRankScore({
+      baseScore: 50,
+      likeCount: 0,
+      starCount: 0,
+      downCount: rankScoreConfig.downSaturation,
+      ageHours: 12,
+    });
+    expect(downvoted.rankScore).toBeLessThan(baseline.rankScore);
+    expect(downvoted.breakdown.downPenalty).toBeCloseTo(6, 6);
+
+    const flooded = computeRankScore({
+      baseScore: 50,
+      likeCount: 0,
+      starCount: 0,
+      downCount: 10_000,
+      ageHours: 12,
+    });
+    expect(flooded.breakdown.downPenalty - downvoted.breakdown.downPenalty).toBeLessThan(1);
+  });
+
+  test("down feedback cannot push rank_score below zero", () => {
+    const { rankScore, breakdown } = computeRankScore({
+      baseScore: 2,
+      likeCount: 0,
+      starCount: 0,
+      downCount: 10_000,
+      ageHours: 72,
+    });
+    expect(breakdown.downPenalty).toBeGreaterThan(2);
+    expect(rankScore).toBe(0);
+  });
+
   test("breakdown reports exact boost contributions and they sum back to rank_score", () => {
     const { rankScore, breakdown } = computeRankScore({
       baseScore: 60,
       likeCount: 50,
       starCount: 8,
+      downCount: 3,
       ageHours: 72, // 24h-7d band
     });
     expect(breakdown.bandLabel).toBe("24h-7d");
     const reconstructed =
-      breakdown.baseScore + breakdown.likeBoost + breakdown.starBoost + breakdown.viewBoost;
+      breakdown.baseScore +
+      breakdown.likeBoost +
+      breakdown.starBoost +
+      breakdown.viewBoost -
+      breakdown.downPenalty;
     expect(rankScore).toBeCloseTo(reconstructed, 9);
     expect(breakdown.likeBoost).toBeGreaterThan(0);
     expect(breakdown.starBoost).toBeGreaterThan(0);
+    expect(breakdown.downPenalty).toBeGreaterThan(0);
   });
 
   test("max possible boost is bounded across all bands", () => {

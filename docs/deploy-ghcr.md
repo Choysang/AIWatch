@@ -43,7 +43,9 @@ to manage on the build side.
    ```
 3. **Make sure the box has** `docker-compose.prod.yml`, `.env`, and `scripts/deploy-prod.sh`
    (already present under `/srv/aiwatch/current` from the existing checkout; a `git pull`
-   refreshes them). `.env` must keep `DATABASE_SSL=disable` and the `CONTRIBUTION_SALT`,
+   refreshes them). `.env` must keep `DATABASE_SSL=disable`, `PUBLIC_BASE_URL` set to the
+   canonical public origin, `TRUSTED_PROXY_HOPS` set to the real CDN/proxy hop count,
+   `CSP_ENFORCE=1`, `DEEPSEEK_API_KEY` (unless `LLM_PROVIDER` points at another keyed provider), `CONTRIBUTION_SALT`,
    `POSTGRES_PASSWORD`, `BETTER_AUTH_SECRET`, `RSSHUB_BASE_URL=http://rsshub:1200`, etc.
 
 ## Deploying a release
@@ -61,6 +63,29 @@ bash scripts/deploy-prod.sh
 The script: pulls `web`+`worker`, ensures `db` is healthy, runs an **isolated one-shot
 migration** in a throwaway container (a bad migration aborts *before* the live stack is
 touched), then `up -d`, waits for `HTTP 200` on `127.0.0.1:3000`, and prunes dangling images.
+
+## Database safety
+
+Normal deploys do **not** clear production data. `docker-compose.prod.yml` stores Postgres
+data in the named Docker volume `aiwatch_pg`, and `scripts/deploy-prod.sh` only performs
+`pull`, an isolated `bun run db:migrate`, and `up -d`. It does not run seed/reset scripts and
+does not remove volumes.
+
+Data is at risk only if an operator explicitly runs destructive commands such as
+`docker compose down -v`, deletes the `aiwatch_pg` volume, changes the compose project/volume
+name, restores an empty backup, or manually runs a destructive reset/seed workflow.
+
+## RSSHub / X configuration
+
+X/Twitter RSSHub sources require two layers:
+
+- `RSSHUB_BASE_URL` is read by AIWatch. In the production compose network, use
+  `RSSHUB_BASE_URL=http://rsshub:1200`.
+- `TWITTER_AUTH_TOKEN` is passed to the RSSHub container so RSSHub can access X routes. It is
+  an X/Twitter auth token for RSSHub, not a token AIWatch uses directly.
+
+If `RSSHUB_BASE_URL` (or the legacy `RSSHUB_URL`) is empty, RSSHub sources fail closed and the
+admin source status should show them as unavailable with the configuration error.
 
 ## Rollback
 

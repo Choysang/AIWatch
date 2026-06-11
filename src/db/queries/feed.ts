@@ -1,10 +1,10 @@
 // Reader feed query: recent events joined with their main source and main post,
 // shaped for the event card. Read path for the homepage and (later) /api/public/items.
 
-import { and, arrayOverlaps, desc, eq, inArray, ne, sql, type SQL } from "drizzle-orm";
+import { and, arrayOverlaps, desc, eq, gte, inArray, ne, sql, type SQL } from "drizzle-orm";
 import { db as defaultDb, type DB } from "@/db/client";
 import { events, posts, sources } from "@/db/schema";
-import type { ContentType, PublicMode, SemanticWindow, SourceType } from "@/public/query";
+import type { ContentType, PublicMode, SemanticWindow, SourceCategory, SourceType } from "@/public/query";
 import { windowStart } from "@/public/query";
 import type { PromotedLevel } from "@/scoring/types";
 
@@ -34,13 +34,15 @@ export interface EventCard {
   authorHandle: string | null;
   url: string | null;
   media: unknown;
+  sourceCount: number;
   likeCount: number;
   starCount: number;
+  downCount: number;
   viewCount: number;
 }
 
 // Shared card projection so every reader feed query returns the same shape.
-const cardColumns = {
+export const cardColumns = {
   id: events.id,
   title: events.title,
   summary: events.summary,
@@ -55,6 +57,7 @@ const cardColumns = {
   promotedAt: events.promotedAt,
   createdAt: events.createdAt,
   media: events.media,
+  sourceCount: events.sourceCount,
   sourceName: sources.name,
   sourcePlatform: sources.platform,
   sourceUrl: sources.url,
@@ -68,6 +71,7 @@ const cardColumns = {
   url: posts.url,
   likeCount: events.likeCount,
   starCount: events.starCount,
+  downCount: events.downCount,
   viewCount: events.viewCount,
 } as const;
 
@@ -78,7 +82,12 @@ export async function listRecentEvents(limit = 30, db: DB = defaultDb): Promise<
     .from(events)
     .leftJoin(sources, eq(sources.id, events.mainSourceId))
     .leftJoin(posts, eq(posts.id, events.mainPostId))
-    .orderBy(desc(events.publishedAt), desc(events.createdAt))
+    .orderBy(
+      sql`case ${events.pipelineTier} when 'T2' then 2 when 'T1' then 1 else 0 end desc`,
+      desc(events.sourceCount),
+      desc(events.publishedAt),
+      desc(events.createdAt),
+    )
     .limit(limit);
   return rows as EventCard[];
 }
@@ -89,8 +98,10 @@ export interface FeedFilter {
   q?: string;
   tags?: string[];
   sourceTypes?: SourceType[];
+  sourceCategories?: SourceCategory[];
   contentTypes?: ContentType[];
   level?: PromotedLevel;
+  minScore?: number;
   category?: string;
   /** Custom date range (overrides `since` when either bound is present). See PublicQuery. */
   dateFrom?: Date;
@@ -124,6 +135,7 @@ export async function searchEvents(
   if (start) conds.push(sql`${sortKey} >= ${start}`);
   if (filter.dateTo) conds.push(sql`${sortKey} < ${filter.dateTo}`);
   if (filter.category) conds.push(eq(events.category, filter.category));
+  if (typeof filter.minScore === "number") conds.push(gte(events.qualityScore, filter.minScore));
   if (filter.tags?.length) {
     conds.push(arrayOverlaps(events.tags, filter.tags));
   }
@@ -131,38 +143,18 @@ export async function searchEvents(
     // Restrict to events whose main source has one of the requested source_types.
     conds.push(inArray(sources.sourceType, filter.sourceTypes));
   }
+  if (filter.sourceCategories?.length) {
+    conds.push(arrayOverlaps(sources.categories, filter.sourceCategories));
+  }
   if (filter.contentTypes?.length) {
     conds.push(inArray(events.contentType, filter.contentTypes));
   }
   if (filter.q) {
     const like = `%${filter.q}%`;
-    conds.push(
-      sql`(
-        ${events.title} ilike ${like}
-        or ${events.summary} ilike ${like}
-        or ${events.recommendationReason} ilike ${like}
-        or ${events.category} ilike ${like}
-        or ${events.contentType}::text ilike ${like}
-        or exists (select 1 from unnest(${events.tags}) tag where tag ilike ${like})
-        or ${sources.name} ilike ${like}
-        or ${sources.handle} ilike ${like}
-        or ${sources.url} ilike ${like}
-        or ${sources.platform}::text ilike ${like}
-        or ${sources.sourceType}::text ilike ${like}
-        or ${sources.brandTag} ilike ${like}
-        or ${sources.recommendedBy} ilike ${like}
-        or ${sources.recommendReason} ilike ${like}
-        or exists (select 1 from unnest(${sources.categories}) category where category ilike ${like})
-        or ${posts.authorName} ilike ${like}
-        or ${posts.authorHandle} ilike ${like}
-        or ${posts.url} ilike ${like}
-        or ${posts.platform}::text ilike ${like}
-        or ${posts.rawTitle} ilike ${like}
-        or ${posts.displayTitle} ilike ${like}
-        or ${posts.summary} ilike ${like}
-        or ${posts.rawContent} ilike ${like}
-      )`,
-    );
+    // Single trigram-indexed predicate over the denormalized search blob (events_search_trgm_idx).
+    // Replaces a prior OR across ~25 columns that forced a full sequential scan. search_text already
+    // folds in title/summaries/reco/tags/category; source + author names typically appear there too.
+    conds.push(sql`${events.searchText} ilike ${like}`);
   }
 
   const rows = await db
@@ -171,7 +163,12 @@ export async function searchEvents(
     .leftJoin(sources, eq(sources.id, events.mainSourceId))
     .leftJoin(posts, eq(posts.id, events.mainPostId))
     .where(conds.length ? and(...conds) : undefined)
-    .orderBy(sql`${sortKey} desc nulls last`, desc(events.id))
+    .orderBy(
+      sql`case ${events.pipelineTier} when 'T2' then 2 when 'T1' then 1 else 0 end desc`,
+      desc(events.sourceCount),
+      sql`${sortKey} desc nulls last`,
+      desc(events.id),
+    )
     .limit(limit);
   return rows as EventCard[];
 }

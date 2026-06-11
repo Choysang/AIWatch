@@ -8,7 +8,7 @@ describe("computeSelectionScore", () => {
     const { selectionScore } = computeSelectionScore({
       qualityScore: 80,
       confidenceScore: 100,
-      contentType: "product_release",
+      contentType: "howto",
       ...neutralSignals,
     });
     expect(selectionScore).toBeCloseTo(80, 6);
@@ -18,35 +18,35 @@ describe("computeSelectionScore", () => {
     const { selectionScore } = computeSelectionScore({
       qualityScore: 80,
       confidenceScore: 0,
-      contentType: "product_release",
+      contentType: "howto",
       ...neutralSignals,
     });
     expect(selectionScore).toBeCloseTo(40, 6);
   });
 
-  test("content_type multiplier: discussion is penalized, model_release nudged up (clamped at 100)", () => {
-    const discussion = computeSelectionScore({
+  test("content_type multiplier: opinion is penalized, release nudged up (clamped at 100)", () => {
+    const opinion = computeSelectionScore({
       qualityScore: 100,
       confidenceScore: 100,
-      contentType: "discussion",
+      contentType: "opinion",
       ...neutralSignals,
     }).selectionScore;
-    expect(discussion).toBeCloseTo(90, 6); // 100 * 0.9
+    expect(opinion).toBeCloseTo(90, 6); // 100 * 0.9
 
-    const model = computeSelectionScore({
+    const release = computeSelectionScore({
       qualityScore: 100,
       confidenceScore: 100,
-      contentType: "model_release",
+      contentType: "release",
       ...neutralSignals,
     }).selectionScore;
-    expect(model).toBeCloseTo(100, 6); // 100 * 1.05 clamped to 100
+    expect(release).toBeCloseTo(100, 6); // 100 * 1.05 clamped to 100
   });
 
   test("strong comments and citations add bounded bonuses; weak ones subtract", () => {
     const strong = computeSelectionScore({
       qualityScore: 50,
       confidenceScore: 100,
-      contentType: "product_release",
+      contentType: "howto",
       commentQualityScore: 100,
       citationQualityScore: 100,
     }).selectionScore;
@@ -55,7 +55,7 @@ describe("computeSelectionScore", () => {
     const weak = computeSelectionScore({
       qualityScore: 50,
       confidenceScore: 100,
-      contentType: "product_release",
+      contentType: "howto",
       commentQualityScore: 0,
       citationQualityScore: 0,
     }).selectionScore;
@@ -66,14 +66,14 @@ describe("computeSelectionScore", () => {
     const base = computeSelectionScore({
       qualityScore: 50,
       confidenceScore: 100,
-      contentType: "product_release",
+      contentType: "howto",
       viewCount: 0,
       ...neutralSignals,
     }).selectionScore;
     const viewed = computeSelectionScore({
       qualityScore: 50,
       confidenceScore: 100,
-      contentType: "product_release",
+      contentType: "howto",
       viewCount: 200,
       ...neutralSignals,
     });
@@ -86,7 +86,7 @@ describe("computeSelectionScore", () => {
       computeSelectionScore({
         qualityScore: 99,
         confidenceScore: 39,
-        contentType: "model_release",
+        contentType: "release",
         ...neutralSignals,
       }).maxLevel,
     ).toBe("B");
@@ -95,7 +95,7 @@ describe("computeSelectionScore", () => {
       computeSelectionScore({
         qualityScore: 99,
         confidenceScore: 40,
-        contentType: "model_release",
+        contentType: "release",
         ...neutralSignals,
       }).maxLevel,
     ).toBe("S");
@@ -105,7 +105,7 @@ describe("computeSelectionScore", () => {
     const { selectionScore, breakdown } = computeSelectionScore({
       qualityScore: 0,
       confidenceScore: 100,
-      contentType: "discussion",
+      contentType: "opinion",
       commentQualityScore: 0,
       citationQualityScore: 0,
     });

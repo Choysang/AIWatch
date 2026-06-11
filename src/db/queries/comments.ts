@@ -12,7 +12,7 @@
 // path and returns the existing row so re-submission is idempotent.
 
 import { createHash } from "node:crypto";
-import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { classifyComment, type CommentCategory, type CommentClassification } from "@/comments/classifier";
 import { newId } from "@/core/ids";
 import { db as defaultDb, type DB, type Tx } from "@/db/client";
@@ -370,26 +370,38 @@ export async function getTopCommentsForEvents(
   db: DB = defaultDb,
 ): Promise<Map<string, string[]>> {
   const result = new Map<string, string[]>();
-  if (eventIds.length === 0) return result;
+  if (eventIds.length === 0 || perEvent <= 0) return result;
 
-  const rows = await db
-    .select({ eventId: eventComments.eventId, body: eventComments.body })
-    .from(eventComments)
-    .where(
-      and(
-        inArray(eventComments.eventId, eventIds),
-        eq(eventComments.classification, "valid"),
-        isNull(eventComments.parentId),
-      ),
+  type TopCommentRow = { event_id: string; body: string };
+  const rawRows = await db.execute(sql<TopCommentRow>`
+    WITH ranked_comments AS (
+      SELECT
+        ${eventComments.eventId} AS event_id,
+        ${eventComments.body} AS body,
+        row_number() OVER (
+          PARTITION BY ${eventComments.eventId}
+          ORDER BY ${eventComments.createdAt} DESC, ${eventComments.id} DESC
+        ) AS rn
+      FROM ${eventComments}
+      WHERE ${eventComments.eventId} IN (${sql.join(eventIds.map((id) => sql`${id}`), sql`, `)})
+        AND ${eventComments.classification} = ${"valid"}
+        AND ${eventComments.parentId} IS NULL
     )
-    .orderBy(desc(eventComments.createdAt));
+    SELECT event_id, body
+    FROM ranked_comments
+    WHERE rn <= ${perEvent}
+    ORDER BY event_id ASC, rn ASC
+  `);
+  const rows = Array.isArray(rawRows)
+    ? (rawRows as TopCommentRow[])
+    : (((rawRows as unknown as { rows?: TopCommentRow[] }).rows) ?? []);
 
   for (const row of rows) {
-    const bucket = result.get(row.eventId);
+    const bucket = result.get(row.event_id);
     if (bucket) {
-      if (bucket.length < perEvent) bucket.push(row.body);
+      bucket.push(row.body);
     } else {
-      result.set(row.eventId, [row.body]);
+      result.set(row.event_id, [row.body]);
     }
   }
   return result;

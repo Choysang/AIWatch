@@ -1,6 +1,6 @@
 // POST /api/events/[id]/reactions — public user-feedback endpoint (Slice 7/8).
 //
-// Body: { kind: "like" | "star", op: "add" | "remove" }
+// Body: { kind: "like" | "star" | "down", op: "add" | "remove" }
 // Identity precedence (Slice 8): logged-in session > signed `rid` cookie > salted IP+UA
 // fingerprint fallback. The cookie path is preferred because per-IP+UA collapses every
 // anonymous reader behind the same NAT into one identity. We *do not* mint the cookie
@@ -24,7 +24,7 @@ import { clientIp, jsonError, publicLimiter } from "../../../public/_runtime";
 export const dynamic = "force-dynamic";
 
 const bodySchema = z.object({
-  kind: z.enum(["like", "star"]),
+  kind: z.enum(["like", "star", "down"]),
   op: z.enum(["add", "remove"]),
 });
 
@@ -100,7 +100,11 @@ export async function POST(
             identity: { userId, fingerprint: fp },
           });
     return Response.json(
-      { likeCount: result.likeCount, starCount: result.starCount },
+      {
+        likeCount: result.likeCount,
+        starCount: result.starCount,
+        downCount: result.downCount,
+      },
       { status: 200 },
     );
   } catch (err) {

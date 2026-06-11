@@ -1,14 +1,21 @@
 // Reader daily report for an exact date — renders at "/reports/{YYYY-MM-DD}". Calendar
 // date is APP_TZ (decision E). Invalid or missing dates show a not-found notice.
 
-import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { notFound } from "next/navigation";
+import { SubpageNav } from "@/app/subpage-nav";
 import { isCalendarDate } from "@/core/time";
 import { getDailyByDate } from "@/db/queries/public-reports";
 import { messages } from "@/i18n";
 import { ReportView } from "../report-view";
 
 export const dynamic = "force-dynamic";
+
+const getCachedDailyByDate = unstable_cache((date: string) => getDailyByDate(date), [
+  "reader-daily-by-date",
+], {
+  revalidate: 300,
+});
 
 export async function generateMetadata({
   params,
@@ -31,7 +38,7 @@ export default async function ReportByDatePage({
   const m = messages.report;
   let report = null;
   try {
-    report = await getDailyByDate(date);
+    report = await getCachedDailyByDate(date);
   } catch {
     report = null;
   }
@@ -40,11 +47,9 @@ export default async function ReportByDatePage({
     <main className="page">
       <header className="masthead">
         <div>
-          <h1 style={{ fontFamily: "var(--font-serif)" }}>{report?.title ?? `${m.heading} · ${date}`}</h1>
+          <h1 style={{ fontFamily: "var(--font-serif)" }}>{`${m.heading} · ${date}`}</h1>
         </div>
-        <Link href="/reports" className="tagline">
-          {m.latest}
-        </Link>
+        <SubpageNav />
       </header>
 
       {report ? <ReportView report={report} /> : <div className="empty">{m.notFound}</div>}

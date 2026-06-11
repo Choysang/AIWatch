@@ -16,6 +16,12 @@ const ENV_VARS = [
   "QWEN_BASE_URL",
   "OPENAI_COMPATIBLE_BASE_URL",
   "LLM_STUB_FALLBACK",
+  "LLM_PROVIDER",
+  "LLM_MODEL",
+  "LLM_LIGHT_PROVIDER",
+  "LLM_LIGHT_MODEL",
+  "LLM_DEEP_PROVIDER",
+  "LLM_DEEP_MODEL",
   "LLM_NEWS_PROVIDER",
   "LLM_NEWS_MODEL",
 ];
@@ -107,5 +113,19 @@ describe("resolveProvider — fail-closed semantics", () => {
     expect(llmRouting.cold_judge.provider).toBe("openai_compatible");
     expect(llmRouting.cold_judge.model).toBe("Pro/moonshotai/Kimi-K2.6");
     expect(resolveProvider("cold_judge")?.name).toBe("openai_compatible");
+  });
+
+  test("light/deep routes inherit the configured news model unless overridden", async () => {
+    process.env.LLM_NEWS_PROVIDER = "openai_compatible";
+    process.env.LLM_NEWS_MODEL = "Pro/moonshotai/Kimi-K2.6";
+    process.env.OPENAI_COMPATIBLE_API_KEY = "sk-test";
+    process.env.OPENAI_COMPATIBLE_BASE_URL = "http://localhost:4001/v1";
+    const { llmRouting, resolveProvider } = await freshRouting();
+    expect(llmRouting.light_judge.provider).toBe("openai_compatible");
+    expect(llmRouting.light_judge.model).toBe("Pro/moonshotai/Kimi-K2.6");
+    expect(llmRouting.deep_extract.provider).toBe("openai_compatible");
+    expect(llmRouting.deep_extract.model).toBe("Pro/moonshotai/Kimi-K2.6");
+    expect(resolveProvider("light_judge")?.name).toBe("openai_compatible");
+    expect(resolveProvider("deep_extract")?.name).toBe("openai_compatible");
   });
 });

@@ -16,11 +16,14 @@ describe("deterministicGate", () => {
     expect(r.reason).toBe("ad");
   });
 
-  test("drops non-AI content", () => {
-    expect(deterministicGate({ title: "今天天气不错", content: "出去散步" })).toEqual({
-      pass: false,
-      reason: "non_ai",
+  test("does not drop substantial text just because it lacks AI keywords", () => {
+    expect(deterministicGate({ title: "一个低调但重要的工程观察", content: "团队发现新的调试流程可以减少上下文切换" })).toEqual({
+      pass: true,
     });
+  });
+
+  test("drops symbol-only noise", () => {
+    expect(deterministicGate({ title: "🔥🔥🔥", content: "!!!" }).reason).toBe("too_short");
   });
 
   test("passes a real AI item", () => {

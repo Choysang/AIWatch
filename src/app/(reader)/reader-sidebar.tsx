@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
-import { TrackableDetailLink } from "./event-view-tracker";
 
 export interface SidebarEventItem {
   id: string;
@@ -14,8 +12,19 @@ export interface SidebarEventItem {
   viewCount: number;
 }
 
-const GITHUB_URL = "https://github.com/Choysang/AIWatch";
-const SITE_URL = "https://aiwatch.icu";
+function scrollToEventCard(eventId: string) {
+  const revealTarget = () => {
+    const target = document.getElementById(`event-${eventId}`);
+    if (!target || target.getClientRects().length === 0) return false;
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({ behavior: "auto", block: "center" });
+    return true;
+  };
+
+  window.dispatchEvent(new CustomEvent("aiwatch:reveal-event-card", { detail: { eventId } }));
+  if (revealTarget()) return;
+  window.requestAnimationFrame(revealTarget);
+}
 
 export function ReaderSidebar({ items }: { items: SidebarEventItem[] }) {
   const [open, setOpen] = useState(false);
@@ -49,7 +58,7 @@ export function ReaderSidebar({ items }: { items: SidebarEventItem[] }) {
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
-        {open ? "收起侧栏" : "打开侧栏"}
+        {open ? "收起侧栏" : "资讯速览"}
       </button>
       <aside
         className={`reader-sidebar ${open ? "is-open" : ""}`}
@@ -64,16 +73,30 @@ export function ReaderSidebar({ items }: { items: SidebarEventItem[] }) {
         />
 
         <section>
-          <h2>当前资讯</h2>
+          <div className="reader-sidebar-head">
+            <h2>资讯速览</h2>
+            <button
+              type="button"
+              className="reader-sidebar-close"
+              aria-label="收起资讯速览"
+              onClick={() => setOpen(false)}
+            >
+              收起
+            </button>
+          </div>
           {items.length === 0 ? (
             <p className="reader-sidebar-muted">当前筛选下暂无动态。</p>
           ) : (
             <ol className="reader-sidebar-list">
               {items.map((item) => (
                 <li key={item.id}>
-                  <TrackableDetailLink eventId={item.id} href={`/events/${item.id}`}>
+                  <button
+                    type="button"
+                    className="reader-sidebar-jump"
+                    onClick={() => scrollToEventCard(item.id)}
+                  >
                     {item.title}
-                  </TrackableDetailLink>
+                  </button>
                   <div className="reader-sidebar-meta">
                     {item.sourceName ?? "未知来源"} · {item.when} · 浏览 {item.viewCount}
                     {item.selectedLabel ? ` · ${item.selectedLabel}` : ""}
@@ -82,50 +105,6 @@ export function ReaderSidebar({ items }: { items: SidebarEventItem[] }) {
               ))}
             </ol>
           )}
-        </section>
-
-        <section>
-          <h2>反馈与贡献</h2>
-          <div className="reader-sidebar-actions">
-            <Link href="/feedback">提交网站反馈</Link>
-            <Link href="/recommend-source">推荐信源</Link>
-          </div>
-          <p className="reader-sidebar-muted">
-            反馈用于改进当前网页体验；信源推荐会进入后台审核，通过后才会接入抓取。
-          </p>
-        </section>
-
-        <section>
-          <h2>README</h2>
-          <p>
-            AIWatch 是一个中文 AI 热点系统：信源抓取、LLM 结构化判断、确定性评分晋级、网页阅读和公共 Skill。
-          </p>
-          <div className="reader-sidebar-actions">
-            <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer">
-              GitHub 仓库
-            </a>
-            <a href={SITE_URL} target="_blank" rel="noopener noreferrer">
-              在线部署
-            </a>
-            <Link href="/about">项目简介</Link>
-          </div>
-        </section>
-
-        <section>
-          <h2>播报 Skill</h2>
-          <p>
-            可以把 AIWatch 做成个人播报源。让 Agent 先问清楚：最想看什么、不想看什么、整理深度、播报时间、保存位置，以及是否发送到邮箱或短信。
-          </p>
-          <ul className="reader-sidebar-checklist">
-            <li>内容范围：模型、产品、技术、讨论或指定关键词。</li>
-            <li>排除规则：营销、重复转述、低质量讨论、非中文摘要。</li>
-            <li>输出形式：3 条快报、完整简报、日报、周报。</li>
-            <li>投递方式：文件路径、邮箱、短信或仅在对话中播报。</li>
-          </ul>
-          <div className="reader-sidebar-actions">
-            <Link href="/aiwatch-skill">查看 Skill</Link>
-            <a href="/aiwatch-skill/SKILL.md">下载 SKILL.md</a>
-          </div>
         </section>
       </aside>
     </>

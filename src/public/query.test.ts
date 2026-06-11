@@ -12,10 +12,10 @@ import {
 const parse = (qs: string) => parsePublicQuery(new URLSearchParams(qs));
 
 describe("parsePublicQuery", () => {
-  test("defaults to selected mode + week window", () => {
+  test("defaults to all mode + all window for the reader's latest feed", () => {
     const q = parse("");
-    expect(q.mode).toBe("selected");
-    expect(q.since).toBe("week");
+    expect(q.mode).toBe("all");
+    expect(q.since).toBe("all");
     expect(q.take).toBe(DEFAULT_TAKE);
   });
 
@@ -37,10 +37,22 @@ describe("parsePublicQuery", () => {
     expect(parse("level=Z").level).toBeUndefined();
   });
 
-  test("trims category and q", () => {
-    const q = parse("category=%20模型%20&q=%20gpt%20");
-    expect(q.category).toBe("模型");
+  test("parses an optional minimum quality score", () => {
+    expect(parse("minScore=80").minScore).toBe(80);
+    expect(parse("minScore=0").minScore).toBe(0);
+    expect(parse("minScore=100").minScore).toBe(100);
+    expect(parse("minScore=").minScore).toBeUndefined();
+    expect(parse("minScore=abc").minScore).toBeUndefined();
+    expect(parse("minScore=-1").minScore).toBeUndefined();
+    expect(parse("minScore=101").minScore).toBeUndefined();
+  });
+
+  test("accepts only canonical event domains and trims q", () => {
+    const q = parse("category=product&q=%20gpt%20");
+    expect(q.category).toBe("product");
     expect(q.q).toBe("gpt");
+    expect(parse("category=%20模型%20").category).toBeUndefined();
+    expect(parse("category=Core_Research").category).toBeUndefined(); // legacy value rejected
   });
 
   test("parses comma-separated tags, trimming and dropping blanks", () => {
@@ -74,6 +86,17 @@ describe("parsePublicQuery", () => {
 
   test("dedupes repeated sourceTypes", () => {
     expect(parse("sourceTypes=kol,kol,official").sourceTypes).toEqual(["kol", "official"]);
+  });
+
+  test("parses comma-separated sourceCategories, accepting only known taxonomy values", () => {
+    const q = parse("sourceCategories=official,bogus,%20technical_share%20");
+    expect(q.sourceCategories).toEqual(["official", "technical_share"]);
+  });
+
+  test("omits sourceCategories when empty or fully invalid", () => {
+    expect(parse("").sourceCategories).toBeUndefined();
+    expect(parse("sourceCategories=").sourceCategories).toBeUndefined();
+    expect(parse("sourceCategories=bogus,nope").sourceCategories).toBeUndefined();
   });
 
   test("parses a custom date range; `to` is shifted to the exclusive next-day boundary", () => {

@@ -3,6 +3,7 @@
 // parseSubmission throws on invalid input so the route can answer 400 deterministically.
 
 import { z } from "zod";
+import { ALL_SOURCE_PROFILE_VALUES } from "@/sources/source-form";
 import { KIND_TARGET, type ContributionKind, type ContributionTarget } from "./types";
 
 const sourceRecommendation = z.object({
@@ -10,15 +11,7 @@ const sourceRecommendation = z.object({
   name: z.string().min(1).max(200).optional(),
   platform: z.string().max(40).optional(),
   handle: z.string().max(120).optional(),
-  sourceProfile: z
-    .enum([
-      "official_first_party",
-      "core_people",
-      "community_practice",
-      "media_info",
-      "technical_supplement",
-    ])
-    .optional(),
+  sourceProfile: z.enum(ALL_SOURCE_PROFILE_VALUES).optional(),
   recommendedBy: z.string().max(120).optional(),
   recommendReason: z.string().max(1000).optional(),
   categories: z.array(z.string().min(1).max(40)).max(10).optional(),

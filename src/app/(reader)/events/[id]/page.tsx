@@ -4,15 +4,15 @@
 // notFound() on missing events keeps the route honest for crawlers/Skill consumers.
 
 import { cookies } from "next/headers";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSession } from "@/app/_lib/session";
 import { extractCardMedia } from "@/app/_lib/media";
+import { SubpageNav } from "@/app/subpage-nav";
 import { READER_ID_COOKIE, verifyReaderId } from "@/auth/reader-id";
 import { getEventDetail } from "@/db/queries/event-detail";
 import { listEventComments, type CommentSections } from "@/db/queries/comments";
 import { getViewerCommentReactions } from "@/db/queries/comment-reactions";
-import { getViewerReactions } from "@/db/queries/reactions";
+import { getViewerReactions, type ViewerReactionState } from "@/db/queries/reactions";
 import { messages } from "@/i18n";
 import { formatDateTime } from "@/app/_lib/format";
 import { CommentsSection } from "../../comments-section";
@@ -83,10 +83,14 @@ export default async function EventDetailPage({
   const [reactionMap, sections] = await Promise.all([
     identity.userId || identity.fingerprint
       ? getViewerReactions([event.id], identity)
-      : Promise.resolve(new Map<string, { liked: boolean; starred: boolean }>()),
+      : Promise.resolve(new Map<string, ViewerReactionState>()),
     listEventComments(event.id),
   ]);
-  const viewerReaction = reactionMap.get(event.id) ?? { liked: false, starred: false };
+  const viewerReaction = reactionMap.get(event.id) ?? {
+    liked: false,
+    starred: false,
+    downed: false,
+  };
 
   // SP3.1: which comments (top-level + replies) has this viewer liked? One lookup for all.
   const commentIds = collectCommentIds(sections);
@@ -97,7 +101,6 @@ export default async function EventDetailPage({
 
   const m = messages;
   const card = m.card;
-  const detail = m.detail;
   const level = event.selectedLevel;
   const selectedLabel = event.selectedLabel ?? m.selectedLabel[level];
   const author = event.authorName ?? event.sourceName ?? "";
@@ -113,9 +116,7 @@ export default async function EventDetailPage({
             <span className="accent-dot">.</span>
           </h1>
         </div>
-        <nav>
-          <Link href="/">← {detail.backToFeed}</Link>
-        </nav>
+        <SubpageNav />
       </header>
 
       <article className="card card-detail">
@@ -193,8 +194,10 @@ export default async function EventDetailPage({
             eventId={event.id}
             initialLikeCount={event.likeCount}
             initialStarCount={event.starCount}
+            initialDownCount={event.downCount}
             initialLiked={viewerReaction.liked}
             initialStarred={viewerReaction.starred}
+            initialDowned={viewerReaction.downed}
           />
         </div>
       </article>

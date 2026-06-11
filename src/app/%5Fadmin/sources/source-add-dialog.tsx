@@ -1,7 +1,15 @@
 "use client";
 
 import { useRef } from "react";
-import { PLATFORM_LABEL, PLATFORMS, SOURCE_PROFILE_LABEL, SOURCE_PROFILES } from "@/sources/source-form";
+import {
+  DEFAULT_SOURCE_PROFILE,
+  PLATFORM_LABEL,
+  PLATFORMS,
+  SOURCE_PROFILE_LABEL,
+  SOURCE_PROFILES,
+  sourceLevelSchema,
+  sourceTypeSchema,
+} from "@/sources/source-form";
 
 function Field(props: { label: string; children: React.ReactNode }) {
   return (
@@ -16,12 +24,14 @@ function SelectField<T extends readonly string[]>(props: {
   name: string;
   label: string;
   values: T;
-  defaultValue: T[number];
+  defaultValue: T[number] | "";
   labels?: Record<string, string>;
+  emptyLabel?: string;
 }) {
   return (
     <Field label={props.label}>
       <select name={props.name} defaultValue={props.defaultValue}>
+        {props.emptyLabel ? <option value="">{props.emptyLabel}</option> : null}
         {props.values.map((value) => (
           <option key={value} value={value}>
             {props.labels?.[String(value)] ?? value}
@@ -31,6 +41,16 @@ function SelectField<T extends readonly string[]>(props: {
     </Field>
   );
 }
+
+const SOURCE_TYPE_LABEL: Record<(typeof sourceTypeSchema.options)[number], string> = {
+  official: "官方",
+  employee: "员工/核心成员",
+  expert: "专家",
+  kol: "KOL",
+  media: "媒体",
+  community: "社区",
+  open_source_project: "开源项目",
+};
 
 export function SourceAddDialog() {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -67,8 +87,25 @@ export function SourceAddDialog() {
               name="sourceProfile"
               label="信源定位"
               values={SOURCE_PROFILES}
-              defaultValue="core_people"
+              defaultValue={DEFAULT_SOURCE_PROFILE}
               labels={SOURCE_PROFILE_LABEL}
+            />
+          </div>
+          <div className="admin-form-grid">
+            <SelectField
+              name="sourceType"
+              label="信源类型"
+              values={sourceTypeSchema.options}
+              defaultValue=""
+              labels={SOURCE_TYPE_LABEL}
+              emptyLabel="按定位自动"
+            />
+            <SelectField
+              name="level"
+              label="信源等级"
+              values={sourceLevelSchema.options}
+              defaultValue=""
+              emptyLabel="按定位自动"
             />
           </div>
           <Field label="主页 URL">

@@ -38,12 +38,13 @@ export const healthStatusEnum = pgEnum("health_status", ["healthy", "degraded", 
 export const titleSourceEnum = pgEnum("title_source", ["original", "first_sentence", "ai_generated"]);
 export const relevanceStatusEnum = pgEnum("relevance_status", ["pending", "relevant", "irrelevant", "dropped"]);
 export const selectedLevelEnum = pgEnum("selected_level", ["none", "B", "A", "S"]);
-// Reader-facing content classification (SP2 point 5): every event is one of these four.
-// Produced by the cold_judge LLM (immutable input) and denormalized onto events for
-// filtering. Nullable only for legacy rows awaiting the one-time backfill — new events
-// always carry a value (the judge schema requires it, no fallback).
+// Reader-facing content-type axis (dual-axis taxonomy, 2026-06-06 design §2.2): every event
+// is one of these five forms. Produced directly by the triage LLM (immutable input) and
+// denormalized onto events for filtering + the selection-score multiplier. Nullable only for
+// legacy rows awaiting backfill — new events always carry a value (the judge schema requires
+// it, no fallback). Migration 0021 rebuilds this enum from the old 4 values (non-1:1 remap).
 export const contentTypeEnum = pgEnum("content_type", [
-  "model_release", "product_release", "tech_share", "discussion",
+  "release", "research", "howto", "opinion", "news",
 ]);
 // Comment reactions (SP3 point 7): readers can like a comment. Only "like" for V1
 // (KISS — no star/downvote); the enum leaves room to extend without a column rename.
@@ -71,7 +72,7 @@ export const contributionKindEnum = pgEnum("contribution_kind", [
 export const contributionStatusEnum = pgEnum("contribution_status", [
   "submitted", "triaged", "approved", "rejected", "applied",
 ]);
-export const reactionKindEnum = pgEnum("reaction_kind", ["like", "star"]);
+export const reactionKindEnum = pgEnum("reaction_kind", ["like", "star", "down"]);
 export const commentCategoryEnum = pgEnum("comment_category", [
   "praise", "criticism", "handson", "supplement", "controversy",
   "low_value", "unclassified",
@@ -104,6 +105,8 @@ export const sources = pgTable(
     recommendReason: text("recommend_reason"), // 推荐理由 (source-level, not event-level)
     onboardedAt: ts("onboarded_at"), // 接入日期
     enabled: boolean("enabled").notNull().default(true),
+    pollTier: text("poll_tier").notNull().default("normal"),
+    lastSeenCursor: text("last_seen_cursor"),
     archivedAt: ts("archived_at"),
     fetchFrequency: interval("fetch_frequency").notNull().default("10 minutes"),
     lastFetchAt: ts("last_fetch_at"),
@@ -130,7 +133,7 @@ export const posts = pgTable(
   "posts",
   {
     id: text("id").primaryKey(),
-    sourceId: text("source_id").notNull().references(() => sources.id),
+    sourceId: text("source_id").notNull().references(() => sources.id, { onDelete: "cascade" }),
     authorName: text("author_name"),
     authorHandle: text("author_handle"),
     platform: platformEnum("platform").notNull(),
@@ -147,6 +150,8 @@ export const posts = pgTable(
     publishedAt: ts("published_at"),
     fetchedAt: ts("fetched_at").notNull().defaultNow(),
     initialRelevanceStatus: relevanceStatusEnum("initial_relevance_status").notNull().default("pending"),
+    pipelineStatus: text("pipeline_status"),
+    lightResultJson: jsonb("light_result_json"),
     // Spec § 11 LLM: "malformed marks the post `judge_failed`, never silently defaulted".
     // Non-null = the cold_judge step failed for this post and no event was created. The
     // value is a short machine-readable reason (provider_error / schema_invalid / no_key).
@@ -171,16 +176,35 @@ export const events = pgTable(
   "events",
   {
     id: text("id").primaryKey(),
+    foldKey: text("fold_key"),
+    simhash: text("simhash"),
+    pipelineScore: smallint("pipeline_score"),
+    pipelineTier: text("pipeline_tier"),
+    oneLineSummary: text("one_line_summary"),
+    detailedSummary: text("detailed_summary"),
+    coreViewpoints: jsonb("core_viewpoints"),
+    tools: jsonb("tools"),
+    people: jsonb("people"),
+    sourceCount: integer("source_count").notNull().default(1),
     title: text("title").notNull(),
     summary: text("summary"),
     recommendationReason: text("recommendation_reason"),
+    // Reader-facing article category. Holds an INTELLIGENCE_DOMAINS id
+    // (product/technology/tips/discussion). Kept as text so value churn is a data migration,
+    // not a type rebuild.
     category: text("category"),
+    // Denormalized free-text search blob (title + summaries + reco + tags + category, lower-cased
+    // at write time). Backs the reader search box via a single trigram-indexed ILIKE instead of an
+    // OR across ~25 columns (which no index can serve). Maintained by createEventFromPost /
+    // foldPostIntoEvent; backfilled in migration 0020. Source/author names usually surface in the
+    // event text already, so we intentionally do not thread them through the write path.
+    searchText: text("search_text"),
     // Reader-facing content classification (SP2). Denormalized from the current judgment;
     // nullable only for legacy rows pending backfill. Indexed for the filter facet.
     contentType: contentTypeEnum("content_type"),
     tags: text("tags").array().notNull().default(sql`'{}'::text[]`),
-    mainSourceId: text("main_source_id").references(() => sources.id),
-    mainPostId: text("main_post_id").references(() => posts.id),
+    mainSourceId: text("main_source_id").references(() => sources.id, { onDelete: "cascade" }),
+    mainPostId: text("main_post_id").references(() => posts.id, { onDelete: "cascade" }),
     // App-managed pointers into append-only tables (no FK to avoid a cycle).
     currentJudgmentId: text("current_judgment_id"),
     currentScoreId: text("current_score_id"),
@@ -208,8 +232,9 @@ export const events = pgTable(
     // maintained transactionally by addReaction/removeReaction (Slice 7).
     likeCount: integer("like_count").notNull().default(0),
     starCount: integer("star_count").notNull().default(0),
-    // Reader attention signal. Incremented when a reader opens the detail page or original
-    // source link from a card; used as a lightweight heat input during score recomputation.
+    downCount: integer("down_count").notNull().default(0),
+    // Deduped reader attention signal. Incremented once per event+viewer identity when a
+    // reader opens the detail page or original source link from a card.
     viewCount: integer("view_count").notNull().default(0),
     selectedLevel: selectedLevelEnum("selected_level").notNull().default("none"),
     selectedLabel: text("selected_label"),
@@ -229,6 +254,11 @@ export const events = pgTable(
     index("events_rank_idx").on(t.rankScore),
     index("events_content_type_idx").on(t.contentType),
     index("events_selection_idx").on(t.selectionScore),
+    index("events_fold_idx").on(t.foldKey, t.createdAt),
+    index("events_pipeline_tier_idx").on(t.pipelineTier, t.pipelineScore),
+    // Trigram GIN over the denormalized search blob: lets leading-wildcard ILIKE (incl. CJK
+    // substrings) use an index. Requires the pg_trgm extension (created in migration 0020).
+    index("events_search_trgm_idx").using("gin", sql`${t.searchText} gin_trgm_ops`),
   ],
 );
 
@@ -236,8 +266,8 @@ export const events = pgTable(
 export const eventPosts = pgTable(
   "event_posts",
   {
-    eventId: text("event_id").notNull().references(() => events.id),
-    postId: text("post_id").notNull().references(() => posts.id),
+    eventId: text("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
+    postId: text("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }),
     relation: eventRelationEnum("relation").notNull().default("same_event"),
     createdAt: ts("created_at").notNull().defaultNow(),
   },
@@ -252,13 +282,13 @@ export const eventJudgments = pgTable(
   "event_judgments",
   {
     id: text("id").primaryKey(),
-    eventId: text("event_id").notNull().references(() => events.id),
+    eventId: text("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
     provider: text("provider").notNull(),
     modelId: text("model_id").notNull(),
     promptVersion: text("prompt_version").notNull(),
     routingConfigVersion: text("routing_config_version").notNull(),
     triggerReason: triggerReasonEnum("trigger_reason").notNull().default("initial"),
-    triggerPostId: text("trigger_post_id").references(() => posts.id),
+    triggerPostId: text("trigger_post_id").references(() => posts.id, { onDelete: "cascade" }),
     aiRelevance: smallint("ai_relevance").notNull(),
     impact: smallint("impact").notNull(),
     novelty: smallint("novelty").notNull(),
@@ -280,9 +310,9 @@ export const eventScores = pgTable(
   "event_scores",
   {
     id: text("id").primaryKey(),
-    eventId: text("event_id").notNull().references(() => events.id),
+    eventId: text("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
     scoringConfigVersion: text("scoring_config_version").notNull(),
-    judgmentId: text("judgment_id").notNull().references(() => eventJudgments.id),
+    judgmentId: text("judgment_id").notNull().references(() => eventJudgments.id, { onDelete: "cascade" }),
     baseScore: real("base_score").notNull(),
     qualityScore: real("quality_score").notNull(),
     promotionScore: real("promotion_score"),
@@ -366,7 +396,7 @@ export const eventReactions = pgTable(
   "event_reactions",
   {
     id: text("id").primaryKey(),
-    eventId: text("event_id").notNull().references(() => events.id),
+    eventId: text("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
     kind: reactionKindEnum("kind").notNull(),
     userId: text("user_id"),
     fingerprint: text("fingerprint"),
@@ -376,6 +406,25 @@ export const eventReactions = pgTable(
     index("event_reactions_event_kind_idx").on(t.eventId, t.kind),
     index("event_reactions_user_idx").on(t.userId),
     index("event_reactions_fingerprint_idx").on(t.fingerprint),
+  ],
+);
+
+// --- event_views (deduped reader attention) ---
+// One row per event+viewer identity. events.view_count is incremented only when a new
+// row is inserted, so public POSTs cannot inflate the counter by replaying the same view.
+export const eventViews = pgTable(
+  "event_views",
+  {
+    id: text("id").primaryKey(),
+    eventId: text("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
+    userId: text("user_id"),
+    fingerprint: text("fingerprint"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("event_views_event_idx").on(t.eventId),
+    index("event_views_user_idx").on(t.userId),
+    index("event_views_fingerprint_idx").on(t.fingerprint),
   ],
 );
 
@@ -391,7 +440,7 @@ export const eventComments = pgTable(
   "event_comments",
   {
     id: text("id").primaryKey(),
-    eventId: text("event_id").notNull().references(() => events.id),
+    eventId: text("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
     userId: text("user_id"),
     fingerprint: text("fingerprint"),
     body: text("body").notNull(),
@@ -402,6 +451,9 @@ export const eventComments = pgTable(
     // SP3 point 7: single-level threads. Top-level comments have parent_id = null; a reply
     // points at its top-level parent. Replies of replies are flattened onto the same parent
     // (the UI conveys who-replied-to-whom with @mention), so the tree is never deeper than one.
+    // The self-FK (event_comments_parent_id_fk) is defined SQL-only with ON DELETE cascade
+    // (migrations 0014 + 0019); drizzle's .references() can't cleanly model the self-reference,
+    // so unlike the other three event/comment FKs the cascade for this one lives only in SQL.
     parentId: text("parent_id"),
     // Denormalized like tally, maintained transactionally by comment_reactions add/remove.
     likeCount: integer("like_count").notNull().default(0),
@@ -423,7 +475,7 @@ export const commentReactions = pgTable(
   "comment_reactions",
   {
     id: text("id").primaryKey(),
-    commentId: text("comment_id").notNull().references(() => eventComments.id),
+    commentId: text("comment_id").notNull().references(() => eventComments.id, { onDelete: "cascade" }),
     kind: commentReactionKindEnum("kind").notNull().default("like"),
     userId: text("user_id"),
     fingerprint: text("fingerprint"),

@@ -1,11 +1,11 @@
-// Event reactions (likes + stars) — Slice 7 / decision: user feedback.
+// Event reactions (likes + stars + down feedback) — Slice 7 / decision: user feedback.
 //
 // Identity is XOR: either userId (logged-in) OR fingerprint (anonymous salted hash).
 // Per-identity uniqueness per (eventId, kind) is enforced by partial unique indexes in
 // the DB (see migration 0005). Add is idempotent: if the row already exists we no-op
 // and return the current counts. Remove is also idempotent.
 //
-// Denormalized counts on events.{likeCount,starCount} are maintained transactionally
+// Denormalized counts on events.{likeCount,starCount,downCount} are maintained transactionally
 // with the row insert/delete so reads can stay flat.
 
 import { and, eq, inArray, sql } from "drizzle-orm";
@@ -13,7 +13,7 @@ import { newId } from "@/core/ids";
 import { db as defaultDb, type DB, type Tx } from "@/db/client";
 import { eventReactions, events } from "@/db/schema";
 
-export type ReactionKind = "like" | "star";
+export type ReactionKind = "like" | "star" | "down";
 
 export interface ReactionIdentity {
   /** Exactly one of userId / fingerprint must be set. */
@@ -25,6 +25,13 @@ export interface ReactionCounts {
   eventId: string;
   likeCount: number;
   starCount: number;
+  downCount: number;
+}
+
+export interface ViewerReactionState {
+  liked: boolean;
+  starred: boolean;
+  downed: boolean;
 }
 
 export class ReactionIdentityError extends Error {
@@ -83,13 +90,44 @@ async function readCounts(tx: Tx, eventId: string): Promise<ReactionCounts> {
       id: events.id,
       likeCount: events.likeCount,
       starCount: events.starCount,
+      downCount: events.downCount,
     })
     .from(events)
     .where(eq(events.id, eventId))
     .limit(1);
   const row = rows[0];
   if (!row) throw new EventNotFoundError(eventId);
-  return { eventId: row.id, likeCount: row.likeCount, starCount: row.starCount };
+  return {
+    eventId: row.id,
+    likeCount: row.likeCount,
+    starCount: row.starCount,
+    downCount: row.downCount,
+  };
+}
+
+function oppositeFeedback(kind: ReactionKind): ReactionKind | null {
+  if (kind === "like") return "down";
+  if (kind === "down") return "like";
+  return null;
+}
+
+async function adjustCount(
+  tx: Tx,
+  eventId: string,
+  kind: ReactionKind,
+  op: "increment" | "decrement",
+): Promise<void> {
+  const column =
+    kind === "like" ? events.likeCount : kind === "star" ? events.starCount : events.downCount;
+  const value =
+    op === "increment" ? sql`${column} + 1` : sql`GREATEST(${column} - 1, 0)`;
+  const set =
+    kind === "like"
+      ? { likeCount: value }
+      : kind === "star"
+        ? { starCount: value }
+        : { downCount: value };
+  await tx.update(events).set(set).where(eq(events.id, eventId));
 }
 
 /**
@@ -114,6 +152,15 @@ export async function addReaction(
       return readCounts(tx, args.eventId);
     }
 
+    const opposite = oppositeFeedback(args.kind);
+    if (opposite) {
+      const existingOpposite = await findExisting(tx, args.eventId, opposite, args.identity);
+      if (existingOpposite) {
+        await tx.delete(eventReactions).where(eq(eventReactions.id, existingOpposite));
+        await adjustCount(tx, args.eventId, opposite, "decrement");
+      }
+    }
+
     await tx.insert(eventReactions).values({
       id: newId("rx"),
       eventId: args.eventId,
@@ -122,15 +169,7 @@ export async function addReaction(
       fingerprint: args.identity.fingerprint,
     });
 
-    const column = args.kind === "like" ? events.likeCount : events.starCount;
-    await tx
-      .update(events)
-      .set(
-        args.kind === "like"
-          ? { likeCount: sql`${column} + 1` }
-          : { starCount: sql`${column} + 1` },
-      )
-      .where(eq(events.id, args.eventId));
+    await adjustCount(tx, args.eventId, args.kind, "increment");
 
     // A named-user star (bookmark) is a strong-signal: reset the display-score decay clock.
     // Anonymous fingerprints and plain likes are excluded — too low-intent to anchor decay.
@@ -168,17 +207,9 @@ export async function removeReaction(
 
     await tx.delete(eventReactions).where(eq(eventReactions.id, existing));
 
-    const column = args.kind === "like" ? events.likeCount : events.starCount;
     // GREATEST guard: denormalized counter can never go negative, even if a manual
     // backfill ever desynced it from the row table.
-    await tx
-      .update(events)
-      .set(
-        args.kind === "like"
-          ? { likeCount: sql`GREATEST(${column} - 1, 0)` }
-          : { starCount: sql`GREATEST(${column} - 1, 0)` },
-      )
-      .where(eq(events.id, args.eventId));
+    await adjustCount(tx, args.eventId, args.kind, "decrement");
 
     return readCounts(tx, args.eventId);
   });
@@ -194,7 +225,7 @@ export async function getReactionCounts(
 
 /**
  * Per-event reaction state for the current viewer (Slice 8). Returns a map keyed by
- * event id containing { liked, starred } booleans. Empty input or null identity short-
+ * event id containing { liked, starred, downed } booleans. Empty input or null identity short-
  * circuits to an empty map so the SSR feed render doesn't pay for a query when there's
  * no one to look up.
  */
@@ -202,8 +233,8 @@ export async function getViewerReactions(
   eventIds: string[],
   identity: ReactionIdentity,
   db: DB = defaultDb,
-): Promise<Map<string, { liked: boolean; starred: boolean }>> {
-  const out = new Map<string, { liked: boolean; starred: boolean }>();
+): Promise<Map<string, ViewerReactionState>> {
+  const out = new Map<string, ViewerReactionState>();
   if (eventIds.length === 0) return out;
   const hasUser = identity.userId !== null && identity.userId !== "";
   const hasFp = identity.fingerprint !== null && identity.fingerprint !== "";
@@ -222,9 +253,10 @@ export async function getViewerReactions(
     .where(and(inArray(eventReactions.eventId, eventIds), idCond));
 
   for (const r of rows) {
-    const cur = out.get(r.eventId) ?? { liked: false, starred: false };
+    const cur = out.get(r.eventId) ?? { liked: false, starred: false, downed: false };
     if (r.kind === "like") cur.liked = true;
     if (r.kind === "star") cur.starred = true;
+    if (r.kind === "down") cur.downed = true;
     out.set(r.eventId, cur);
   }
   return out;

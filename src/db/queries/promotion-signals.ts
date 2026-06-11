@@ -88,6 +88,7 @@ export async function loadPromotionSignals(
   for (const r of reactionRows) {
     const bundle = out.get(r.eventId);
     if (!bundle) continue;
+    if (r.kind === "down") continue;
     bundle.expertActions.push({
       kind: r.kind,
       role: r.role,

@@ -7,22 +7,25 @@
 // the session user id or the signed `rid` cookie that middleware planted on first visit.
 
 import { cookies } from "next/headers";
-import Link from "next/link";
 import { type CSSProperties } from "react";
 import { getSession } from "@/app/_lib/session";
 import { READER_ID_COOKIE, verifyReaderId } from "@/auth/reader-id";
-import { searchEvents, type EventCard as EventCardData } from "@/db/queries/feed";
-import { getViewerReactions } from "@/db/queries/reactions";
+import { searchEvents, type EventCard as EventCardData, type FeedFilter } from "@/db/queries/feed";
+import { getViewerReactions, type ViewerReactionState } from "@/db/queries/reactions";
 import { getTopCommentsForEvents } from "@/db/queries/comments";
+import { listCurrentHotspots, type CurrentHotspot } from "@/db/queries/current-hotspots";
 import { messages } from "@/i18n";
+import { log } from "@/log";
 import { parsePublicQuery, type PublicQuery } from "@/public/query";
-import { formatDateTime, formatTimeOfDay } from "@/app/_lib/format";
+import { formatDateTime, formatTimeOfDay, toIsoAttr } from "@/app/_lib/format";
 import { modelAccent } from "@/app/_lib/model-accent";
 import { buildTimelineTree } from "@/app/_lib/timeline-tree";
 import { CollapsibleGroup } from "./collapsible-group";
+import { CurrentHotspots } from "./current-hotspots";
 import { EventCard } from "./event-card";
-import { MastheadAccount } from "./masthead-account";
+import { NotificationBell } from "./masthead-account";
 import { ParticleBackground } from "./particle-background";
+import { ReaderNavSidebar } from "./reader-nav-sidebar";
 import { ReaderSidebar, type SidebarEventItem } from "./reader-sidebar";
 import { SearchBar } from "./search-bar";
 import { SpotlightCard } from "./spotlight-card";
@@ -48,6 +51,15 @@ function cardEmphasis(event: EventCardData): "featured" | "standard" | "compact"
   return effectiveScore(event) >= 60 ? "standard" : "compact";
 }
 
+function handledErrorDetails(error: unknown): Record<string, string> {
+  if (!(error instanceof Error)) return { message: String(error) };
+  const details: Record<string, string> = { name: error.name };
+  if (error.message) details.message = error.message;
+  const code = (error as { code?: unknown }).code;
+  if (typeof code === "string") details.code = code;
+  return details;
+}
+
 export const dynamic = "force-dynamic";
 
 export const metadata = {
@@ -58,46 +70,58 @@ export const metadata = {
 type SearchParams = Record<string, string | string[] | undefined>;
 
 const HOME_LIMIT = 30;
+const HOTSPOT_CANDIDATE_LIMIT = 80;
 
-// The homepage default is "all dynamics in time order"; parsePublicQuery defaults to selected,
-// so only fall back to `all` when the reader hasn't chosen a mode.
 function toQuery(sp: SearchParams): PublicQuery {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(sp)) {
     if (typeof value === "string") params.set(key, value);
     else if (Array.isArray(value) && value[0]) params.set(key, value[0]);
   }
-  if (!params.has("mode")) params.set("mode", "all");
   return parsePublicQuery(params);
 }
 
-async function loadEvents(query: PublicQuery): Promise<{ events: EventCardData[]; error: boolean }> {
+function toFeedFilter(query: PublicQuery): FeedFilter {
+  return {
+    mode: query.mode,
+    since: query.since,
+    q: query.q,
+    tags: query.tags,
+    sourceTypes: query.sourceTypes,
+    sourceCategories: query.sourceCategories,
+    level: query.level,
+    minScore: query.minScore,
+    category: query.category,
+    dateFrom: query.dateFrom,
+    dateTo: query.dateTo,
+  };
+}
+
+async function loadHomeData(
+  query: PublicQuery,
+): Promise<{ events: EventCardData[]; hotspots: CurrentHotspot[] }> {
   try {
-    const events = await searchEvents(
-      {
-        mode: query.mode,
-        since: query.since,
-        q: query.q,
-        tags: query.tags,
-        sourceTypes: query.sourceTypes,
-        contentTypes: query.contentTypes,
-        level: query.level,
-        category: query.category,
-        dateFrom: query.dateFrom,
-        dateTo: query.dateTo,
-      },
-      HOME_LIMIT,
-    );
-    return { events, error: false };
-  } catch {
-    // No DB yet (fresh clone before migrate/seed) — show the setup hint, don't crash.
-    return { events: [], error: true };
+    const candidates = await searchEvents(toFeedFilter(query), HOTSPOT_CANDIDATE_LIMIT);
+    const events = candidates.slice(0, HOME_LIMIT);
+    try {
+      const hotspots = await listCurrentHotspots(candidates.map((event) => event.id));
+      return { events, hotspots };
+    } catch (error) {
+      log.warn("[reader] loadHotspots failed", handledErrorDetails(error));
+      return { events, hotspots: [] };
+    }
+  } catch (error) {
+    // No DB yet (fresh clone before migrate/seed) → show the setup hint, don't crash.
+    // Warn with a plain summary only: raw Error objects in an RSC render trigger Next's
+    // dev overlay even when the failure is handled and the page safely degrades.
+    log.warn("[reader] loadEvents unavailable", handledErrorDetails(error));
+    return { events: [], hotspots: [] };
   }
 }
 
 async function loadViewerReactions(
   eventIds: string[],
-): Promise<Map<string, { liked: boolean; starred: boolean }>> {
+): Promise<Map<string, ViewerReactionState>> {
   if (eventIds.length === 0) return new Map();
   let userId: string | null = null;
   try {
@@ -115,29 +139,47 @@ async function loadViewerReactions(
   if (!userId && !fingerprint) return new Map();
   try {
     return await getViewerReactions(eventIds, { userId, fingerprint });
-  } catch {
+  } catch (error) {
+    log.warn("[reader] loadViewerReactions failed", error);
+    return new Map();
+  }
+}
+
+async function loadTopComments(eventIds: string[]): Promise<Map<string, string[]>> {
+  if (eventIds.length === 0) return new Map();
+  try {
+    return await getTopCommentsForEvents(eventIds, 3);
+  } catch (error) {
+    log.warn("[reader] loadTopComments failed", error);
     return new Map();
   }
 }
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const query = toQuery(await searchParams);
-  const { events } = await loadEvents(query);
-  const eventIds = events.map((e) => e.id);
-  const reactions = await loadViewerReactions(eventIds);
-  let topComments = new Map<string, string[]>();
-  try {
-    topComments = await getTopCommentsForEvents(eventIds, 3);
-  } catch {
-    topComments = new Map();
+  const { events, hotspots } = await loadHomeData(query);
+  const eventIds: string[] = [];
+  const commentEventIds: string[] = [];
+  for (const event of events) {
+    eventIds.push(event.id);
+    if (event.selectedLevel === "A" || event.selectedLevel === "S") {
+      commentEventIds.push(event.id);
+    }
   }
+  // Reactions and top-comments are independent; only A/S cards render comment highlights,
+  // so don't query comment snippets for cards that cannot show them.
+  const [reactions, topComments] = await Promise.all([
+    loadViewerReactions(eventIds),
+    loadTopComments(commentEventIds),
+  ]);
   const m = messages;
   const isFiltered = Boolean(
     query.q ||
       query.tags?.length ||
       query.level ||
       query.sourceTypes?.length ||
-      query.contentTypes?.length ||
+      query.sourceCategories?.length ||
+      typeof query.minScore === "number" ||
       query.dateFrom ||
       query.dateTo ||
       query.mode === "selected",
@@ -154,31 +196,18 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   return (
     <main className="page reader-home">
       <ParticleBackground />
-      <header className="masthead">
-        <div>
-          <h1>
-            {m.appName}
-            <span className="accent-dot">.</span>
-          </h1>
-        </div>
-        <nav>
-          <span className="tagline">{m.tagline}</span>
-          <Link href="/reports">{m.nav.reports}</Link>
-          <Link href="/changelog">{m.nav.changelog}</Link>
-          <Link href="/about">{m.nav.about}</Link>
-          <Link href="/recommend-source">{m.nav.recommendSource}</Link>
-          <Link href="/feedback">{m.nav.feedback}</Link>
-          <MastheadAccount />
-        </nav>
-      </header>
+      <ReaderNavSidebar />
+      <div className="reader-control-strip">
+        <ReaderSidebar items={sidebarItems} />
+        <NotificationBell />
+      </div>
+      <SearchBar />
+      <CurrentHotspots items={hotspots} />
 
       <h2 className="section-intro" style={{ fontWeight: 600, color: "var(--ink)" }}>
         {m.home.heading}
       </h2>
       <p className="section-intro">{m.home.subheading}</p>
-
-      <SearchBar />
-      <ReaderSidebar items={sidebarItems} />
 
       {events.length === 0 ? (
         <div className="empty">{isFiltered ? m.search.empty : m.home.empty}</div>
@@ -218,7 +247,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                         >
                           {day.items.map((event) => {
                             const r =
-                              reactions.get(event.id) ?? { liked: false, starred: false };
+                              reactions.get(event.id) ?? {
+                                liked: false,
+                                starred: false,
+                                downed: false,
+                              };
                             const accent = modelAccent(event);
                             const when =
                               event.publishedAt ?? event.promotedAt ?? event.createdAt;
@@ -229,7 +262,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                                 style={{ "--card-accent": accent.rgb } as CSSProperties}
                               >
                                 <div className="tl-rail">
-                                  <time className="tl-time">{formatTimeOfDay(when)}</time>
+                                  <time className="tl-time" dateTime={toIsoAttr(when)}>{formatTimeOfDay(when)}</time>
                                 </div>
                                 <span className="tl-dot" aria-hidden="true" />
                                 <SpotlightCard
@@ -240,6 +273,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                                     event={event}
                                     liked={r.liked}
                                     starred={r.starred}
+                                    downed={r.downed}
                                     accentLabel={accent.label}
                                     topComments={topComments.get(event.id)}
                                   />

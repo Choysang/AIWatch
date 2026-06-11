@@ -12,6 +12,7 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { startEmbeddedPostgres, type PgHandle } from "./helpers/embedded-pg";
 
 let pgHandle: PgHandle;
+let savedDatabaseUrl: string | undefined;
 
 let getDb: typeof import("@/db/client").getDb;
 let resetDb: typeof import("@/db/client").resetDb;
@@ -26,12 +27,15 @@ const ONBOARDED = new Date("2026-05-20T00:00:00Z");
 const IMAGE = "https://pbs.twimg.com/media/demo.jpg";
 
 beforeAll(async () => {
-  if (!process.env.DATABASE_URL) {
-    pgHandle = await startEmbeddedPostgres();
-    process.env.DATABASE_URL = pgHandle.connectionString;
-  }
-  // Hand-entered posts go through the real fail-closed judge; opt into the stub for the test.
+  savedDatabaseUrl = process.env.DATABASE_URL;
+  pgHandle = await startEmbeddedPostgres();
+  process.env.DATABASE_URL = pgHandle.connectionString;
+  // Hand-entered posts go through the real fail-closed judge. Force the stub provider for the
+  // light + deep stages so the test never makes a live LLM call (mirrors pipeline.test.ts);
+  // without this, a configured real key takes precedence and the ingest call times out.
   process.env.LLM_STUB_FALLBACK = "1";
+  process.env.LLM_LIGHT_PROVIDER = "stub";
+  process.env.LLM_DEEP_PROVIDER = "stub";
 
   ({ getDb, resetDb } = await import("@/db/client"));
   ({ createSource } = await import("@/db/queries/sources"));
@@ -52,8 +56,11 @@ function withTimeout(p: Promise<unknown> | undefined, ms: number): Promise<unkno
 afterAll(async () => {
   await withTimeout(resetDb?.(), 10_000);
   await withTimeout(pgHandle?.stop(), 15_000);
-  if (pgHandle) delete process.env.DATABASE_URL;
+  if (savedDatabaseUrl === undefined) delete process.env.DATABASE_URL;
+  else process.env.DATABASE_URL = savedDatabaseUrl;
   delete process.env.LLM_STUB_FALLBACK;
+  delete process.env.LLM_LIGHT_PROVIDER;
+  delete process.env.LLM_DEEP_PROVIDER;
 }, 60_000);
 
 describe("manual source onboarding (real Postgres)", () => {

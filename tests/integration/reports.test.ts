@@ -7,6 +7,7 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { startEmbeddedPostgres, type PgHandle } from "./helpers/embedded-pg";
 
 let pgHandle: PgHandle | undefined;
+let savedDatabaseUrl: string | undefined;
 let getDb: typeof import("@/db/client").getDb;
 let resetDb: typeof import("@/db/client").resetDb;
 let schema: typeof import("@/db/schema");
@@ -28,10 +29,9 @@ function withTimeout(p: Promise<unknown> | undefined, ms: number): Promise<unkno
 }
 
 beforeAll(async () => {
-  if (!process.env.DATABASE_URL) {
-    pgHandle = await startEmbeddedPostgres();
-    process.env.DATABASE_URL = pgHandle.connectionString;
-  }
+  savedDatabaseUrl = process.env.DATABASE_URL;
+  pgHandle = await startEmbeddedPostgres();
+  process.env.DATABASE_URL = pgHandle.connectionString;
   ({ getDb, resetDb } = await import("@/db/client"));
   schema = await import("@/db/schema");
   ({ generateReport } = await import("@/db/jobs/generate-report"));
@@ -59,7 +59,8 @@ beforeAll(async () => {
 afterAll(async () => {
   await withTimeout(resetDb?.(), 10_000);
   await withTimeout(pgHandle?.stop(), 15_000);
-  if (pgHandle) delete process.env.DATABASE_URL;
+  if (savedDatabaseUrl === undefined) delete process.env.DATABASE_URL;
+  else process.env.DATABASE_URL = savedDatabaseUrl;
 }, 60_000);
 
 beforeEach(async () => {
@@ -73,6 +74,7 @@ async function insertEvent(opts: {
   category?: string;
   level?: "none" | "B" | "A" | "S";
   qualityScore?: number;
+  tags?: string[];
   promotedAt?: Date | null;
   publishedAt: Date;
   mainPostId?: string | null;
@@ -81,6 +83,7 @@ async function insertEvent(opts: {
     id,
     title,
     category,
+    tags = [],
     level = "none",
     qualityScore,
     promotedAt = null,
@@ -96,6 +99,7 @@ async function insertEvent(opts: {
     promotedAt,
     publishedAt,
     qualityScore,
+    tags,
     mainSourceId: SOURCE_ID,
     mainPostId,
   });
@@ -104,9 +108,9 @@ async function insertEvent(opts: {
 // A representative day's events: focus (selected in window), watching (high-score
 // unselected in window), followup (selected in the prior window), and excluded items.
 async function seedDay(): Promise<void> {
-  await insertEvent({ id: "s1", title: "S focus", level: "S", qualityScore: 95, promotedAt: ago(0.2), publishedAt: ago(0.3), mainPostId: POST_ID });
-  await insertEvent({ id: "b1", title: "B focus", level: "B", qualityScore: 80, promotedAt: ago(0.5), publishedAt: ago(0.6) });
-  await insertEvent({ id: "w_hi", title: "watch hi", qualityScore: 90, publishedAt: ago(0.5) });
+  await insertEvent({ id: "s1", title: "S focus", tags: ["Claude", "企业智能体"], level: "S", qualityScore: 95, promotedAt: ago(0.2), publishedAt: ago(0.3), mainPostId: POST_ID });
+  await insertEvent({ id: "b1", title: "B focus", tags: ["双语 ASR"], level: "B", qualityScore: 80, promotedAt: ago(0.5), publishedAt: ago(0.6) });
+  await insertEvent({ id: "w_hi", title: "watch hi", tags: ["RAG"], qualityScore: 90, publishedAt: ago(0.5) });
   await insertEvent({ id: "w_lo", title: "watch lo", qualityScore: 50, publishedAt: ago(0.5) }); // below min
   await insertEvent({ id: "a_prev", title: "A followup", level: "A", qualityScore: 88, promotedAt: ago(1.5), publishedAt: ago(1.6) });
   await insertEvent({ id: "ancient", title: "old", level: "S", qualityScore: 99, promotedAt: ago(5), publishedAt: ago(5) });
@@ -126,6 +130,9 @@ describe("generateReport (daily) + public read (real Postgres)", () => {
 
     const report = await getLatestDaily();
     expect(report).not.toBeNull();
+    expect(report!.title).toBe("Claude / 企业智能体 / 双语 ASR · 05.24 早报");
+    expect(report!.keywords).toEqual(["Claude", "企业智能体", "双语 ASR"]);
+    expect(report!.reading_path?.[0]).toContain("S focus → B focus → watch hi");
     expect(section(report!, "today_focus").items.map((i) => i.id)).toEqual(["s1", "b1"]);
     expect(section(report!, "worth_watching").items.map((i) => i.id)).toEqual(["w_hi"]);
     expect(section(report!, "yesterday_followup").items.map((i) => i.id)).toEqual(["a_prev"]);

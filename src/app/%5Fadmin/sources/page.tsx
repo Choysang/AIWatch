@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession, isConsoleRole } from "@/app/_lib/session";
+import { getSession, isAdminRole } from "@/app/_lib/session";
 import { messages } from "@/i18n";
 
 export const metadata = {
@@ -14,7 +14,7 @@ export default async function SourcesPage() {
   if (!session) redirect("/login?next=/_admin");
 
   const role = (session.user as { role?: string }).role;
-  if (!isConsoleRole(role)) {
+  if (!isAdminRole(role)) {
     return (
       <main className="page">
         <p>{messages.admin.loginRequired}</p>

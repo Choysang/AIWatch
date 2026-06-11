@@ -23,6 +23,9 @@ export interface ReportItem {
   selected_level: SelectedLevel;
   selected_label: string | null;
   category: string | null;
+  tags: string[];
+  source_name: string | null;
+  source_handle: string | null;
   url: string | null;
 }
 
@@ -39,6 +42,12 @@ export interface ReportContent {
   date: string;
   title: string;
   summary: string;
+  /** Topic keywords used for the issue title and hero chips. Optional for legacy rows. */
+  keywords?: string[];
+  /** Human-readable publication window, e.g. "06.10 早报". Optional for legacy rows. */
+  coverage_label?: string;
+  /** Deterministic reading guidance assembled from the top items. Optional for legacy rows. */
+  reading_path?: string[];
   sections: ReportSection[];
 }
 
@@ -53,6 +62,9 @@ export interface ReportEvent {
   selectedLevel: SelectedLevel;
   selectedLabel: string | null;
   url: string | null;
+  tags: string[];
+  sourceName: string | null;
+  sourceHandle: string | null;
   publishedAt: Date | null;
   promotedAt: Date | null;
 }
@@ -64,8 +76,18 @@ export interface SectionCounts {
 }
 
 /** Localized strings injected into the pure assembler so it stays i18n-agnostic. */
+export interface ReportTextContext extends SectionCounts {
+  kind: ReportKind;
+  date: string;
+  keywords: string[];
+  topTitles: string[];
+  itemCount: number;
+  coverageLabel: string;
+}
+
 export interface ReportText {
-  title: string;
+  title: (ctx: ReportTextContext) => string;
   sectionTitles: Record<SectionKey, string>;
-  summary: (counts: SectionCounts) => string;
+  summary: (ctx: ReportTextContext) => string;
+  readingPath: (ctx: ReportTextContext) => string[];
 }

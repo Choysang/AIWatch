@@ -1,8 +1,8 @@
 // /api/events/[id]/comments — public comments endpoint (Slice 9).
 //
 // GET  → returns one sorted comment list: { sort, items }.
-// POST → creates a comment (idempotent on event+identity+bodyHash). Identity
-//        precedence: session > rid cookie > IP+UA fingerprint. Body is classified
+// POST → creates a comment (idempotent on event+user+bodyHash). Login is required
+//        for writing; anonymous readers can still read and react elsewhere. Body is classified
 //        deterministically before insert; low-value bodies are stored (so the rule
 //        triggers idempotency on re-submission) but excluded from GET.
 //
@@ -12,8 +12,6 @@
 
 import { z, ZodError } from "zod";
 import { getSession } from "@/app/_lib/session";
-import { READER_ID_COOKIE, verifyReaderId } from "@/auth/reader-id";
-import { fingerprint } from "@/contributions/fingerprint";
 import {
   addComment,
   CommentIdentityError,
@@ -36,16 +34,6 @@ const bodySchema = z.object({
   // SP3.1: when present, this comment is a reply to the given top-level comment.
   parentId: z.string().min(1).optional(),
 });
-
-function readCookie(req: Request, name: string): string | null {
-  const header = req.headers.get("cookie");
-  if (!header) return null;
-  const prefix = `${name}=`;
-  for (const part of header.split(/;\s*/)) {
-    if (part.startsWith(prefix)) return part.slice(prefix.length);
-  }
-  return null;
-}
 
 /** Public-facing comment shape. Identity columns (userId/fingerprint) are omitted
  * deliberately: anonymous reactions/comments should not leak the cookie-id back to
@@ -133,7 +121,6 @@ export async function POST(
     return jsonError(400, err instanceof ZodError ? "invalid_body" : "invalid_body");
   }
 
-  // Identity precedence mirrors reactions: session > rid cookie > IP+UA fp.
   let userId: string | null = null;
   try {
     const session = await getSession();
@@ -141,19 +128,15 @@ export async function POST(
   } catch {
     userId = null;
   }
-
-  let fp: string | null = null;
   if (!userId) {
-    const ridRaw = readCookie(req, READER_ID_COOKIE);
-    const rid = await verifyReaderId(ridRaw);
-    fp = rid ?? fingerprint(ip, req.headers.get("user-agent") ?? "");
+    return jsonError(401, "login_required");
   }
 
   try {
     const row = await addComment({
       eventId,
       body: parsed.body,
-      identity: { userId, fingerprint: fp },
+      identity: { userId, fingerprint: null },
       parentId: parsed.parentId ?? null,
     });
     return Response.json(toPublic(row), { status: 200 });

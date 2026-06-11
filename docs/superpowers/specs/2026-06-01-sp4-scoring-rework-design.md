@@ -53,8 +53,8 @@
 ### F. 迁移 / 版本 / 回填
 - `scoringConfig.version` → `scoring-v2`；新增 `qualityWeights / confidenceWeights / relevanceMin / contentTypeSelectionMultiplier`。
 - **migration 0014**：`event_scores` 加 `event_quality_score / confidence_score / selection_score`（append-only）；`events` 去规范化 `selection_score`（晋级/排序读它）。保留 `base_score/promotion_score` 列一段时间（v1→v2 过渡，recompute 后可弃）。
-- 复用现有 **recompute job**（`recompute-promotion-scores.ts` / `recompute-rank-scores.ts`）→ 新增 `recompute-scores-v2`：对全量 event 重算五层并回填，幂等、版本戳。
-- 晋级 job（`check-promotion.ts`）改读 selection_score；display/decay 不变。
+- 使用 `recompute-scores-v2` 对候选 event 重算五层并回填，幂等、版本戳。
+- 晋级 job 使用 `check-promotion-v2` 读取 selection_score；v1 promotion DB job 可在测试迁移后移除。
 
 ## 测试
 - 各纯函数单测：relevanceGate 边界；quality 权重和=1 且去人气；confidence 多源印证对数；selection 乘法门控 + content_type 系数；低 confidence 上限封顶；scoring-v2 SQL↔TS 平价（沿用现有平价测试套路）。

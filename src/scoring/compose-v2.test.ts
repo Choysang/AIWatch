@@ -19,7 +19,7 @@ describe("composeScoresV2", () => {
       sourcePostCount: 1,
       expertActions: [],
       validComments: [],
-      contentType: "product_release",
+      contentType: "howto",
     });
 
     expect(r.relevancePassed).toBe(true);
@@ -39,7 +39,7 @@ describe("composeScoresV2", () => {
       sourcePostCount: 5,
       expertActions: [],
       validComments: [],
-      contentType: "model_release",
+      contentType: "release",
     });
     expect(r.relevancePassed).toBe(false);
     expect(r.selectionScore).toBe(0);
@@ -55,7 +55,7 @@ describe("composeScoresV2", () => {
       sourceLevel: "L3" as const,
       expertActions: [],
       validComments: [],
-      contentType: "product_release" as const,
+      contentType: "howto" as const,
     };
     const single = composeScoresV2({ ...common, sourcePostCount: 1 });
     const corroborated = composeScoresV2({ ...common, sourcePostCount: 4 });
@@ -71,7 +71,7 @@ describe("composeScoresV2", () => {
       sourcePostCount: 2,
       expertActions: [],
       validComments: [],
-      contentType: "tech_share",
+      contentType: "howto",
     });
     expect(r.breakdown.configVersion).toBe(scoringV2Config.version);
     expect(r.breakdown.relevance).toBeDefined();

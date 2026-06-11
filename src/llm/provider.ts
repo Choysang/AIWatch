@@ -10,7 +10,7 @@ export interface ChatMessage {
 
 export interface StructuredGenerateInput<T> {
   model: string;
-  schema: z.ZodType<T>;
+  schema: z.ZodType<T, z.ZodTypeDef, unknown>;
   messages: ChatMessage[];
   temperature?: number;
   maxOutputTokens?: number;

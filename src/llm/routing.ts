@@ -11,6 +11,8 @@ import { StubLLMProvider } from "./stub";
 
 export type LlmTask =
   | "prefilter"
+  | "light_judge"
+  | "deep_extract"
   | "cold_judge"
   | "comment_classification"
   | "merge_detection"
@@ -36,7 +38,9 @@ export interface RouteConfig {
 
 // Routing config version: bump when ANY route's provider/model/promptVersion changes so
 // downstream caches (judgments, recomputes) can detect a routing drift.
-export const routingConfigVersion = "routing-v2";
+// routing-v4: dual-axis taxonomy + single-model degrade — light_judge/deep_extract share one
+// provider+model (default deepseek-chat); they differ only by prompt, not by provider tier.
+export const routingConfigVersion = "routing-v4";
 
 const PROVIDERS: LlmProviderName[] = [
   "openai",
@@ -54,8 +58,24 @@ function configuredProvider(envName: string, fallback: LlmProviderName): LlmProv
   return PROVIDERS.includes(value as LlmProviderName) ? (value as LlmProviderName) : fallback;
 }
 
+function configuredProviderChain(envNames: string[], fallback: LlmProviderName): LlmProviderName {
+  for (const envName of envNames) {
+    const value = process.env[envName]?.trim();
+    if (value && PROVIDERS.includes(value as LlmProviderName)) return value as LlmProviderName;
+  }
+  return fallback;
+}
+
 function configuredModel(envName: string, fallback: string): string {
   return process.env[envName]?.trim() || fallback;
+}
+
+function configuredModelChain(envNames: string[], fallback: string): string {
+  for (const envName of envNames) {
+    const value = process.env[envName]?.trim();
+    if (value) return value;
+  }
+  return fallback;
 }
 
 // Default routes only target providers with a real adapter implemented today
@@ -65,6 +85,42 @@ function configuredModel(envName: string, fallback: string): string {
 // fails closed for those names.
 export const llmRouting: Record<LlmTask, RouteConfig> = {
   prefilter: { provider: "deepseek", model: "deepseek-chat", promptVersion: "prefilter-v1", maxInputTokens: 2000, maxOutputTokens: 200, temperature: 0 },
+  // Single-model degrade (2026-06-06 design §4): triage + deep extraction share one provider
+  // and model — they differ only by prompt. LLM_PROVIDER / LLM_MODEL are the canonical single
+  // knobs; the per-stage (LLM_LIGHT_*/LLM_DEEP_*) and legacy LLM_NEWS_* env vars stay in the
+  // chain for back-compat. Default deepseek-chat: a mid-tier model with good Chinese summaries.
+  get light_judge() {
+    return {
+      provider: configuredProviderChain(
+        ["LLM_PROVIDER", "LLM_LIGHT_PROVIDER", "LLM_NEWS_PROVIDER"],
+        "deepseek",
+      ),
+      model: configuredModelChain(
+        ["LLM_MODEL", "LLM_LIGHT_MODEL", "LLM_NEWS_MODEL"],
+        "deepseek-chat",
+      ),
+      promptVersion: "light-judge-v2",
+      maxInputTokens: 3000,
+      maxOutputTokens: 300,
+      temperature: 0,
+    };
+  },
+  get deep_extract() {
+    return {
+      provider: configuredProviderChain(
+        ["LLM_PROVIDER", "LLM_DEEP_PROVIDER", "LLM_NEWS_PROVIDER"],
+        "deepseek",
+      ),
+      model: configuredModelChain(
+        ["LLM_MODEL", "LLM_DEEP_MODEL", "LLM_NEWS_MODEL"],
+        "deepseek-chat",
+      ),
+      promptVersion: "deep-extract-v2",
+      maxInputTokens: 5000,
+      maxOutputTokens: 900,
+      temperature: 0.2,
+    };
+  },
   get cold_judge() {
     return {
       provider: configuredProvider("LLM_NEWS_PROVIDER", "openai"),

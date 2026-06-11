@@ -10,7 +10,7 @@
 //      push it.
 //   3. Reader view increment: a small log-saturated bonus, counted only after the user opens
 //      the detail page or original source from a card.
-//   4. content_type multiplier (open point D2, locked): discussion ×0.9, model_release ×1.05,
+//   4. content_type multiplier (open point D2, locked): opinion ×0.9, release ×1.05,
 //      others ×1.0 — classification influences selection, a core point-8 goal.
 // Final score is clamped to [0,100].
 //

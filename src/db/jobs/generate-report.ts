@@ -9,7 +9,7 @@ import { and, eq, gte, lt, or } from "drizzle-orm";
 import { newId } from "@/core/ids";
 import { APP_TZ, appCalendarDate, DAY_MS } from "@/core/time";
 import { db as defaultDb, type DB } from "@/db/client";
-import { events, posts, reports } from "@/db/schema";
+import { events, posts, reports, sources } from "@/db/schema";
 import { messages } from "@/i18n";
 import { buildReport } from "@/reports/build-report";
 import { reportConfig, type ReportConfig } from "@/reports/config";
@@ -31,13 +31,26 @@ export interface GenerateReportOptions {
   reportCfg?: ReportConfig;
 }
 
-function reportText(kind: ReportKind, date: string): ReportText {
+function reportText(kind: ReportKind): ReportText {
   const r = messages.report;
   return {
-    title: `${messages.appName} ${r.kind[kind]} · ${date}`,
+    title: (ctx) => `${ctx.keywords.join(" / ")} · ${ctx.coverageLabel}`,
     sectionTitles: r.sections,
-    summary: (c) =>
-      `${r.counts.focus} ${c.focus} · ${r.counts.watching} ${c.watching} · ${r.counts.followup} ${c.followup}`,
+    summary: (ctx) => {
+      if (ctx.itemCount === 0) return r.emptySummary;
+      const topic = ctx.keywords.join("、");
+      const counts = `${r.counts.focus} ${ctx.focus} · ${r.counts.watching} ${ctx.watching} · ${r.counts.followup} ${ctx.followup}`;
+      if (ctx.kind === "weekly") return r.weeklySummary(topic, counts);
+      if (ctx.kind === "monthly") return r.monthlySummary(topic, counts);
+      return r.dailySummary(topic, counts);
+    },
+    readingPath: (ctx) => {
+      if (ctx.topTitles.length === 0) return [];
+      const primary = ctx.topTitles.slice(0, 3).join(" → ");
+      if (ctx.kind === "weekly") return [r.weeklyReadingPath(primary), r.weeklyEditorNote(ctx.keywords.join("、"))];
+      if (ctx.kind === "monthly") return [r.monthlyReadingPath(primary), r.monthlyEditorNote(ctx.keywords.join("、"))];
+      return [r.dailyReadingPath(primary), r.dailyEditorNote(ctx.keywords.join("、"))];
+    },
   };
 }
 
@@ -69,10 +82,14 @@ export async function generateReport(
       selectedLabel: events.selectedLabel,
       publishedAt: events.publishedAt,
       promotedAt: events.promotedAt,
+      tags: events.tags,
       url: posts.url,
+      sourceName: sources.name,
+      sourceHandle: sources.handle,
     })
     .from(events)
     .leftJoin(posts, eq(posts.id, events.mainPostId))
+    .leftJoin(sources, eq(sources.id, events.mainSourceId))
     .where(
       or(
         and(gte(events.promotedAt, priorStart), lt(events.promotedAt, window.end)),
@@ -90,6 +107,9 @@ export async function generateReport(
     selectedLevel: r.selectedLevel,
     selectedLabel: r.selectedLabel,
     url: r.url,
+    tags: r.tags,
+    sourceName: r.sourceName,
+    sourceHandle: r.sourceHandle,
     publishedAt: r.publishedAt,
     promotedAt: r.promotedAt,
   }));
@@ -99,7 +119,7 @@ export async function generateReport(
     date,
     window,
     events: reportEvents,
-    text: reportText(kind, date),
+    text: reportText(kind),
     config: cfg,
   });
 

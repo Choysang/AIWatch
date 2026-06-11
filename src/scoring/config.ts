@@ -126,12 +126,14 @@ export const scoringV2Config: ScoringV2Config = {
     viewSaturation: 200,
     confidenceCapToBBelow: 40,
   },
-  // discussion is harder to promote; model_release gets a small edge. Open point D2: included.
+  // opinion is harder to promote; release gets a small edge. Open point D2: included.
+  // Keyed to the dual-axis content types (release/research/howto/opinion/news).
   contentTypeSelectionMultiplier: {
-    model_release: 1.05,
-    product_release: 1.0,
-    tech_share: 1.0,
-    discussion: 0.9,
+    release: 1.05,
+    research: 1.0,
+    howto: 1.0,
+    opinion: 0.9,
+    news: 1.0,
   },
 };
 

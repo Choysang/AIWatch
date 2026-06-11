@@ -1,6 +1,6 @@
 // Deterministic rank-score: applies a time-banded user-feedback boost to the
 // pure base_score. Pure function, no IO. The SQL job in db/jobs (Slice 7 task 21)
-// applies the same formula in batch on persisted like/star counts.
+// applies the same formula in batch on persisted like/star/down counts.
 //
 // Spec: docs/superpowers/specs/2026-05-23-aiwatch-hot-design.md (User Feedback)
 //   0-6h     external heat dominant (likes/stars small boost)
@@ -17,6 +17,7 @@ export interface RankScoreConfig {
   /** Count at which the like-normalized signal reaches ~98%. */
   likeSaturation: number;
   starSaturation: number;
+  downSaturation: number;
   viewSaturation: number;
   /** Max points contributed by card/detail/source opens at saturation. */
   viewBoost: number;
@@ -30,24 +31,27 @@ export interface RankScoreConfig {
     likeBoost: number;
     /** Max points contributed by stars at saturation. */
     starBoost: number;
+    /** Max points subtracted by down feedback at saturation. */
+    downPenalty: number;
   }>;
 }
 
 export const rankScoreConfig: RankScoreConfig = {
-  version: "rank-v2",
+  version: "rank-v3",
   likeSaturation: 100,
   starSaturation: 20,
+  downSaturation: 30,
   viewSaturation: 200,
   viewBoost: 4,
   bands: [
     // 0-6h: cold. External heat dominates base_score; user feedback is sparse.
-    { label: "0-6h", maxAgeHours: 6, likeBoost: 2, starBoost: 3 },
+    { label: "0-6h", maxAgeHours: 6, likeBoost: 2, starBoost: 3, downPenalty: 2 },
     // 6-24h: warming. Heat and feedback move together.
-    { label: "6-24h", maxAgeHours: 24, likeBoost: 6, starBoost: 6 },
+    { label: "6-24h", maxAgeHours: 24, likeBoost: 6, starBoost: 6, downPenalty: 6 },
     // 24h-7d: durable signal. Stars (intentional keep) outweighs likes.
-    { label: "24h-7d", maxAgeHours: 24 * 7, likeBoost: 4, starBoost: 10 },
+    { label: "24h-7d", maxAgeHours: 24 * 7, likeBoost: 4, starBoost: 10, downPenalty: 8 },
     // 7d+: archive. Likes fade, stars persist as the durable curation signal.
-    { label: "7d+", maxAgeHours: Number.POSITIVE_INFINITY, likeBoost: 1, starBoost: 12 },
+    { label: "7d+", maxAgeHours: Number.POSITIVE_INFINITY, likeBoost: 1, starBoost: 12, downPenalty: 4 },
   ],
 };
 
@@ -57,6 +61,8 @@ export interface RankScoreInputs {
   likeCount: number;
   /** Non-negative integer. */
   starCount: number;
+  /** Non-negative integer. */
+  downCount?: number;
   /** Non-negative integer. */
   viewCount?: number;
   /** Hours since event.publishedAt. Negative inputs are treated as 0. */
@@ -70,6 +76,7 @@ export interface RankScoreBreakdown {
   likeBoost: number;
   starBoost: number;
   viewBoost: number;
+  downPenalty: number;
   rankScore: number;
 }
 
@@ -106,11 +113,13 @@ export function computeRankScore(
   const band = pickBand(inputs.ageHours, config);
   const likeNorm = saturate(inputs.likeCount, config.likeSaturation);
   const starNorm = saturate(inputs.starCount, config.starSaturation);
+  const downNorm = saturate(inputs.downCount ?? 0, config.downSaturation);
   const viewNorm = saturate(inputs.viewCount ?? 0, config.viewSaturation);
   const likeBoost = likeNorm * band.likeBoost;
   const starBoost = starNorm * band.starBoost;
+  const downPenalty = downNorm * band.downPenalty;
   const viewBoost = viewNorm * config.viewBoost;
-  const rankScore = Math.max(0, inputs.baseScore + likeBoost + starBoost + viewBoost);
+  const rankScore = Math.max(0, inputs.baseScore + likeBoost + starBoost + viewBoost - downPenalty);
   return {
     rankScore,
     breakdown: {
@@ -120,6 +129,7 @@ export function computeRankScore(
       likeBoost,
       starBoost,
       viewBoost,
+      downPenalty,
       rankScore,
     },
   };
@@ -129,7 +139,12 @@ export function computeRankScore(
 export function bandWeightsForAge(
   ageHours: number,
   config: RankScoreConfig = rankScoreConfig,
-): { label: string; likeBoost: number; starBoost: number } {
+): { label: string; likeBoost: number; starBoost: number; downPenalty: number } {
   const band = pickBand(ageHours, config);
-  return { label: band.label, likeBoost: band.likeBoost, starBoost: band.starBoost };
+  return {
+    label: band.label,
+    likeBoost: band.likeBoost,
+    starBoost: band.starBoost,
+    downPenalty: band.downPenalty,
+  };
 }

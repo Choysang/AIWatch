@@ -3,6 +3,12 @@
 // server-side (decision E) — clients/agents never compute date boundaries.
 
 import type { PromotedLevel } from "@/scoring/types";
+import { INTELLIGENCE_DOMAINS, type IntelligenceDomain } from "@/pipeline/judge-schema";
+import {
+  AI_SOURCE_CATEGORIES,
+  parseAiSourceCategories,
+  type AiSourceCategory,
+} from "@/sources/ai-source-categories";
 
 export type PublicMode = "selected" | "all";
 export type SemanticWindow = "today" | "week" | "month" | "all";
@@ -22,16 +28,23 @@ export const SOURCE_TYPES = [
   "open_source_project",
 ] as const;
 export type SourceType = (typeof SOURCE_TYPES)[number];
+export const SOURCE_CATEGORIES = AI_SOURCE_CATEGORIES;
+export type SourceCategory = AiSourceCategory;
+// Reader-facing article category. Mirrors INTELLIGENCE_DOMAINS (persisted on
+// events.category as text).
+export const EVENT_CATEGORIES = INTELLIGENCE_DOMAINS;
+export type EventCategory = IntelligenceDomain;
 
 /**
- * Reader-facing content classification facet (SP2 point 5). Mirrors the `content_type`
- * pgEnum on `events` and CONTENT_TYPES in judge-schema — keep all three in sync.
+ * Internal content-type facet retained for API compatibility. The reader UI now uses the
+ * `category` axis plus supplementary free-form tags.
  */
 export const CONTENT_TYPES = [
-  "model_release",
-  "product_release",
-  "tech_share",
-  "discussion",
+  "release",
+  "research",
+  "howto",
+  "opinion",
+  "news",
 ] as const;
 export type ContentType = (typeof CONTENT_TYPES)[number];
 
@@ -55,15 +68,19 @@ export interface Cursor {
 export interface PublicQuery {
   mode: PublicMode;
   since: SemanticWindow;
-  category?: string;
+  category?: EventCategory;
   q?: string;
   /** Exact tag filter (matches events carrying ANY of these tags). */
   tags?: string[];
   /** Source-type facet (ANY-of). Undefined = no filter. */
   sourceTypes?: SourceType[];
+  /** Reader-facing AI source category facet (ANY-of). Undefined = no filter. */
+  sourceCategories?: SourceCategory[];
   /** Content-type facet (ANY-of). Undefined = no filter. */
   contentTypes?: ContentType[];
   level?: PromotedLevel;
+  /** Minimum event quality score (0..100). Undefined = no score filter. */
+  minScore?: number;
   /**
    * Explicit custom date range (SP2 point 3). When either bound is present the rolling
    * `since` window is ignored and these bounds apply instead. `dateFrom` is the inclusive
@@ -86,10 +103,22 @@ function isContentType(v: string): v is ContentType {
   return CONTENT_TYPE_SET.has(v);
 }
 
+const EVENT_CATEGORY_SET: ReadonlySet<string> = new Set(EVENT_CATEGORIES);
+function isEventCategory(v: string): v is EventCategory {
+  return EVENT_CATEGORY_SET.has(v);
+}
+
 function clampTake(raw: string | null): number {
   const n = Number(raw);
   if (!Number.isFinite(n) || n <= 0) return DEFAULT_TAKE;
   return Math.min(Math.floor(n), MAX_TAKE);
+}
+
+function parseMinScore(raw: string | null): number | undefined {
+  if (!raw?.trim()) return undefined;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0 || n > 100) return undefined;
+  return Math.floor(n);
 }
 
 export function encodeCursor(cursor: Cursor): string {
@@ -138,6 +167,11 @@ export function parseSourceTypes(raw: string | null): SourceType[] | undefined {
   return seen.size ? [...seen] : undefined;
 }
 
+/** Parse a comma-separated `sourceCategories` param. Unknown values are silently dropped. */
+export function parseSourceCategories(raw: string | null): SourceCategory[] | undefined {
+  return parseAiSourceCategories(raw);
+}
+
 /** Parse a comma-separated `contentTypes` param. Unknown values are silently dropped. */
 export function parseContentTypes(raw: string | null): ContentType[] | undefined {
   if (!raw) return undefined;
@@ -147,6 +181,11 @@ export function parseContentTypes(raw: string | null): ContentType[] | undefined
     if (v && isContentType(v)) seen.add(v);
   }
   return seen.size ? CONTENT_TYPES.filter((t) => seen.has(t)) : undefined;
+}
+
+export function parseEventCategory(raw: string | null): EventCategory | undefined {
+  const value = raw?.trim();
+  return value && isEventCategory(value) ? value : undefined;
 }
 
 /** Window start as a Date, or null for `all` (no time bound). */
@@ -186,7 +225,7 @@ export function parseDateRange(
 }
 
 export function parsePublicQuery(params: URLSearchParams): PublicQuery {
-  const mode: PublicMode = params.get("mode") === "all" ? "all" : "selected";
+  const mode: PublicMode = params.get("mode") === "selected" ? "selected" : "all";
   const sinceRaw = params.get("since");
   const since: SemanticWindow =
     sinceRaw === "today" || sinceRaw === "week" || sinceRaw === "month" || sinceRaw === "all"
@@ -199,12 +238,14 @@ export function parsePublicQuery(params: URLSearchParams): PublicQuery {
   const level: PromotedLevel | undefined =
     levelRaw === "B" || levelRaw === "A" || levelRaw === "S" ? levelRaw : undefined;
 
-  const category = params.get("category")?.trim() || undefined;
+  const category = parseEventCategory(params.get("category"));
   const q = params.get("q")?.trim() || undefined;
   const tags = parseTags(params.get("tags"));
   const sourceTypes = parseSourceTypes(params.get("sourceTypes"));
+  const sourceCategories = parseSourceCategories(params.get("sourceCategories"));
   const contentTypes = parseContentTypes(params.get("contentTypes"));
   const { dateFrom, dateTo } = parseDateRange(params.get("from"), params.get("to"));
+  const minScore = parseMinScore(params.get("minScore"));
 
   return {
     mode,
@@ -213,8 +254,10 @@ export function parsePublicQuery(params: URLSearchParams): PublicQuery {
     q,
     tags,
     sourceTypes,
+    sourceCategories,
     contentTypes,
     level,
+    minScore,
     dateFrom,
     dateTo,
     take: clampTake(params.get("take")),

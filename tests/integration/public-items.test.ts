@@ -7,6 +7,7 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { startEmbeddedPostgres, type PgHandle } from "./helpers/embedded-pg";
 
 let pgHandle: PgHandle | undefined;
+let savedDatabaseUrl: string | undefined;
 let getDb: typeof import("@/db/client").getDb;
 let resetDb: typeof import("@/db/client").resetDb;
 let schema: typeof import("@/db/schema");
@@ -26,10 +27,9 @@ function withTimeout(p: Promise<unknown> | undefined, ms: number): Promise<unkno
 }
 
 beforeAll(async () => {
-  if (!process.env.DATABASE_URL) {
-    pgHandle = await startEmbeddedPostgres();
-    process.env.DATABASE_URL = pgHandle.connectionString;
-  }
+  savedDatabaseUrl = process.env.DATABASE_URL;
+  pgHandle = await startEmbeddedPostgres();
+  process.env.DATABASE_URL = pgHandle.connectionString;
   ({ getDb, resetDb } = await import("@/db/client"));
   schema = await import("@/db/schema");
   ({ listPublicItems } = await import("@/db/queries/public-items"));
@@ -53,7 +53,8 @@ beforeAll(async () => {
 afterAll(async () => {
   await withTimeout(resetDb?.(), 10_000);
   await withTimeout(pgHandle?.stop(), 15_000);
-  if (pgHandle) delete process.env.DATABASE_URL;
+  if (savedDatabaseUrl === undefined) delete process.env.DATABASE_URL;
+  else process.env.DATABASE_URL = savedDatabaseUrl;
 }, 60_000);
 
 beforeEach(async () => {
@@ -66,10 +67,11 @@ async function insertEvent(opts: {
   category?: string;
   tags?: string[];
   level?: "none" | "B" | "A" | "S";
-  contentType?: "model_release" | "product_release" | "tech_share" | "discussion";
+  contentType?: "release" | "research" | "howto" | "opinion" | "news";
   promotedAt?: Date | null;
   publishedAt: Date;
   sourceId?: string;
+  qualityScore?: number;
 }): Promise<void> {
   const {
     id,
@@ -81,19 +83,23 @@ async function insertEvent(opts: {
     promotedAt = null,
     publishedAt,
     sourceId = SOURCE_ID,
+    qualityScore = 80,
   } = opts;
   await getDb().insert(schema.events).values({
     id,
     title,
     category,
     tags,
+    // Mirror buildEventSearchText: the search box now reads the denormalized search_text blob,
+    // so the helper must populate it for q-based assertions to match.
+    searchText: [title, category, ...tags].filter(Boolean).join(" "),
     selectedLevel: level,
     selectedLabel: level === "none" ? null : level,
     contentType,
     promotedAt,
     publishedAt,
     mainSourceId: sourceId,
-    qualityScore: 80,
+    qualityScore,
   });
 }
 
@@ -116,10 +122,22 @@ describe("listPublicItems (real Postgres)", () => {
     expect(res.items.map((i) => i.id)).toEqual(["s1"]);
   });
 
+  test("minScore filter keeps events at or above the quality score threshold", async () => {
+    await insertEvent({ id: "hi", title: "high", level: "B", promotedAt: ago(1), publishedAt: ago(1), qualityScore: 91 });
+    await insertEvent({ id: "edge", title: "edge", level: "B", promotedAt: ago(2), publishedAt: ago(2), qualityScore: 80 });
+    await insertEvent({ id: "low", title: "low", level: "B", promotedAt: ago(3), publishedAt: ago(3), qualityScore: 79 });
+
+    const res = await listPublicItems(query("mode=selected&since=week&minScore=80"), NOW);
+    expect(res.items.map((i) => i.id)).toEqual(["hi", "edge"]);
+
+    const feed = await searchEvents({ mode: "selected", since: "week", minScore: 80 }, 30, NOW);
+    expect(feed.map((e) => e.id)).toEqual(["hi", "edge"]);
+  });
+
   test("category filter", async () => {
-    await insertEvent({ id: "m", title: "model", category: "模型", level: "B", promotedAt: ago(1), publishedAt: ago(1) });
-    await insertEvent({ id: "p", title: "product", category: "产品", level: "B", promotedAt: ago(1), publishedAt: ago(1) });
-    const res = await listPublicItems(query("mode=selected&since=week&category=模型"), NOW);
+    await insertEvent({ id: "m", title: "model", category: "product", level: "B", promotedAt: ago(1), publishedAt: ago(1) });
+    await insertEvent({ id: "p", title: "technical", category: "technology", level: "B", promotedAt: ago(1), publishedAt: ago(1) });
+    const res = await listPublicItems(query("mode=selected&since=week&category=product"), NOW);
     expect(res.items.map((i) => i.id)).toEqual(["m"]);
   });
 
@@ -280,19 +298,19 @@ describe("listPublicItems (real Postgres)", () => {
   });
 
   test("contentTypes filter narrows to events of the requested content_type(s)", async () => {
-    await insertEvent({ id: "ct_m", title: "model", level: "B", contentType: "model_release", promotedAt: ago(1), publishedAt: ago(1) });
-    await insertEvent({ id: "ct_p", title: "product", level: "B", contentType: "product_release", promotedAt: ago(1), publishedAt: ago(1) });
-    await insertEvent({ id: "ct_d", title: "discussion", level: "B", contentType: "discussion", promotedAt: ago(1), publishedAt: ago(1) });
+    await insertEvent({ id: "ct_m", title: "model", level: "B", contentType: "release", promotedAt: ago(1), publishedAt: ago(1) });
+    await insertEvent({ id: "ct_p", title: "product", level: "B", contentType: "howto", promotedAt: ago(1), publishedAt: ago(1) });
+    await insertEvent({ id: "ct_d", title: "discussion", level: "B", contentType: "opinion", promotedAt: ago(1), publishedAt: ago(1) });
 
-    const single = await listPublicItems(query("mode=selected&since=week&contentTypes=model_release"), NOW);
+    const single = await listPublicItems(query("mode=selected&since=week&contentTypes=release"), NOW);
     expect(single.items.map((i) => i.id)).toEqual(["ct_m"]);
-    expect(single.items[0]!.content_type).toBe("model_release");
+    expect(single.items[0]!.content_type).toBe("release");
 
-    const multi = await listPublicItems(query("mode=selected&since=week&contentTypes=model_release,discussion"), NOW);
+    const multi = await listPublicItems(query("mode=selected&since=week&contentTypes=release,opinion"), NOW);
     expect(multi.items.map((i) => i.id).sort()).toEqual(["ct_d", "ct_m"]);
 
     // Same facet via the reader-feed path.
-    const feed = await searchEvents({ mode: "selected", since: "week", contentTypes: ["product_release"] }, 30, NOW);
+    const feed = await searchEvents({ mode: "selected", since: "week", contentTypes: ["howto"] }, 30, NOW);
     expect(feed.map((e) => e.id)).toEqual(["ct_p"]);
   });
 

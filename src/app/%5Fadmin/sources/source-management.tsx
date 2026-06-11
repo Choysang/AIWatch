@@ -1,5 +1,6 @@
 import { formatDateOnly } from "@/app/_lib/format";
 import type { ManagedSourceRow } from "@/db/queries/sources";
+import { sourceCategoryLabel } from "@/sources/ai-source-categories";
 import { SourceAddDialog } from "./source-add-dialog";
 import { SourceReviewDialog, type SourceRecommendationReviewItem } from "./source-review-dialog";
 import { SourceBulkDeleteButton, SourceSelectAll, SourceTableResize } from "./source-selection";
@@ -47,11 +48,9 @@ const CONNECTOR_LABEL: Record<(typeof CONNECTOR_LABELS)[number], string> = {
 };
 
 const SOURCE_PROFILE_LABEL = {
-  official_first_party: "一手官方（官网、官方账号）",
-  core_people: "核心人物（创始人、研究/产品/工程负责人）",
-  community_practice: "社区实践（开发者、社区讨论、开源项目）",
-  media_info: "媒体资讯（媒体、行业报道）",
-  technical_supplement: "技术补充（教程、经验、长尾博客）",
+  official: "官方",
+  industry_leader: "行业领袖",
+  technical_share: "技术分享",
 };
 
 function platformLabel(value: string): string {
@@ -62,13 +61,16 @@ function connectorLabel(value: string): string {
   return CONNECTOR_LABEL[value as (typeof CONNECTOR_LABELS)[number]] ?? value;
 }
 
-function sourceProfileLabel(sourceType: string, level: string): string {
-  if (level === "L1") return SOURCE_PROFILE_LABEL.official_first_party;
-  if (level === "L2") return SOURCE_PROFILE_LABEL.core_people;
-  if (level === "L4") return SOURCE_PROFILE_LABEL.media_info;
-  if (level === "L5") return SOURCE_PROFILE_LABEL.technical_supplement;
+function sourceProfileLabel(sourceType: string, level: string, categories: string[]): string {
+  const categoryLabel = sourceCategoryLabel(categories[0]);
+  if (categoryLabel) return categoryLabel;
+  if (level === "L1") return SOURCE_PROFILE_LABEL.official;
+  if (level === "L2") return SOURCE_PROFILE_LABEL.industry_leader;
   if (sourceType === "open_source_project" || sourceType === "community" || sourceType === "kol") {
-    return SOURCE_PROFILE_LABEL.community_practice;
+    return SOURCE_PROFILE_LABEL.technical_share;
+  }
+  if (sourceType === "media" || sourceType === "expert" || level === "L4" || level === "L5") {
+    return SOURCE_PROFILE_LABEL.technical_share;
   }
   return `${level} ${sourceType}`;
 }
@@ -81,7 +83,7 @@ function sourceStatus(row: ManagedSourceRow): { label: string; className: string
       reason: row.lastError ? `停用原因：${row.lastError}` : "停用原因：已停用，不会自动抓取",
     };
   }
-  if (row.healthStatus === "healthy") {
+  if (row.healthStatus === "healthy" && !row.lastError) {
     return { label: "正常", className: "healthy", reason: "最近抓取请求正常" };
   }
   return {
@@ -183,7 +185,7 @@ export function SourceManagementSection(props: {
                       <div className="admin-muted">{row.handle ?? row.url ?? ""}</div>
                     </td>
                     <td data-label="平台">{platformLabel(row.platform)}</td>
-                    <td data-label="信源定位">{sourceProfileLabel(row.sourceType, row.level)}</td>
+                    <td data-label="信源定位">{sourceProfileLabel(row.sourceType, row.level, row.categories)}</td>
                     <td data-label="抓取方式">
                       {connectorLabel(row.connectorType)}
                       <div className="admin-muted">{row.connectorRef ?? ""}</div>

@@ -2,7 +2,13 @@
 
 import { type FormEvent, useState, useTransition } from "react";
 import { messages } from "@/i18n";
-import { PLATFORM_LABEL, PLATFORMS, SOURCE_PROFILE_LABEL, SOURCE_PROFILES } from "@/sources/source-form";
+import {
+  DEFAULT_SOURCE_PROFILE,
+  PLATFORM_LABEL,
+  PLATFORMS,
+  SOURCE_PROFILE_LABEL,
+  SOURCE_PROFILES,
+} from "@/sources/source-form";
 
 interface FormState {
   name: string;
@@ -21,7 +27,7 @@ const EMPTY: FormState = {
   name: "",
   handle: "",
   platform: "x",
-  sourceProfile: "community_practice",
+  sourceProfile: DEFAULT_SOURCE_PROFILE,
   url: "",
   recommendedBy: "",
   recommendReason: "",

@@ -10,13 +10,14 @@ const prior = new Date(WINDOW.start.getTime() - 6 * 60 * 60 * 1000); // prior wi
 const old = new Date(WINDOW.start.getTime() - 3 * DAY); // well before
 
 const TEXT: ReportText = {
-  title: "日报 · 2026-05-24",
+  title: (ctx) => `${ctx.keywords.join(" / ")} · ${ctx.coverageLabel}`,
   sectionTitles: {
-    today_focus: "今日聚焦",
-    worth_watching: "值得关注",
-    yesterday_followup: "昨日跟进",
+    today_focus: "今日头条",
+    worth_watching: "推荐精选",
+    yesterday_followup: "补充速览",
   },
-  summary: (c) => `聚焦 ${c.focus} · 关注 ${c.watching} · 跟进 ${c.followup}`,
+  summary: (ctx) => `围绕 ${ctx.keywords.join("、")} · 聚焦 ${ctx.focus} · 关注 ${ctx.watching} · 跟进 ${ctx.followup}`,
+  readingPath: (ctx) => (ctx.topTitles.length ? [`先读 ${ctx.topTitles.join(" → ")}`] : []),
 };
 
 function ev(over: Partial<ReportEvent> & { id: string }): ReportEvent {
@@ -30,6 +31,9 @@ function ev(over: Partial<ReportEvent> & { id: string }): ReportEvent {
     selectedLevel: over.selectedLevel ?? "none",
     selectedLabel: over.selectedLabel ?? null,
     url: over.url ?? null,
+    tags: over.tags ?? [],
+    sourceName: over.sourceName ?? null,
+    sourceHandle: over.sourceHandle ?? null,
     publishedAt: over.publishedAt ?? null,
     promotedAt: over.promotedAt ?? null,
   };
@@ -96,6 +100,9 @@ describe("buildReport", () => {
         summary: "发布了新模型",
         recommendationReason: "影响 API 价格",
         category: "模型",
+        tags: ["OpenAI", "大模型"],
+        sourceName: "OpenAI",
+        sourceHandle: "@OpenAI",
         qualityScore: 88,
         selectedLevel: "B",
         selectedLabel: "当日精选",
@@ -112,23 +119,29 @@ describe("buildReport", () => {
       selected_level: "B",
       selected_label: "当日精选",
       category: "模型",
+      tags: ["OpenAI", "大模型"],
+      source_name: "OpenAI",
+      source_handle: "@OpenAI",
       url: "https://openai.com/x",
     });
   });
 
-  test("summary reflects per-section counts and the three sections are always present", () => {
+  test("title, summary, keywords, and reading path reflect the issue topic", () => {
     const r = build([
-      ev({ id: "f", selectedLevel: "B", promotedAt: within }),
-      ev({ id: "w", qualityScore: 80, publishedAt: within }),
+      ev({ id: "f", title: "Claude 企业智能体发布", tags: ["Claude", "企业智能体"], selectedLevel: "B", promotedAt: within }),
+      ev({ id: "w", title: "双语 ASR 基准", tags: ["双语 ASR"], qualityScore: 80, publishedAt: within }),
     ]);
     expect(r.sections.map((s) => s.key)).toEqual(["today_focus", "worth_watching", "yesterday_followup"]);
-    expect(r.summary).toBe("聚焦 1 · 关注 1 · 跟进 0");
-    expect(r.title).toBe("日报 · 2026-05-24");
+    expect(r.keywords).toEqual(["Claude", "企业智能体", "双语 ASR"]);
+    expect(r.coverage_label).toBe("05.24 早报");
+    expect(r.summary).toBe("围绕 Claude、企业智能体、双语 ASR · 聚焦 1 · 关注 1 · 跟进 0");
+    expect(r.title).toBe("Claude / 企业智能体 / 双语 ASR · 05.24 早报");
+    expect(r.reading_path).toEqual(["先读 Claude 企业智能体发布 → 双语 ASR 基准"]);
   });
 
   test("empty input yields three empty sections, not an error", () => {
     const r = build([]);
     expect(r.sections.every((s) => s.items.length === 0)).toBe(true);
-    expect(r.summary).toBe("聚焦 0 · 关注 0 · 跟进 0");
+    expect(r.summary).toBe("围绕 AI · 聚焦 0 · 关注 0 · 跟进 0");
   });
 });

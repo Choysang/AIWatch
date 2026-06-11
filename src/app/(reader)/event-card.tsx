@@ -15,18 +15,19 @@ import { ReactionButtons } from "./reaction-buttons";
 
 const MAX_TAGS = 4;
 
-type ContentTypeKey = keyof typeof messages.search.contentType;
+type EventCategoryKey = keyof typeof messages.search.eventCategory;
 
-/** Reader-facing label for an event's content_type (SP2). Null for legacy un-classified rows. */
-function contentTypeLabel(contentType: string | null): string | null {
-  if (!contentType || !(contentType in messages.search.contentType)) return null;
-  return messages.search.contentType[contentType as ContentTypeKey];
+/** Reader-facing label for the article's public category. */
+function eventCategoryLabel(category: string | null): string | null {
+  if (!category || !(category in messages.search.eventCategory)) return null;
+  return messages.search.eventCategory[category as EventCategoryKey];
 }
 
 interface EventCardProps {
   event: EventCardData;
   liked?: boolean;
   starred?: boolean;
+  downed?: boolean;
   /** Monospace brand tag (e.g. "DEEPSEEK") for the reader-home Bento treatment. */
   accentLabel?: string;
   /** Top reader comments for the rotating ticker (reader-home only). */
@@ -37,6 +38,7 @@ export function EventCard({
   event,
   liked = false,
   starred = false,
+  downed = false,
   accentLabel,
   topComments,
 }: EventCardProps) {
@@ -45,7 +47,7 @@ export function EventCard({
   const selectedLabel = event.selectedLabel ?? messages.selectedLabel[level];
   const author = event.authorName ?? event.sourceName ?? "";
   const handle = event.authorHandle ? ` ${event.authorHandle}` : "";
-  const heat = event.likeCount + event.starCount;
+  const heat = Math.max(0, event.likeCount + event.starCount - event.downCount);
 
   // Content tiers by promotion level (decision: depth ∝ curation):
   //   none → source · title · summary · image · score · tags only
@@ -55,7 +57,7 @@ export function EventCard({
   const showReason = isSelected && Boolean(event.recommendationReason);
   const showComments = (level === "A" || level === "S") && Boolean(topComments?.length);
   const cardMedia = extractCardMedia(event.media);
-  const contentLabel = contentTypeLabel(event.contentType);
+  const contentLabel = eventCategoryLabel(event.category);
   const detailHref = `/events/${event.id}`;
 
   return (
@@ -152,8 +154,10 @@ export function EventCard({
           eventId={event.id}
           initialLikeCount={event.likeCount}
           initialStarCount={event.starCount}
+          initialDownCount={event.downCount}
           initialLiked={liked}
           initialStarred={starred}
+          initialDowned={downed}
         />
       </div>
 

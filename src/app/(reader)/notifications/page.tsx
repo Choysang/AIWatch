@@ -5,6 +5,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/app/_lib/session";
+import { SubpageNav } from "@/app/subpage-nav";
 import { listNotifications, type NotificationRow } from "@/db/queries/notifications";
 import { messages } from "@/i18n";
 import { formatDateTime } from "@/app/_lib/format";
@@ -58,10 +59,10 @@ export default async function NotificationsPage() {
             <span className="accent-dot">.</span>
           </h1>
         </div>
-        <nav>
-          <Link href="/">← {m.backToFeed}</Link>
+        <div className="masthead-actions">
+          <SubpageNav />
           <MastheadAccount />
-        </nav>
+        </div>
       </header>
 
       <h2 className="section-intro" style={{ fontWeight: 600, color: "var(--ink)" }}>

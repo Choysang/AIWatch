@@ -1,8 +1,8 @@
 // Stardust particle field behind the reader homepage: drifting nodes, proximity links,
 // a faint tech grid, and gentle mouse attraction. Pure <canvas> — zero deps, GPU-composited,
 // pointer-events: none so it never intercepts clicks. Respects prefers-reduced-motion
-// (draws a single static frame instead of animating). Client island; renders nothing on the
-// server (the canvas is painted entirely in the browser).
+// (draws a single static frame instead of animating) and pauses while the page is hidden.
+// Client island; renders nothing on the server (the canvas is painted entirely in the browser).
 
 "use client";
 
@@ -21,6 +21,64 @@ const MAX_PARTICLES = 90;
 const LINK_DIST = 130; // px within which two nodes are linked
 const MOUSE_RADIUS = 180; // px of mouse influence
 const GRID = 42; // background grid spacing in px
+const DEFAULT_PARTICLE_LINK_RGB = "120 150 255";
+
+interface VisibilityAwareFrameLoopOptions {
+  step: () => void;
+  isVisible: () => boolean;
+  requestFrame: (callback: FrameRequestCallback) => number;
+  cancelFrame: (frameId: number) => void;
+}
+
+export function createVisibilityAwareFrameLoop({
+  step,
+  isVisible,
+  requestFrame,
+  cancelFrame,
+}: VisibilityAwareFrameLoopOptions): {
+  start: () => void;
+  pause: () => void;
+  resume: () => void;
+  stop: () => void;
+} {
+  let active = false;
+  let frameId = 0;
+
+  function cancelScheduledFrame(): void {
+    if (frameId === 0) return;
+    cancelFrame(frameId);
+    frameId = 0;
+  }
+
+  function schedule(): void {
+    if (!active || frameId !== 0 || !isVisible()) return;
+    frameId = requestFrame(run);
+  }
+
+  function run(): void {
+    frameId = 0;
+    if (!active || !isVisible()) return;
+    step();
+    schedule();
+  }
+
+  return {
+    start() {
+      active = true;
+      schedule();
+    },
+    pause() {
+      cancelScheduledFrame();
+    },
+    resume() {
+      schedule();
+    },
+    stop() {
+      active = false;
+      cancelScheduledFrame();
+    },
+  };
+}
 
 export function ParticleBackground(): React.ReactElement {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -39,7 +97,16 @@ export function ParticleBackground(): React.ReactElement {
     let height = 0;
     let particles: Particle[] = [];
     const mouse = { x: -9999, y: -9999 };
-    let raf = 0;
+
+    function particleCanvasColor(name: string, fallback: string): string {
+      const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      return value || fallback;
+    }
+
+    function particleLinkColor(alpha: number): string {
+      const rgb = particleCanvasColor("--particle-link-rgb", DEFAULT_PARTICLE_LINK_RGB);
+      return `rgb(${rgb} / ${alpha})`;
+    }
 
     function seed(): void {
       const target = Math.min(MAX_PARTICLES, Math.round(width * height * PARTICLE_DENSITY));
@@ -65,7 +132,7 @@ export function ParticleBackground(): React.ReactElement {
     }
 
     function drawGrid(): void {
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.022)";
+      ctx.strokeStyle = particleCanvasColor("--particle-grid-color", "rgba(255, 255, 255, 0.022)");
       ctx.lineWidth = 1;
       ctx.beginPath();
       for (let x = 0; x <= width; x += GRID) {
@@ -98,7 +165,7 @@ export function ParticleBackground(): React.ReactElement {
           p.y += dy * pull;
         }
 
-        ctx.fillStyle = "rgba(190, 205, 255, 0.45)";
+        ctx.fillStyle = particleCanvasColor("--particle-dot-color", "rgba(190, 205, 255, 0.45)");
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fill();
@@ -111,7 +178,7 @@ export function ParticleBackground(): React.ReactElement {
           if (!a || !b) continue;
           const d = Math.hypot(a.x - b.x, a.y - b.y);
           if (d < LINK_DIST) {
-            ctx.strokeStyle = `rgba(120, 150, 255, ${0.12 * (1 - d / LINK_DIST)})`;
+            ctx.strokeStyle = particleLinkColor(0.12 * (1 - d / LINK_DIST));
             ctx.beginPath();
             ctx.moveTo(a.x, a.y);
             ctx.lineTo(b.x, b.y);
@@ -119,11 +186,6 @@ export function ParticleBackground(): React.ReactElement {
           }
         }
       }
-    }
-
-    function loop(): void {
-      step();
-      raf = requestAnimationFrame(loop);
     }
 
     function onMouseMove(e: MouseEvent): void {
@@ -135,6 +197,21 @@ export function ParticleBackground(): React.ReactElement {
       mouse.y = -9999;
     }
 
+    const frameLoop = createVisibilityAwareFrameLoop({
+      step,
+      isVisible: () => !document.hidden,
+      requestFrame: window.requestAnimationFrame.bind(window),
+      cancelFrame: window.cancelAnimationFrame.bind(window),
+    });
+
+    function onVisibilityChange(): void {
+      if (document.hidden) {
+        frameLoop.pause();
+      } else {
+        frameLoop.resume();
+      }
+    }
+
     resize();
     window.addEventListener("resize", resize);
     window.addEventListener("mousemove", onMouseMove);
@@ -143,11 +220,13 @@ export function ParticleBackground(): React.ReactElement {
     if (reduced) {
       step(); // single static frame, no animation
     } else {
-      loop();
+      document.addEventListener("visibilitychange", onVisibilityChange);
+      frameLoop.start();
     }
 
     return () => {
-      cancelAnimationFrame(raf);
+      frameLoop.stop();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseout", onMouseLeave);

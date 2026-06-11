@@ -16,10 +16,10 @@ export const publicLimiter = new TokenBucketLimiter(60, 1);
 export function clientIp(req: Request): string {
   const hops = Math.max(0, Math.trunc(Number(process.env.TRUSTED_PROXY_HOPS ?? "0")) || 0);
   const xff = req.headers.get("x-forwarded-for");
-  if (xff) {
+  if (hops > 0 && xff) {
     const parts = xff.split(",").map((p) => p.trim()).filter(Boolean);
     if (parts.length > 0) {
-      const idx = Math.max(0, parts.length - 1 - hops);
+      const idx = Math.max(0, parts.length - hops);
       return parts[idx]!;
     }
   }

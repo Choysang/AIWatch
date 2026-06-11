@@ -2,7 +2,7 @@
 // "/changelog". Newest first, with a type badge per entry. This is the public, plain-language
 // record of reader-visible changes to the skeleton.
 
-import Link from "next/link";
+import { SubpageNav } from "@/app/subpage-nav";
 import { CHANGELOG } from "@/content/changelog";
 import { formatDayHeading } from "@/app/_lib/format";
 import { messages } from "@/i18n";
@@ -26,9 +26,7 @@ export default function ChangelogPage() {
         <div>
           <h1 style={{ fontFamily: "var(--font-serif)" }}>{m.heading}</h1>
         </div>
-        <Link href="/" className="tagline">
-          {messages.nav.dynamics}
-        </Link>
+        <SubpageNav />
       </header>
 
       <p className="section-intro">{m.subheading}</p>

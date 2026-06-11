@@ -4,7 +4,20 @@
 import { desc, ne } from "drizzle-orm";
 import { db as defaultDb, type DB } from "@/db/client";
 import { events } from "@/db/schema";
-import type { SelectedBreakdown } from "@/db/jobs/check-promotion";
+
+export interface SelectedBreakdown {
+  scoringConfigVersion: string;
+  promotionConfigVersion: string;
+  level: "B" | "A" | "S";
+  threshold: number;
+  windowDays: number;
+  rankInWindow: number;
+  slotLimit: number;
+  directPushed: boolean;
+  computedAt: string;
+  selectionScore?: number;
+  promotionScore?: number;
+}
 
 export interface PromotedEventRow {
   id: string;

@@ -1,7 +1,7 @@
 // Reader source recommendation page. Public users submit candidate sources for admin
 // review; nothing is connected until an operator approves it in /_admin.
 
-import Link from "next/link";
+import { SubpageNav } from "@/app/subpage-nav";
 import { messages } from "@/i18n";
 import { SourceRecommendationForm } from "./source-recommendation-form";
 
@@ -19,9 +19,7 @@ export default function RecommendSourcePage() {
         <div>
           <h1 style={{ fontFamily: "var(--font-serif)" }}>{m.heading}</h1>
         </div>
-        <Link href="/" className="tagline">
-          {messages.nav.dynamics}
-        </Link>
+        <SubpageNav />
       </header>
 
       <p className="section-intro">{m.subheading}</p>

@@ -5,8 +5,9 @@
 
 import { MockConnector } from "@/connectors/mock";
 import { db, pool } from "@/db/client";
-import { checkPromotion } from "@/db/jobs/check-promotion";
+import { checkPromotionV2 } from "@/db/jobs/check-promotion-v2";
 import { generateDailyReport } from "@/db/jobs/generate-report";
+import { recomputeScoresV2 } from "@/db/jobs/recompute-scores-v2";
 import type { DueSource } from "@/db/queries/sources";
 import { sources } from "@/db/schema";
 import { processSource } from "@/pipeline/process-source";
@@ -19,12 +20,13 @@ interface DemoSource {
   level: DueSource["level"];
   sourceType: "official" | "community";
   url: string;
+  categories: string[];
 }
 
 const DEMO_SOURCES: DemoSource[] = [
-  { id: "src_demo_openai", name: "OpenAI Blog", platform: "blog", level: "L1", sourceType: "official", url: "https://openai.com/blog" },
-  { id: "src_demo_anthropic", name: "Anthropic News", platform: "blog", level: "L1", sourceType: "official", url: "https://www.anthropic.com/news" },
-  { id: "src_demo_hn", name: "Hacker News (AI)", platform: "hackernews", level: "L3", sourceType: "community", url: "https://news.ycombinator.com" },
+  { id: "src_demo_openai", name: "OpenAI Blog", platform: "blog", level: "L1", sourceType: "official", url: "https://openai.com/blog", categories: ["official"] },
+  { id: "src_demo_anthropic", name: "Anthropic News", platform: "blog", level: "L1", sourceType: "official", url: "https://www.anthropic.com/news", categories: ["official"] },
+  { id: "src_demo_hn", name: "Hacker News (AI)", platform: "hackernews", level: "L3", sourceType: "community", url: "https://news.ycombinator.com", categories: ["technical_share"] },
 ];
 
 async function main(): Promise<void> {
@@ -40,6 +42,7 @@ async function main(): Promise<void> {
         sourceType: s.sourceType,
         connectorType: "mock",
         url: s.url,
+        categories: s.categories,
         fetchFrequency: tierFetchFrequency(s.level),
       })
       .onConflictDoNothing({ target: sources.id });
@@ -59,7 +62,8 @@ async function main(): Promise<void> {
   }
 
   // Run the B/A/S tournament so the demo homepage shows real selected badges.
-  const promotion = await checkPromotion();
+  await recomputeScoresV2();
+  const promotion = await checkPromotionV2();
   // eslint-disable-next-line no-console -- script output
   console.log("[seed] promotion:", promotion);
 

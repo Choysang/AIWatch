@@ -2,7 +2,7 @@
 // export. Powers GET /api/public/items in both `selected` and `all` modes. Search is
 // server-side (decision: agents must not fetch-and-grep); Slice 2 uses ILIKE, FTS later.
 
-import { and, arrayOverlaps, desc, eq, inArray, ne, sql, type SQL } from "drizzle-orm";
+import { and, arrayOverlaps, desc, eq, gte, inArray, ne, sql, type SQL } from "drizzle-orm";
 import { db as defaultDb, type DB } from "@/db/client";
 import { events, posts, sources } from "@/db/schema";
 import type { PublicItem, PublicItemsResponse } from "@/public/item";
@@ -75,6 +75,7 @@ export async function listPublicItems(
   if (start) conds.push(sql`${sortKey} >= ${start}`);
   if (q.dateTo) conds.push(sql`${sortKey} < ${q.dateTo}`);
   if (q.category) conds.push(eq(events.category, q.category));
+  if (typeof q.minScore === "number") conds.push(gte(events.qualityScore, q.minScore));
   if (q.tags?.length) {
     // Array overlap: event carries ANY of the requested tags.
     conds.push(arrayOverlaps(events.tags, q.tags));
@@ -84,6 +85,9 @@ export async function listPublicItems(
     // facets (e.g. official/expert/kol). Unknown values were already stripped by
     // parseSourceTypes, so this is safe to bind directly.
     conds.push(inArray(sources.sourceType, q.sourceTypes));
+  }
+  if (q.sourceCategories?.length) {
+    conds.push(arrayOverlaps(sources.categories, q.sourceCategories));
   }
   if (q.contentTypes?.length) {
     conds.push(inArray(events.contentType, q.contentTypes));

@@ -5,7 +5,7 @@
 
 import { redirect } from "next/navigation";
 import { formatDateTime } from "@/app/_lib/format";
-import { getSession, isConsoleRole } from "@/app/_lib/session";
+import { getSession, isAdminRole } from "@/app/_lib/session";
 import { can } from "@/auth/rbac";
 import { listContributions, type ContributionRow } from "@/db/queries/contributions";
 import { listFeedback, type FeedbackRow } from "@/db/queries/feedback";
@@ -13,6 +13,9 @@ import { listPromotedEvents, type PromotedEventRow } from "@/db/queries/promotio
 import { listRecentReports, type AdminReportRow } from "@/db/queries/public-reports";
 import { listManagedSources } from "@/db/queries/sources";
 import { messages } from "@/i18n";
+import { DEFAULT_SOURCE_PROFILE } from "@/sources/source-form";
+import { inferAiSourceCategory } from "@/sources/ai-source-categories";
+import { checkManagedSourcesFetchHealth } from "@/sources/source-health-check";
 import { SourceManagementSection } from "./sources/source-management";
 import type { SourceRecommendationReviewItem } from "./sources/source-review-dialog";
 
@@ -40,7 +43,10 @@ function sourceReviewItem(row: ContributionRow): SourceRecommendationReviewItem 
     id: row.id,
     name: typeof change.name === "string" ? change.name : url,
     platform: typeof change.platform === "string" ? change.platform : "x",
-    sourceProfile: typeof change.sourceProfile === "string" ? change.sourceProfile : "community_practice",
+    sourceProfile:
+      typeof change.sourceProfile === "string"
+        ? inferAiSourceCategory({ sourceProfile: change.sourceProfile })
+        : DEFAULT_SOURCE_PROFILE,
     handle: typeof change.handle === "string" ? change.handle : "",
     url,
     recommendedBy:
@@ -61,7 +67,7 @@ export default async function AdminPage() {
   if (!session) redirect("/login?next=/_admin");
 
   const role = (session.user as { role?: string }).role;
-  if (!isConsoleRole(role)) {
+  if (!isAdminRole(role)) {
     return (
       <main className="page admin-page">
         <p>{messages.admin.loginRequired}</p>
@@ -69,13 +75,14 @@ export default async function AdminPage() {
     );
   }
 
-  const [sources, promoted, reports, feedback, contributions] = await Promise.all([
+  const [sourceRows, promoted, reports, feedback, contributions] = await Promise.all([
     listManagedSources(),
     listPromotedEvents(),
     listRecentReports(),
     listFeedback(),
     listContributions(),
   ]);
+  const sources = await checkManagedSourcesFetchHealth(sourceRows);
   const pc = messages.admin.promotionColumns;
   const rc = messages.admin.reportColumns;
   const fc = messages.admin.feedbackColumns;
@@ -83,6 +90,9 @@ export default async function AdminPage() {
   const sourceReviewItems = contributions
     .map(sourceReviewItem)
     .filter((item): item is SourceRecommendationReviewItem => item !== null);
+
+  const selectedScore = (ev: PromotedEventRow): number | null =>
+    ev.breakdown?.selectionScore ?? ev.breakdown?.promotionScore ?? null;
 
   return (
     <main className="page admin-page">
@@ -126,7 +136,7 @@ export default async function AdminPage() {
                     {ev.selectedLabel ?? ev.selectedLevel}
                   </span>
                 </td>
-                <td data-label={pc.score}>{ev.breakdown ? ev.breakdown.promotionScore.toFixed(1) : "—"}</td>
+                <td data-label={pc.score}>{selectedScore(ev)?.toFixed(1) ?? "—"}</td>
                 <td data-label={pc.threshold}>{ev.breakdown?.threshold ?? "—"}</td>
                 <td data-label={pc.window}>{ev.breakdown?.windowDays ?? "—"}</td>
                 <td data-label={pc.rank}>

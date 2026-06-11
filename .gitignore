@@ -31,6 +31,7 @@
 # local dev database (embedded postgres) + agent tooling
 .pg-data/
 .understand-anything/
+.codegraph/
 
 # local tooling / editor config (not part of the project)
 .serena/

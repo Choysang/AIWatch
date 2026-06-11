@@ -4,7 +4,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type TimelineLevel = "year" | "month" | "week" | "day";
 
@@ -23,11 +23,23 @@ export function CollapsibleGroup({
   children,
   defaultCollapsed = false,
 }: CollapsibleGroupProps) {
+  const groupRef = useRef<HTMLElement>(null);
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const isDay = level === "day";
 
+  useEffect(() => {
+    const revealEventCard = (event: Event) => {
+      const eventId = (event as CustomEvent<{ eventId?: string }>).detail?.eventId;
+      if (!eventId) return;
+      const cards = groupRef.current?.querySelectorAll<HTMLElement>("[data-event-id]") ?? [];
+      if ([...cards].some((card) => card.dataset.eventId === eventId)) setCollapsed(false);
+    };
+    window.addEventListener("aiwatch:reveal-event-card", revealEventCard);
+    return () => window.removeEventListener("aiwatch:reveal-event-card", revealEventCard);
+  }, []);
+
   return (
-    <section className={`tl-group tl-group--${level}${isDay ? " day-group" : ""}`}>
+    <section ref={groupRef} className={`tl-group tl-group--${level}${isDay ? " day-group" : ""}`}>
       <header className={`tl-group-header${isDay ? " day-header" : ""}`}>
         <button
           type="button"

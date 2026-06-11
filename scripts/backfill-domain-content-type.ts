@@ -1,21 +1,21 @@
-// One-time runner: classify legacy events (content_type IS NULL) via the cold_judge route.
-// Usage: bun run scripts/backfill-content-type.ts [limit]
-// Honors spend_guard and fails closed (no provider / budget exhausted -> stops, leaves NULL).
-// Safe to re-run: it only ever touches rows still missing a content_type.
+// One-time runner: re-derive the dual-axis taxonomy (domain + content_type) for events whose
+// domain is missing or still holds a legacy value the 0021 migration could only best-effort map.
+// Usage: bun run scripts/backfill-domain-content-type.ts [limit]
+// Honors spend_guard and fails closed (no provider / budget exhausted -> stops). Safe to re-run.
 
-import { backfillContentType } from "@/pipeline/backfill-content-type";
+import { backfillDomainContentType } from "@/pipeline/backfill-domain-content-type";
 import { pool } from "@/db/client";
 
 async function main(): Promise<void> {
   const limitArg = Number(process.argv[2]);
   const limit = Number.isFinite(limitArg) && limitArg > 0 ? Math.trunc(limitArg) : undefined;
 
-  const summary = await backfillContentType({ limit });
+  const summary = await backfillDomainContentType({ limit });
   // eslint-disable-next-line no-console -- CLI script output
-  console.log("[backfill-content-type]", JSON.stringify(summary));
+  console.log("[backfill-domain-content-type]", JSON.stringify(summary));
   if (summary.noProvider) {
     // eslint-disable-next-line no-console
-    console.warn("No cold_judge provider configured — set an API key (or LLM_STUB_FALLBACK=1).");
+    console.warn("No light_judge provider configured — set an API key (or LLM_STUB_FALLBACK=1).");
   }
   if (summary.budgetStopped) {
     // eslint-disable-next-line no-console

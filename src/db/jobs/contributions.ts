@@ -16,6 +16,7 @@ import { resolveTransition, type ReviewAction } from "@/contributions/review";
 import type { ParsedSubmission } from "@/contributions/schema";
 import type { ContributionStatus } from "@/contributions/types";
 import type { CreateSourceInput } from "@/db/queries/sources";
+import { inferAiSourceCategory, normalizeAiSourceCategories } from "@/sources/ai-source-categories";
 
 export interface Contributor {
   userId?: string | null;
@@ -145,10 +146,21 @@ export async function applyContribution(
     name?: string;
     platform?: string;
     handle?: string;
+    sourceProfile?: string;
     recommendedBy?: string;
     recommendReason?: string;
     categories?: string[];
   };
+  const categories = normalizeAiSourceCategories(change.categories ?? []);
+  const sourceCategory =
+    categories[0] ??
+    inferAiSourceCategory({
+      sourceProfile: change.sourceProfile,
+      platform: change.platform,
+      name: change.name,
+      handle: change.handle,
+      url: change.url,
+    });
   const sourceInput: CreateSourceInput = sourceOverride ?? {
     name: change.name ?? change.url,
     platform: "rss",
@@ -158,7 +170,7 @@ export async function applyContribution(
     connectorRef: change.url,
     handle: change.handle ?? null,
     url: change.url,
-    categories: change.categories ?? [],
+    categories: [sourceCategory],
     brandTag: null,
     recommendedBy: change.recommendedBy ?? null,
     recommendReason: change.recommendReason ?? row.reason ?? null,

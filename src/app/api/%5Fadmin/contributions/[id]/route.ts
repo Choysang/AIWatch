@@ -3,7 +3,7 @@
 // + the RBAC capability map (in the job) and the review state machine; every action is audited.
 // The folder is %5Fadmin so it serves at the literal /api/_admin path (unlinked).
 
-import { getSession } from "@/app/_lib/session";
+import { getSession, isAdminRole } from "@/app/_lib/session";
 import {
   applyContribution,
   ForbiddenError,
@@ -20,6 +20,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const userId = (session?.user as { id?: string } | undefined)?.id;
   const role = (session?.user as { role?: string } | undefined)?.role ?? "user";
   if (!userId) return jsonError(401, "unauthorized");
+  if (!isAdminRole(role)) return jsonError(403, "forbidden");
 
   const { id } = await ctx.params;
   const form = await req.formData();

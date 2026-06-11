@@ -13,10 +13,13 @@
     "build": "next build",
     "start": "next start",
     "worker": "bun run worker/index.ts",
+    "mcp": "bun run mcp/index.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed:demo": "bun run scripts/seed-demo.ts",
-    "db:backfill:content-type": "bun run scripts/backfill-content-type.ts",
+    "db:backfill:domain-content-type": "bun run scripts/backfill-domain-content-type.ts",
+    "db:backfill:source-categories": "bun run scripts/backfill-source-categories.ts",
+    "sources:import:xgo": "bun run scripts/import-xgo-sources.ts",
     "db:seed:empty-owner": "bun run scripts/setup-owner.ts",
     "setup:owner": "bun run scripts/setup-owner.ts",
     "test": "bun test src",
@@ -28,6 +31,7 @@
     "doctor": "bunx react-doctor@latest"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "better-auth": "^1.1.0",
     "drizzle-orm": "^0.38.0",
     "fast-xml-parser": "^4.5.0",

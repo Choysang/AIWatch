@@ -3,12 +3,22 @@
 // per request and degrades to a setup hint when the DB isn't reachable or none exist yet.
 
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
+import { SubpageNav } from "@/app/subpage-nav";
 import { getLatestDaily, listDailies, type PublicReportListItem } from "@/db/queries/public-reports";
 import type { PublicReport } from "@/db/queries/public-reports";
 import { messages } from "@/i18n";
 import { ReportView } from "./report-view";
 
 export const dynamic = "force-dynamic";
+
+const getCachedLatestDaily = unstable_cache(() => getLatestDaily(), ["reader-latest-daily"], {
+  revalidate: 300,
+});
+
+const listCachedDailies = unstable_cache(() => listDailies(14), ["reader-dailies-14"], {
+  revalidate: 300,
+});
 
 export const metadata = {
   title: `${messages.report.heading} · ${messages.appName}`,
@@ -17,7 +27,7 @@ export const metadata = {
 
 async function load(): Promise<{ latest: PublicReport | null; archive: PublicReportListItem[] }> {
   try {
-    const [latest, archive] = await Promise.all([getLatestDaily(), listDailies(14)]);
+    const [latest, archive] = await Promise.all([getCachedLatestDaily(), listCachedDailies()]);
     return { latest, archive };
   } catch {
     return { latest: null, archive: [] };
@@ -34,20 +44,11 @@ export default async function ReportsPage() {
         <div>
           <h1 style={{ fontFamily: "var(--font-serif)" }}>{m.heading}</h1>
         </div>
-        <Link href="/" className="tagline">
-          {messages.nav.dynamics}
-        </Link>
+        <SubpageNav />
       </header>
 
-      <p className="section-intro">{m.subheading}</p>
-
       {latest ? (
-        <>
-          <h2 className="section-intro" style={{ fontWeight: 600, color: "var(--ink)", margin: "0 0 0.5rem" }}>
-            {latest.title}
-          </h2>
-          <ReportView report={latest} />
-        </>
+        <ReportView report={latest} />
       ) : (
         <div className="empty">{m.empty}</div>
       )}

@@ -9,6 +9,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { type FormEvent, useState, useTransition } from "react";
 import { messages } from "@/i18n";
 
@@ -64,6 +65,10 @@ export function CommentComposer({
           body: JSON.stringify(parentId ? { body: trimmed, parentId } : { body: trimmed }),
         });
         if (!res.ok) {
+          if (res.status === 401) {
+            setState((s) => ({ ...s, error: m.loginRequired }));
+            return;
+          }
           setState((s) => ({ ...s, error: m.submitError }));
           return;
         }
@@ -81,6 +86,11 @@ export function CommentComposer({
   };
 
   const fieldId = parentId ? `comment-body-${parentId}` : "comment-body";
+  const isLoginRequired = state.error === m.loginRequired;
+  const loginHref =
+    typeof window === "undefined"
+      ? "/login"
+      : `/login?next=${encodeURIComponent(`${window.location.pathname}${window.location.search}`)}`;
 
   return (
     <form className={`comment-composer${isReply ? " reply" : ""}`} onSubmit={handleSubmit}>
@@ -98,6 +108,11 @@ export function CommentComposer({
       />
       <div className="composer-actions">
         {state.error && <output className="composer-error">{state.error}</output>}
+        {isLoginRequired && (
+          <Link href={loginHref} className="composer-login-link">
+            {m.loginAction}
+          </Link>
+        )}
         <button type="submit" disabled={isPending || state.body.trim().length === 0}>
           {isPending ? m.submitting : isReply ? m.replySubmit : m.submit}
         </button>

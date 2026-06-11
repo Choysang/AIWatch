@@ -9,6 +9,7 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { startEmbeddedPostgres, type PgHandle } from "./helpers/embedded-pg";
 
 let pgHandle: PgHandle;
+let savedEnv: Record<string, string | undefined>;
 
 // Dynamic imports AFTER DATABASE_URL is set keep module load order honest even though
 // the db client is lazy; getDb() returns the real (un-proxied) instance for assertions.
@@ -17,32 +18,35 @@ let resetDb: typeof import("@/db/client").resetDb;
 let schema: typeof import("@/db/schema");
 let processSource: typeof import("@/pipeline/process-source").processSource;
 let listRecentEvents: typeof import("@/db/queries/feed").listRecentEvents;
-let computeBaseScore: typeof import("@/scoring/base-score").computeBaseScore;
-let externalHeatScore: typeof import("@/scoring/external-heat").externalHeatScore;
 let MockConnector: typeof import("@/connectors/mock").MockConnector;
-let DEFAULT_JUDGMENT: typeof import("@/llm/stub").DEFAULT_JUDGMENT;
 
-const SOURCE_ID = "src_it_openai";
+const SOURCE_ID = `src_it_openai_${Date.now()}`;
+const ENV_KEYS = [
+  "DATABASE_URL",
+  "LLM_STUB_FALLBACK",
+  "LLM_LIGHT_PROVIDER",
+  "LLM_DEEP_PROVIDER",
+  "LLM_NEWS_PROVIDER",
+  "LLM_NEWS_MODEL",
+] as const;
 
 beforeAll(async () => {
-  // Honor a provided DATABASE_URL (CI Postgres service); otherwise boot embedded pg locally.
-  if (!process.env.DATABASE_URL) {
-    pgHandle = await startEmbeddedPostgres();
-    process.env.DATABASE_URL = pgHandle.connectionString;
-  }
-  // Pipeline now fails closed when no real LLM key is configured (Scoring Integrity slice).
-  // The spine test verifies the stub provenance specifically, so opt into stub fallback
-  // for the duration of this test file.
+  savedEnv = {};
+  for (const key of ENV_KEYS) savedEnv[key] = process.env[key];
+
+  pgHandle = await startEmbeddedPostgres();
+  process.env.DATABASE_URL = pgHandle.connectionString;
   process.env.LLM_STUB_FALLBACK = "1";
+  process.env.LLM_LIGHT_PROVIDER = "stub";
+  process.env.LLM_DEEP_PROVIDER = "stub";
+  delete process.env.LLM_NEWS_PROVIDER;
+  delete process.env.LLM_NEWS_MODEL;
 
   ({ getDb, resetDb } = await import("@/db/client"));
   schema = await import("@/db/schema");
   ({ processSource } = await import("@/pipeline/process-source"));
   ({ listRecentEvents } = await import("@/db/queries/feed"));
-  ({ computeBaseScore } = await import("@/scoring/base-score"));
-  ({ externalHeatScore } = await import("@/scoring/external-heat"));
   ({ MockConnector } = await import("@/connectors/mock"));
-  ({ DEFAULT_JUDGMENT } = await import("@/llm/stub"));
 
   await migrate(getDb(), { migrationsFolder: "src/db/migrations" });
 
@@ -70,10 +74,10 @@ afterAll(async () => {
   // Each step is time-boxed so a slow/stuck shutdown can never hang the whole suite.
   await withTimeout(resetDb?.(), 10_000);
   await withTimeout(pgHandle?.stop(), 15_000);
-  // Only clear the env we set, so a later test file boots its own embedded pg (and a
-  // CI-provided DATABASE_URL, where pgHandle is undefined, is left intact).
-  if (pgHandle) delete process.env.DATABASE_URL;
-  delete process.env.LLM_STUB_FALLBACK;
+  for (const key of ENV_KEYS) {
+    if (savedEnv[key] === undefined) delete process.env[key];
+    else process.env[key] = savedEnv[key];
+  }
 }, 60_000); // Postgres graceful shutdown can exceed Bun's default 5s hook timeout.
 
 const dueSource = {
@@ -109,15 +113,18 @@ describe("pipeline spine (real Postgres)", () => {
       expect(ev.currentJudgmentId).not.toBeNull();
       expect(ev.currentScoreId).not.toBeNull();
       expect(ev.mainSourceId).toBe(SOURCE_ID);
-      expect(ev.title).toBe(DEFAULT_JUDGMENT.title);
+      expect(ev.pipelineTier).toBe("T2");
+      expect(ev.pipelineScore).toBeGreaterThanOrEqual(80);
+      expect(ev.oneLineSummary).toBeTruthy();
+      expect(ev.detailedSummary).toBeTruthy();
     }
   });
 
   test("stamps provenance on judgments and scores", async () => {
     const [judgment] = await getDb().select().from(schema.eventJudgments).limit(1);
     expect(judgment!.provider).toBe("stub");
-    expect(judgment!.promptVersion).toBe("cold-judge-v1");
-    expect(judgment!.routingConfigVersion).toBe("routing-v2");
+    expect(judgment!.promptVersion).toBe("deep-extract-v2");
+    expect(judgment!.routingConfigVersion).toBe("routing-v4");
     expect(judgment!.triggerReason).toBe("initial");
 
     const [score] = await getDb().select().from(schema.eventScores).limit(1);
@@ -126,23 +133,11 @@ describe("pipeline spine (real Postgres)", () => {
     expect(score!.breakdown).toBeTruthy();
   });
 
-  test("base_score matches the deterministic formula for the L1 OpenAI post", async () => {
+  test("scoring uses independent light LLM dimensions, not copied pipeline_score", async () => {
     const conn = await new MockConnector().fetch(dueSource);
     const openai = conn.find((p) => p.externalId === "mock-1")!;
-    const externalHeat = externalHeatScore(openai.publicMetrics, "blog");
-    const { baseScore } = computeBaseScore({
-      sourceLevel: "L1",
-      dimensions: {
-        aiRelevance: DEFAULT_JUDGMENT.aiRelevance,
-        impact: DEFAULT_JUDGMENT.impact,
-        novelty: DEFAULT_JUDGMENT.novelty,
-        audienceUsefulness: DEFAULT_JUDGMENT.audienceUsefulness,
-        evidenceClarity: DEFAULT_JUDGMENT.evidenceClarity,
-      },
-      externalHeat,
-    });
 
-    // Find the event whose main post is the OpenAI post and compare its stored score.
+    // Find the event whose main post is the OpenAI post and compare stored scoring inputs.
     const posts = await getDb()
       .select()
       .from(schema.posts)
@@ -154,8 +149,28 @@ describe("pipeline spine (real Postgres)", () => {
     const score = (
       await getDb().select().from(schema.eventScores).where(eq(schema.eventScores.eventId, ev.id))
     )[0]!;
-    expect(score.baseScore).toBeCloseTo(baseScore, 5);
-    expect(ev.qualityScore).toBe(Math.round(baseScore));
+    const judgment = (
+      await getDb().select().from(schema.eventJudgments).where(eq(schema.eventJudgments.id, score.judgmentId))
+    )[0]!;
+    const pipelineScore = ev.pipelineScore;
+    if (pipelineScore === null) throw new Error("expected pipelineScore");
+
+    expect(judgment.aiRelevance).toBe(86);
+    expect(judgment.impact).toBe(78);
+    expect(judgment.novelty).toBe(72);
+    expect(judgment.audienceUsefulness).toBe(80);
+    expect(judgment.evidenceClarity).toBe(88);
+    expect(new Set([
+      judgment.aiRelevance,
+      judgment.impact,
+      judgment.novelty,
+      judgment.audienceUsefulness,
+      judgment.evidenceClarity,
+    ])).not.toEqual(new Set([pipelineScore]));
+
+    expect(score.baseScore).not.toBe(pipelineScore);
+    expect(score.eventQualityScore).not.toBe(pipelineScore);
+    expect(ev.qualityScore).toBe(Math.round(score.baseScore));
   });
 
   test("re-running is idempotent: duplicates skipped, no new events or judgments", async () => {

@@ -42,6 +42,7 @@
     "src",
     "tests",
     "worker",
+    "mcp",
     ".next/types/**/*.ts"
   ],
   "exclude": [

@@ -13,6 +13,23 @@ import { log } from "@/log";
 const PLACEHOLDER_AUTH_SECRET = "change-me-in-production";
 const MIN_SECRET_LENGTH = 32;
 const MIN_SALT_LENGTH = 16;
+const LLM_PROVIDERS = [
+  "openai",
+  "anthropic",
+  "google",
+  "deepseek",
+  "qwen",
+  "openai_compatible",
+  "stub",
+] as const;
+const LLM_PROVIDER_KEYS: Record<Exclude<(typeof LLM_PROVIDERS)[number], "stub">, string> = {
+  openai: "OPENAI_API_KEY",
+  anthropic: "ANTHROPIC_API_KEY",
+  google: "GOOGLE_API_KEY",
+  deepseek: "DEEPSEEK_API_KEY",
+  qwen: "QWEN_API_KEY",
+  openai_compatible: "OPENAI_COMPATIBLE_API_KEY",
+};
 
 export interface EnvCheckResult {
   /** True when there are no hard errors for the given NODE_ENV. */
@@ -24,6 +41,41 @@ export interface EnvCheckResult {
 }
 
 type EnvSource = Record<string, string | undefined>;
+type LlmProvider = (typeof LLM_PROVIDERS)[number];
+
+function configuredProviderChain(
+  source: EnvSource,
+  envNames: string[],
+  fallback: LlmProvider,
+): LlmProvider {
+  for (const envName of envNames) {
+    const value = source[envName]?.trim();
+    if (value && LLM_PROVIDERS.includes(value as LlmProvider)) return value as LlmProvider;
+  }
+  return fallback;
+}
+
+function requireLlmProviderKey(
+  source: EnvSource,
+  task: "light_judge" | "deep_extract",
+  provider: LlmProvider,
+  fail: (msg: string) => void,
+): void {
+  if (provider === "stub" || source.LLM_STUB_FALLBACK === "1") return;
+  const keyName = LLM_PROVIDER_KEYS[provider];
+  if (!source[keyName]?.trim()) {
+    fail(`${keyName} is not set; ${task} routes to ${provider} and will accumulate judge_failed`);
+  }
+}
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Validate the runtime environment. Production raises a hard error for anything that
@@ -47,6 +99,17 @@ export function checkEnv(source: EnvSource = process.env): EnvCheckResult {
     );
   }
 
+  const trustedProxyHops = source.TRUSTED_PROXY_HOPS?.trim();
+  if (!trustedProxyHops) {
+    fail("TRUSTED_PROXY_HOPS is not set; set 0 for direct exposure or the trusted CDN/proxy count");
+  } else if (!/^\d+$/.test(trustedProxyHops)) {
+    fail("TRUSTED_PROXY_HOPS must be a non-negative integer");
+  }
+
+  if (source.CSP_ENFORCE !== "1") {
+    fail("CSP_ENFORCE must be set to 1 in production so CSP blocks instead of only reporting");
+  }
+
   // BETTER_AUTH_SECRET — signs sessions; must be strong and never the shipped placeholder.
   const authSecret = source.BETTER_AUTH_SECRET;
   if (!authSecret) {
@@ -60,16 +123,16 @@ export function checkEnv(source: EnvSource = process.env): EnvCheckResult {
     }
   }
 
-  // READER_ID_SECRET — anonymous reaction-cookie HMAC. By design it falls back to
-  // BETTER_AUTH_SECRET (already validated above), so an unset value is a warning, not an
-  // error; but a value that IS set must still be strong.
+  // READER_ID_SECRET — anonymous reader-cookie HMAC. Production requires a distinct
+  // secret so rotating auth sessions does not also invalidate reader identities, and so
+  // exposure of one signing secret does not imply exposure of the other.
   const readerSecret = source.READER_ID_SECRET;
   if (!readerSecret) {
-    if (isProd) {
-      warnings.push("READER_ID_SECRET is not set; falling back to BETTER_AUTH_SECRET. Set a distinct value in production.");
-    }
+    fail("READER_ID_SECRET is not set");
   } else if (readerSecret.length < MIN_SECRET_LENGTH) {
     fail(`READER_ID_SECRET must be at least ${MIN_SECRET_LENGTH} characters`);
+  } else if (readerSecret === authSecret) {
+    fail("READER_ID_SECRET must be distinct from BETTER_AUTH_SECRET");
   }
 
   // CONTRIBUTION_SALT — salts anonymous contributor fingerprints. The "aiwatch-contrib"
@@ -80,6 +143,30 @@ export function checkEnv(source: EnvSource = process.env): EnvCheckResult {
   } else if (salt.length < MIN_SALT_LENGTH) {
     fail(`CONTRIBUTION_SALT must be at least ${MIN_SALT_LENGTH} characters`);
   }
+
+  if (!source.RSSHUB_BASE_URL?.trim() && !source.RSSHUB_URL?.trim()) {
+    warnings.push("RSSHUB_BASE_URL is not set; rsshub connector sources will fail closed if enabled");
+  }
+
+  const publicBaseUrl = source.PUBLIC_BASE_URL?.trim();
+  if (!publicBaseUrl) {
+    warnings.push("PUBLIC_BASE_URL is not set; RSS links will fall back to the request origin");
+  } else if (!isHttpUrl(publicBaseUrl)) {
+    fail("PUBLIC_BASE_URL must be an absolute http(s) URL");
+  }
+
+  const lightProvider = configuredProviderChain(
+    source,
+    ["LLM_PROVIDER", "LLM_LIGHT_PROVIDER", "LLM_NEWS_PROVIDER"],
+    "deepseek",
+  );
+  const deepProvider = configuredProviderChain(
+    source,
+    ["LLM_PROVIDER", "LLM_DEEP_PROVIDER", "LLM_NEWS_PROVIDER"],
+    "deepseek",
+  );
+  requireLlmProviderKey(source, "light_judge", lightProvider, fail);
+  requireLlmProviderKey(source, "deep_extract", deepProvider, fail);
 
   return { ok: errors.length === 0, errors, warnings };
 }

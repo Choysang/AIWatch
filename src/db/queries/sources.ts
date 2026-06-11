@@ -16,6 +16,7 @@ const DISABLE_AFTER = 20; // consecutive failures -> auto-disable + admin flag
 export type DueSource = ConnectorSource & {
   level: SourceLevel;
   onboardedAt?: Date | null;
+  lastSeenCursor?: string | null;
 };
 
 /** Sources eligible to crawl now: enabled, not archived, not disabled, and due. */
@@ -30,6 +31,7 @@ export async function getDueSources(limit = 50, db: DB = defaultDb): Promise<Due
       handle: sources.handle,
       level: sources.level,
       onboardedAt: sources.onboardedAt,
+      lastSeenCursor: sources.lastSeenCursor,
     })
     .from(sources)
     .where(
@@ -57,6 +59,7 @@ export async function getSourceById(id: string, db: DB = defaultDb): Promise<Due
       handle: sources.handle,
       level: sources.level,
       onboardedAt: sources.onboardedAt,
+      lastSeenCursor: sources.lastSeenCursor,
     })
     .from(sources)
     .where(eq(sources.id, id))
@@ -96,6 +99,32 @@ export async function markSourceFailure(
       nextFetchAt: sql`case
         when ${sources.failureCount} + 1 >= ${DEGRADE_AFTER} then now() + ${sources.fetchFrequency} * 2
         else now() + ${sources.fetchFrequency} end`,
+      lastError: error.slice(0, 1000),
+      updatedAt: sql`now()`,
+    })
+    .where(eq(sources.id, sourceId));
+}
+
+export async function markSourceHealthCheckSuccess(sourceId: string, db: DB = defaultDb): Promise<void> {
+  await db
+    .update(sources)
+    .set({
+      healthStatus: "healthy",
+      lastError: null,
+      updatedAt: sql`now()`,
+    })
+    .where(eq(sources.id, sourceId));
+}
+
+export async function markSourceHealthCheckFailure(
+  sourceId: string,
+  error: string,
+  db: DB = defaultDb,
+): Promise<void> {
+  await db
+    .update(sources)
+    .set({
+      healthStatus: "degraded",
       lastError: error.slice(0, 1000),
       updatedAt: sql`now()`,
     })

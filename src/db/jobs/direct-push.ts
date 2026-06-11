@@ -2,7 +2,7 @@
 //
 // Spec § B / daily selected: "score >= 75, or certified expert direct-push". Stamps
 // events.expert_direct_push_at + by, writes an audit row, and re-arms
-// last_strong_signal_at so the display-score decay clock resets. The next checkPromotion
+// last_strong_signal_at so the display-score decay clock resets. The next promotion job
 // run picks up the flag and forces the event into B regardless of base_score.
 //
 // Capability is enforced here (event.directPush). The API route handler also enforces

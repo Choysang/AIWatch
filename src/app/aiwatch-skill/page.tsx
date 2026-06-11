@@ -2,6 +2,7 @@
 // and shows the few read endpoints. No feed data here.
 
 import { messages } from "@/i18n";
+import { SubpageNav } from "@/app/subpage-nav";
 
 export const metadata = {
   title: `${messages.appName} Skill · aiwatch-hot`,
@@ -11,8 +12,11 @@ export default function SkillInstallPage() {
   return (
     <main className="page">
       <header className="masthead">
-        <h1 style={{ fontFamily: "var(--font-serif)" }}>aiwatch-hot</h1>
-        <span className="tagline">{messages.appName} 公共 Skill</span>
+        <div>
+          <h1 style={{ fontFamily: "var(--font-serif)" }}>aiwatch-hot</h1>
+          <span className="tagline">{messages.appName} 公共 Skill</span>
+        </div>
+        <SubpageNav />
       </header>
 
       <p className="section-intro">
