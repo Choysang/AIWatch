@@ -1,0 +1,968 @@
+﻿name,source_ref,source_pool,decision,tier,category,relevance_score,quality_score,freshness_score,stability_score,uniqueness_score,ai_density_score,ai_density_estimate,marketing_risk,marketing_penalty,shallow_content_penalty,commercial_content_ratio,commercial_commentary_penalty,generic_tech_ratio,generic_tech_penalty,source_dependency_risk,final_score,exclusion_reason,keep_or_drop_reason
+人人都是产品经理,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+量子位,https://www.qbitai.com/feed,curated_ai_sources,keep,B,technical_share,8,7,9,8,7,8,high,medium,2,2,0.1,1,0.0,0,1,7.05,,中文 AI 新闻密度较高，用作国内动态补充，默认按严格评分进入精选。
+LangChain Blog,https://blog.langchain.dev/rss/,curated_ai_sources,keep,A,technical_share,9,8,8,9,8,9,high,low,1,1,0.0,0,0.0,0,1,8.25,,LangGraph、Agent、评测、RAG 和 LLM 应用工程实践长文。
+Hugging Face Blog,https://huggingface.co/blog/feed.xml,curated_ai_sources,keep,A,technical_share,9,8,8,9,9,9,high,low,1,1,0.0,0,0.0,0,1,8.35,,模型、数据集、推理优化和开源 AI 生态的技术长文源。
+AWS Machine Learning Blog,https://aws.amazon.com/blogs/amazon-ai/feed/,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Engineering at Meta,https://engineering.fb.com/feed/,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Microsoft Azure Blog,https://azure.microsoft.com/en-us/blog/feed/,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Elastic Blog,https://www.elastic.co/blog/feed,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Grafana Labs,https://grafana.com/categories/engineering/index.xml,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+宝玉的分享,https://baoyu.io/feed.xml,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+掘金本周最热,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+deeplearning.ai,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+腾讯技术工程,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+ByteByteGo Newsletter,https://blog.bytebytego.com/feed,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Google Cloud Blog,https://cloudblog.withgoogle.com/rss/,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Last Week in AI,https://lastweekin.ai/feed/,curated_ai_sources,keep,B,technical_share,8,7,8,8,7,8,high,low,1,2,0.1,1,0.0,0,1,7.1,,AI 行业动态与研究进展的高密度周频补充源。
+Next.js Blog,https://nextjs.org/feed.xml,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+David Heinemeier Hansson,https://world.hey.com/dhh/feed.atom,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Google DeepMind Blog,https://deepmind.google/discover/blog/rss.xml,curated_ai_sources,keep,S,official,10,10,8,8,10,10,high,low,0,0,0.0,0,0.0,0,2,9.5,,DeepMind 官方研究、模型和安全进展的长文源。
+Martin Fowler,https://martinfowler.com/feed.atom,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+AWS Architecture Blog,http://www.awsarchitectureblog.com/atom.xml,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Spring Blog,http://spring.io/blog.atom,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+UX Magazine,https://uxmag.com/feed/,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+The JetBrains Blog,http://blog.jetbrains.com/feed/,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Microsoft Research Blog,http://research.microsoft.com/rss/news.xml,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+InfoQ,http://www.infoq.com/rss/rss.action,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Smashing Magazine,http://rss1.smashingmagazine.com/feed/,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+机器之心,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+爱范儿,http://www.ifanr.com/feed,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+The IntelliJ IDEA Blog,http://blogs.jetbrains.com/idea/feed/,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+阮一峰的网络日志,http://feeds.feedburner.com/ruanyifeng,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.7,7,2,,generic_tech_noise,泛技术源质量可能高，但 AI 密度不足，不进入默认核心池。
+The GitHub Blog,https://github.blog/feed/,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+freeCodeCamp.org,https://www.freecodecamp.org/news/rss/,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+OpenAI Blog,https://openai.com/news/rss.xml,curated_ai_sources,keep,S,official,10,10,8,9,10,10,high,low,0,0,0.0,0,0.0,0,1,9.65,,OpenAI 官方长文、产品公告、研究和安全更新的 RSS 源。
+MongoDB Blog,https://www.mongodb.com/blog/rss,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Databricks,https://www.databricks.com/feed,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Visual Studio Blog,https://devblogs.microsoft.com/visualstudio/feed/,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Google Developers Blog,https://developers.googleblog.com/feeds/posts/default,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Node.js Blog,https://nodejs.org/en/feed/blog.xml,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Docker,https://www.docker.com/feed/,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+阿里技术,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+小米技术,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+哔哩哔哩技术,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+阿里云开发者,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+字节跳动技术团队,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+极客公园,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+美团技术团队,https://tech.meituan.com/feed/,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.7,7,2,,generic_big_factory_engineering,综合大厂工程号 AI 密度不稳定，混有后端、前端、运维、业务工程等内容。
+Stack Overflow Blog,http://blog.stackoverflow.com/feed/,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Vercel News,https://vercel.com/atom,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+The Cloudflare Blog,https://blog.cloudflare.com/rss,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+ShowMeAI研究中心,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+奇舞精选,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+京东技术,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+硅谷科技评论,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+得物技术,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+百度Geek说,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+大淘宝技术,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Web3天空之城,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+AI前线,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+新智元,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+51CTO技术栈,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+优设,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+前端充电宝,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+稀土掘金技术社区,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+腾讯云开发者,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+体验进阶,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+前端早读课,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+开源服务指南,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+dbaplus社群,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+超人的电话亭,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Qunar技术沙龙,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+42章经,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+随机小分队,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+阿里研究院,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+深思圈,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Hugging Face,https://x.com/huggingface,curated_ai_sources,keep,A,technical_share,9,8,9,8,9,9,high,low,1,1,0.0,0,0.0,0,4,8.2,,模型、数据集、开源生态和实践工具的高密度技术源。
+创业邦,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,medium,3,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Founder Park,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+vivo互联网技术,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+歸藏的AI工具箱,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Clip设计夹,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+The Keyword (blog.google),https://blog.google/rss,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+腾讯科技,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+InfoQ 中文,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+LlamaIndex Blog,https://www.llamaindex.ai/blog/feed,curated_ai_sources,keep,B,technical_share,8,8,7,8,8,8,high,low,1,1,0.0,0,0.0,0,1,7.55,,RAG、数据工作流和智能体应用构建的实践源。
+Dify,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+海外独角兽,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+CSDN,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+谷歌开发者,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+赛博禅心,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+笔记侠,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+小红书技术REDtech,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+智谱,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+月之暗面 Kimi,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+通义大模型,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+百度AI,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+HelloGitHub,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+经纬创投,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+腾讯混元,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Qdrant Blog,https://qdrant.tech/index.xml,curated_ai_sources,keep,B,technical_share,7,8,7,8,7,7,medium,medium,2,1,0.0,0,0.1,1,1,6.7,,向量数据库、检索和 RAG 基础设施实践源，作为技术补充观察。
+刘润,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,medium,3,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+吴晓波频道,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,medium,3,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+智东西,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+腾讯研究院,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+SuperTechFans,https://www.supertechfans.com/cn/index.xml,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+有机大橘子,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Thoughtworks洞见,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+浮之静,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+数字生命卡兹克,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+AI产品黄叔,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+印记中文,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+真格基金,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+大模型智能,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+甲子光年,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Z Potentials,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+深网腾讯新闻,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+AI炼金术,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+白鲸出海,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+硅星人Pro,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+AI科技评论,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+山行AI,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+魔搭ModelScope社区,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+强少来了,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+土猛的员外,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+暗涌Waves,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+夕小瑶科技说,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+DeeplearningAI,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+机器之心SOTA模型,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+阶跃星辰,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+快手技术,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+DeepSeek,https://x.com/deepseek_ai,curated_ai_sources,keep,S,official,10,9,8,8,10,10,high,low,0,0,0.0,0,0.0,0,4,9.2,,推理模型、开源权重与低成本 API 生态的官方源。
+字节跳动Seed,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+十字路口Crossing,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+青哥谈AI,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+AI Musings by Mu,https://kelvinmu.substack.com/feed,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Latent Space,https://www.latent.space/feed,curated_ai_sources,keep,B,technical_share,8,8,7,8,8,8,high,low,1,1,0.1,1,0.0,0,1,7.45,,AI 工程、研究者访谈和开发者生态的高密度深度内容源。
+AI寒武纪,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+MiniMax 稀宇科技,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Jina AI,https://x.com/JinaAI_,curated_ai_sources,keep,B,technical_share,8,8,8,8,8,8,high,low,1,1,0.0,0,0.0,0,4,7.5,,Embedding、Reranker、多模态检索和 AI 基础设施实践源。
+花叔,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Datawhale,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+AINLP,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Groq,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+ElevenLabs Blog,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+FireCrawl Blog,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Gino Notes,https://www.ginonotes.com/feed.xml,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+向阳乔木推荐看,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Simon Willison's Weblog,https://simonwillison.net/atom/everything/,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+乌鸦智能说,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+yikai 的摸鱼笔记,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+李继刚,https://x.com/lijigang_com,curated_ai_sources,keep,B,industry_leader,8,8,8,8,8,8,high,low,1,1,0.0,0,0.1,1,4,7.4,,Prompt、模型边界和中文 AI 实践的高密度个人源。
+沃垠AI,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+L先生说,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+有新Newin,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+晚点LatePost,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+袋鼠帝AI客栈,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+AI科技大本营,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+卡尔的AI沃茨,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+逛逛GitHub,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+阿真Irene,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+网易科技,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+架构师之路,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+硅谷101,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Anthropic News,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+AI at Meta Blog,https://rsshub.app/meta/ai/blog,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+少数派,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+语言即世界language is world,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+刘小排r,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Elevate,https://addyo.substack.com/feed,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+43 Talks,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Anthropic,https://x.com/AnthropicAI,curated_ai_sources,keep,S,official,10,10,9,8,10,10,high,low,0,0,0.0,0,0.0,0,4,9.5,,Claude 模型、安全研究、企业智能体能力的官方主线。
+AI Engineer,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+No Priors,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+OpenAI,https://x.com/OpenAI,curated_ai_sources,keep,S,official,10,10,9,8,10,10,high,low,0,0,0.0,0,0.0,0,4,9.5,,OpenAI 官方主发布线，模型、产品、API 与安全更新的一手源。
+Google DeepMind,https://x.com/GoogleDeepMind,curated_ai_sources,keep,S,official,10,10,9,8,10,10,high,low,0,0,0.0,0,0.0,0,4,9.5,,DeepMind 模型、科研和安全进展的一手官方源。
+leerob,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Y Combinator,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Lenny's Podcast,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Sequoia Capital,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Stripe,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Fireship,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Spring I/O,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Dwarkesh Patel,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Lex Fridman,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Hung-yi Lee,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+a16z,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+The Diary Of A CEO Clips,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+AI Master,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Matt Wolfe,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+AICodeKing,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Liam Ottley,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Wes Roth,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Andrej Karpathy,https://x.com/karpathy,curated_ai_sources,keep,A,industry_leader,9,10,7,8,10,9,high,low,0,0,0.0,0,0.1,1,4,8.7,,大模型工程、教育和源码级解释的高密度个人源。
+Jason West,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Greg Isenberg,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+My First Million,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Riley Brown,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Tina Huang,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+All-In Podcast,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+AI Explained,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Two Minute Papers,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Matthew Berman,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+ByteByteGo,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Product School,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+yobi321,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+TED,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+LangChain,https://x.com/LangChainAI,curated_ai_sources,keep,A,technical_share,9,8,9,8,8,9,high,low,1,1,0.0,0,0.0,0,4,8.1,,Agent、RAG、LangGraph 和应用工程实践的高密度技术源。
+Siraj Raval,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+What's Next｜科技早知道,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+无人知晓,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+三五环,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+张小珺Jùn｜商业访谈录,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,medium,3,3,0.7,7,0.2,2,2,,business_finance_noise,商业财经/管理评论噪声偏高，容易稀释 AI 雷达密度。
+知行小酒馆,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+纵横四海,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+乱翻书,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+OnBoard!,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+硬地骇客,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+人民公园说AI,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+保持偏见,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+枫言枫语,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+屠龙之术,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+晚点聊 LateTalk,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+开始连接LinkStart,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+此话当真,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+跨国串门儿计划,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+卫诗婕｜商业漫谈Jane's talk,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,medium,3,3,0.7,7,0.2,2,2,,business_finance_noise,商业财经/管理评论噪声偏高，容易稀释 AI 雷达密度。
+东腔西调,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+皮蛋漫游记,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+奇想驿 by 产品沉思录,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+牛油果烤面包,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+半拿铁 | 商业沉浮录,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,medium,3,3,0.7,7,0.2,2,2,,business_finance_noise,商业财经/管理评论噪声偏高，容易稀释 AI 雷达密度。
+自习室 STUDY ROOM,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+天真不天真,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+罗永浩的十字路口,temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+OpenAI(@OpenAI),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+OpenAI Developers(@OpenAIDevs),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+ChatGPT(@ChatGPTapp),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Sam Altman(@sama),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Anthropic(@AnthropicAI),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Dario Amodei(@DarioAmodei),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Alex Albert(@alexalbert__),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Greg Brockman(@gdb),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Mike Krieger(@mikeyk),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Kevin Weil 🇺🇸(@kevinweil),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Marc Andreessen 🇺🇸(@pmarca),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Microsoft Research(@MSFTResearch),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Andrej Karpathy(@karpathy),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Google AI(@GoogleAI),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Yann LeCun(@ylecun),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Anton Osika – eu/acc(@antonosika),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Lovable(@lovable_dev),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Fei-Fei Li(@drfeifei),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Amjad Masad(@amasad),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Replit ⠕(@Replit),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+clem 🤗(@ClementDelangue),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Hugging Face(@huggingface),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Andrew Ng(@AndrewYNg),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+DeepLearning.AI(@DeepLearningAI),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Thomas Wolf(@Thom_Wolf),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Logan Kilpatrick(@OfficialLoganK),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Lex Fridman(@lexfridman),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Rowan Cheung(@rowancheung),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+李继刚(@lijigang_com),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Demis Hassabis(@demishassabis),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+bolt.new(@boltdotnew),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Mustafa Suleyman(@mustafasuleyman),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Sualeh Asif(@sualehasif996),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Junyang Lin(@JustinLin610),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Qwen(@Alibaba_Qwen),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Binyuan Hui(@huybery),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.7,7,2,,frontend_design_noise,前端/设计/产品体验源与 AI 交集有限，不适合作为核心源。
+Google DeepMind(@GoogleDeepMind),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+NVIDIA AI(@NVIDIAAI),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Ian Goodfellow(@goodfellow_ian),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Groq Inc(@GroqInc),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Berkeley AI Research(@berkeley_ai),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Jeff Dean(@JeffDean),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Justine Moore(@venturetwins),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Scott Wu(@ScottWu46),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Cognition(@cognition_labs),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Weaviate • vector database(@weaviate_io),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Runway(@runwayml),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+AI at Meta(@AIatMeta),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Stanford AI Lab(@StanfordAILab),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Geoffrey Hinton(@geoffreyhinton),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Patrick Loeber(@patloeber),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Philipp Schmid(@_philschmid),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Milvus(@milvusio),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Jina AI(@JinaAI_),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Justin Welsh(@thejustinwelsh),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Midjourney(@midjourney),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+cohere(@cohere),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Qdrant(@qdrant_engine),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+AI Engineer(@aiDotEngineer),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Latent.Space(@latentspacepod),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Character.AI(@character_ai),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+ElevenLabs(@elevenlabsio),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Taranjeet(@taranjeetio),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+mem0(@mem0ai),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+HeyGen(@HeyGen_Official),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Paul Couvert(@itsPaulAi),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+LangChain(@LangChainAI),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Harrison Chase(@hwchase17),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Recraft(@recraftai),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Perplexity(@perplexity_ai),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Aravind Srinivas(@AravSrinivas),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+LlamaIndex 🦙(@llama_index),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Jerry Liu(@jerryjliu0),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Dify(@dify_ai),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Julien Chaumond(@julien_c),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+ollama(@ollama),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+FlowiseAI(@FlowiseAI),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Pika(@pika_labs),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+xAI(@xai),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Ideogram(@ideogram_ai),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Mistral AI(@MistralAI),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+OpenRouter(@OpenRouterAI),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+v0(@v0),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+AI SDK(@aisdk),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Fish Audio(@FishAudio),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Hailuo AI (MiniMax)(@Hailuo_AI),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Windsurf(@windsurf_ai),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Varun Mohan(@_mohansolo),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+宝玉(@dotey),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+ManusAI(@ManusAI_HQ),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+AK(@_akhaliq),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+LovartAI(@lovart_ai),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Figma(@figma),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Cursor(@cursor_ai),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Aman Sanger(@amanrsanger),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+eric zakariasson(@ericzakariasson),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Satya Nadella(@satyanadella),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Genspark(@genspark_ai),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+orange.ai(@oran_ge),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Barsee 🐶(@heyBarsee),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Hunyuan(@TXhunyuan),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+NotebookLM(@NotebookLM),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Google AI Developers(@googleaidevs),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Sundar Pichai(@sundarpichai),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Google Gemini App(@GeminiApp),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Eric Jing(@ericjing_ai),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Lenny Rachitsky(@lennysan),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Jim Fan(@DrJimFan),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Notion(@NotionHQ),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Akshay Kothari(@akothari),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+AI Breakfast(@AiBreakfast),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+DeepSeek(@deepseek_ai),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+歸藏(guizang.ai)(@op7418),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,4,5,5,6,4,4,low,low,1,3,0.1,1,0.7,7,2,,frontend_design_noise,前端/设计/产品体验源与 AI 交集有限，不适合作为核心源。
+Dia(@diabrowser),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Skywork(@Skywork_ai),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Naval(@naval),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Aadit Sheth(@aaditsh),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+小互(@imxiaohu),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+cat(@_catwu),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Augment Code(@augmentcode),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+向阳乔木(@vista8),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Fellou(@FellouAI),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Kling AI(@Kling_ai),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Firecrawl(@firecrawl_dev),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Poe(@poe_platform),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+lmarena.ai(@lmarena_ai),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Replicate(@replicate),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+a16z(@a16z),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Y Combinator(@ycombinator),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Lilian Weng(@lilianweng),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Paul Graham(@paulg),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Guillermo Rauch(@rauchg),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.7,7,2,,frontend_design_noise,前端/设计/产品体验源与 AI 交集有限，不适合作为核心源。
+andrew chen(@andrewchen),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Arthur Mensch(@arthurmensch),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Simon Willison(@simonw),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Browser Use(@browser_use),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+AI Will(@FinanceYF5),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Ray Dalio(@RayDalio),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Sahil Lavingia(@shl),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+elvis(@omarsar0),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+The Rundown AI(@TheRundownAI),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Nick St. Pierre(@nickfloats),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Monica_IM(@hey_im_monica),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Fireworks AI(@FireworksAI_HQ),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+meng shao(@shao__meng),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Jan Leike(@janleike),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Richard Socher(@RichardSocher),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Gary Marcus(@GaryMarcus),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Adam D'Angelo(@adamdangelo),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Suhail(@Suhail),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+AI产品黄叔(@PMbackttfuture),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+GitHub(@github),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+idoubi(@idoubicc),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Claude(@claudeai),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,5,5,5,6,4,5,medium,low,1,3,0.1,1,0.2,2,2,,candidate_not_curated,可能 AI 相关，但未达到本轮核心池的稳定性/独特性/低噪声要求。
+Martin Fowler(@martinfowler),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Viking(@vikingmute),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Geek(@geekbb),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Tw93(@HiTw93),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+Yangyi(@Yangyixxxx),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+hidecloud(@hidecloud),temporary_pool_ref_redacted,temporary_rss_pool,drop,C,,2,3,5,6,4,2,low,low,1,3,0.1,1,0.2,2,2,,low_ai_density,未证明最近内容长期保持高 AI 密度。
+人人都是产品经理,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+腾讯技术工程,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+阿里技术,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+阿里云开发者,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+大淘宝技术,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+新智元,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+腾讯云开发者,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+前端早读课,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Founder Park,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+歸藏的AI工具箱,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+腾讯科技,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+InfoQ,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+赛博禅心,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+数字生命卡兹克,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+十字路口Crossing,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+极客公园,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+京东技术,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Web3天空之城,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+AI前线,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+51CTO技术栈,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+稀土掘金技术社区,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+dbaplus社群,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+深思圈,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+海外独角兽,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+谷歌开发者,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+笔记侠,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+月之暗面 Kimi,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+腾讯研究院,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+浮之静,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+甲子光年,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Z Potentials,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+DeepSeek,https://x.com/deepseek_ai,curated_ai_sources,keep,S,official,10,9,8,8,10,10,high,low,0,0,0.0,0,0.0,0,4,9.2,,推理模型、开源权重与低成本 API 生态的官方源。
+Jina AI,https://x.com/JinaAI_,curated_ai_sources,keep,B,technical_share,8,8,8,8,8,8,high,low,1,1,0.0,0,0.0,0,4,7.5,,Embedding、Reranker、多模态检索和 AI 基础设施实践源。
+Datawhale,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+向阳乔木推荐看,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+语言即世界language is world,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Dify,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+智谱,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+通义实验室,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+百度文心,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+腾讯混元,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+智东西,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+AGENT橘,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+大模型智能,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+AI炼金术,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+AI科技评论,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+山行AI,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+土猛的员外,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+DeeplearningAI,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+机器之心SOTA模型,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+阶跃星辰,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+字节跳动Seed,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+AI寒武纪,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+MiniMax 稀宇科技,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+花叔,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+AINLP,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+硅基观察Pro,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+李继刚,https://x.com/lijigang_com,curated_ai_sources,keep,B,industry_leader,8,8,8,8,8,8,high,low,1,1,0.0,0,0.1,1,4,7.4,,Prompt、模型边界和中文 AI 实践的高密度个人源。
+沃垠AI,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+袋鼠帝AI客栈,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+AI科技大本营,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+卡尔的AI沃茨,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+阿真Irene,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+优设,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+体验进阶,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+超人的电话亭,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Clip设计夹,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+AI产品黄叔,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+强少来了,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+小米技术,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+哔哩哔哩技术,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+字节跳动技术团队,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+滴滴技术,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+奇舞精选,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+得物技术,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+百度Geek说,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+前端充电宝,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Qunar技术沙龙,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+vivo互联网技术,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+小红书技术REDtech,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+HelloGitHub,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+印记中文,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+快手技术,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+逛逛GitHub,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+架构师之路,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+硅谷科技评论,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+42章经,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+随机小分队,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+阿里研究院,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+创业邦,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,medium,3,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+CSDN,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+吴晓波频道,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,medium,3,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+投资实习所,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+经纬创投,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+少数派,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+网易科技,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+硅谷101,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+真格基金,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+深网腾讯新闻,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+白鲸出海,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+硅星人Pro,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+暗涌Waves,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+夕小瑶科技说,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+L先生说,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+有新Newin,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+晚点LatePost,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+刘润,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,medium,3,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+刘小排r,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+机器之心,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+魔搭ModelScope社区,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+43 Talks,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+言午,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+思特沃克洞见,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+数据可视化 AntV,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+晚点再听LaterCast,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+古典古少侠,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+AI异类弗兰克,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+AI产品阿颖,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+阑夕,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+PM圈子,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+哈佛商业评论,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,medium,3,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+PaperAgent,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+有赞coder,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Draco正在VibeCoding,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+36氪,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Playwright实战教程,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+华尔街见闻,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+青稞AI,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+AI闲谈,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+罗西的思考,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+武志红,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+槽边往事,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+人物,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+猫笔刀,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+周国平,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+南方周末,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+财新,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+三联生活周刊,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+一席,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Xiaomi MiMo,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+钉钉,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+飞书,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+携程技术,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+蚂蚁技术AntTech,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+爱奇艺技术产品团队,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+丁香医生,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+SaaS白夜行,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+世界银行,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+老俞闲话,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+小林coding,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+斯坦福社会创新评论,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+谷雨实验室,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+每日豆瓣,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+新周刊,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+果壳,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+KnowYourself,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+凤凰网财经,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,medium,3,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+凤凰网,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+雪球,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+财联社,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+张佳玮写字的地方,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+投资界,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+央视财经,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,medium,3,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+支付宝体验科技,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+秋芝2046,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+吴鲁加,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+香帅的金融江湖,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+效率火箭,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+高可用架构,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+腾讯云中间件,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+虎嗅APP,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+雷峰网,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+钛媒体,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+PaperWeekly,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+智能涌现,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+飞哥说AI,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+水木人工智能学堂,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+从码农到工匠,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+快刀青衣,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+HelloSREAgent,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+MacTalk,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+刘言飞语,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+产品二姐,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+AI大模型应用实践,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+王吉伟,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+风叔云,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+脑极体,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+麦肯锡,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+麻省理工科技评论APP,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+砺石商业评论,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,medium,3,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+通往AGI之路,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+小互AI,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+喔家ArchiSelf,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+乱翻书,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+见实,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+zartbot,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+产品犬舍,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+字节跳动开源,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+二一的笔记,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+一泽Eze,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+前端开发爱好者,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+南京发布,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+网信中国,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+网信北京,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+公安部网安局,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+方伟看十年,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+写代码的宝哥,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+phodal,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+毛有话说,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+NOV心理,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+泽平宏观,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+峰瑞资本,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+高瓴时间,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+高瓴创投,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+聪明投资者,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+中金点睛,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+也谈钱,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+山行资本,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+格隆汇APP,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+棱镜,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+海豚研究,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+经济观察报,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+21世纪经济报道,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+老钱说钱,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+老钱日日谈,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+东方财富网,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+郑立涛,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+佳芮的创业笔记,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,medium,3,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+财经早餐,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,medium,3,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+中国新闻周刊,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+第一财经,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,medium,3,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+券商中国,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+单读,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+艾逗笔,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+腾讯NBA,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+苏群,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+篮球先锋报,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+杨毅侃球,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+懂球娘娘,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+足球报,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+体坛周报,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+澎湃运动家,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+五星体育,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+天下足球,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+央视网体育,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+央视新闻,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+环球时报,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+新华社,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+每日经济新闻,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+腾讯财经,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,medium,3,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+乒乓世界,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+南风窗,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+央广网,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+科普中国,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+网球之家,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+晚点对话,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+AIBase基地,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+非凡产研,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+晚点AI,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+洞见,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+十点读书,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+人民日报,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+央视网,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+跑步指南,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+生命时报,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+梅斯医学,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+CCTV生活圈,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+每晚一卷书,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+看理想,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+罗辑思维,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+叶檀财经,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,medium,3,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+张湧说财经,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,medium,3,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Wind万得,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+功夫财经,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,medium,3,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+混知,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+科技美学,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+心智工具箱,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+iamsujie,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+一条,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+中国国家地理,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+混沌学园,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+携隐Melody,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+集智俱乐部,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+格兰投研,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+区块链头条,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+转转技术,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+陈鲁豫的电影沙发,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+半导体行业观察,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+饭统戴老板,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+远川研究所,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+caoz的梦呓,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+孤独大脑,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+孟岩,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+APPSO,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+i食色摇闲情,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+地球知识局,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+星球研究所,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+利维坦,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+小众消息,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+互联网怪盗团,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+九边,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+知识分子,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+DeepTech深科技,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+warfalcon,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+investguru,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+环球科学,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+廖信忠,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+大力如山,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+新京报书评周刊,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+老张投研,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+心木微笔,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+知乎日报,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+真实故事计划,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+刘备教授,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+理想国imaginist,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+智族Life,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+神经现实,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+中科院物理所,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+六神磊磊读金庸,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+思想钢印,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+智族Lab,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+原理,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+标志情报局,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+游戏研究社,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+王建硕,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+返朴,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+澎湃新闻,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+读者,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+半月谈,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+国家人文历史,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+人民日报评论,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+人民网,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+范冰的二次学习,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+南方人物周刊,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+正和岛,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+界面新闻,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+浪潮工作室,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+PriceTag发现好应用,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+红杉汇,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+银行螺丝钉,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+集思录,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+ETF进化论,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+阿虚同学,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+虹膜,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+环球设计,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+日本设计小站,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Memm设计知识分享,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+设计癖,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+淘宝设计,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+独立鱼电影,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+澎湃思想市场,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+游戏葡萄,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+后浪研究所,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+太阳照常升起,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+GitHubDaily,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+GitHubStore,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+一天一篇经济学人,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+财经杂志,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,medium,3,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+得到,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+帆书樊登讲书,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+中国金融四十人论坛,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Barrons巴伦,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+新榜,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+运营研究社,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+窄播,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+界面文化,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Design360,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+BranD的好奇心,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+企鹅吃喝指南,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+Wallpaper中文版,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+工业设计,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+点拾投资,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+三折人生,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+小Lin说的公众号,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+刀法研究所,temporary_pool_ref_redacted,temporary_wechat_pool,drop,C,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,wechat_rss_high_risk,公众号 RSS 依赖第三方桥接和平台策略，作为可选高风险方向记录，不进入核心池。
+张小珺Jùn｜商业访谈录,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,medium,3,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+罗永浩的十字路口,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+屠龙之术,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+42章经,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+硬地骇客,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+硅谷101,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+半拿铁 | 商业沉浮录,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,medium,3,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+开始连接 LinkStart,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+高能量,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+此话当真,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+牛油果烤面包,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+晚点聊 LateTalk,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+乱翻书,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+TIANYU2FM — 对谈未知领域,https://rsshub.xiaowuaiblog.com/xiaoyuzhou/podcast/5f22729f9504bbdb77253e46,temporary_podcast_pool,drop,out_of_scope,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+声动早咖啡,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+科技乱炖,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+What's Next｜科技早知道,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+声东击西,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+疯投圈,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+商业就是这样,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,medium,3,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+枫言枫语,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+保持偏见,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+三五环,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+皮蛋漫游记,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+AI炼金术,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+十字路口Crossing,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+信号与噪声,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+人民公园说AI,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+跨国串门儿计划,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+知行小酒馆,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+搞钱女孩,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+起朱楼宴宾客,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+面基,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+第一财经,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,medium,3,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+无人知晓,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+纵横四海,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+自我进化论,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+自习室 STUDY ROOM,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+慢速生长,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+诗梳风,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+谭立人,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+李诞,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+岩中花述,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+蒋方舟·一寸,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+游荡集,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+一席,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+独树不成林,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+文化有限,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+忽左忽右,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+梁永安的播客,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+看理想圆桌,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+不合时宜,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+天真不天真,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+凹凸电波,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+随机波动StochasticVolatility,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+东腔西调,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+东亚观察局,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+肥话连篇,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+捕蛇者说,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+卫诗婕｜漫谈Light the Star,temporary_pool_ref_redacted,temporary_podcast_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+AI Engineer,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+AI Explained,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+AI Master,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+AI Search,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+AI Video School,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+AICodeKing,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Andrej Karpathy,https://x.com/karpathy,curated_ai_sources,keep,A,industry_leader,9,10,7,8,10,9,high,low,0,0,0.0,0,0.1,1,4,8.7,,大模型工程、教育和源码级解释的高密度个人源。
+Anthropic,https://x.com/AnthropicAI,curated_ai_sources,keep,S,official,10,10,9,8,10,10,high,low,0,0,0.0,0,0.0,0,4,9.5,,Claude 模型、安全研究、企业智能体能力的官方主线。
+AssemblyAI,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Claude,https://x.com/claudeai,curated_ai_sources,keep,A,official,9,9,9,8,9,10,high,low,1,0,0.0,0,0.0,0,4,8.8,,Claude 产品能力、Claude Code 与工作流场景更新的官方线。
+Cognitive Revolution,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+DeepLearningAI,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Every,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Futurepedia,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Google DeepMind,https://x.com/GoogleDeepMind,curated_ai_sources,keep,S,official,10,10,9,8,10,10,high,low,0,0,0.0,0,0.0,0,4,9.5,,DeepMind 模型、科研和安全进展的一手官方源。
+How I AI,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Hung-yi Lee,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+LangChain,https://x.com/LangChainAI,curated_ai_sources,keep,A,technical_share,9,8,9,8,8,9,high,low,1,1,0.0,0,0.0,0,4,8.1,,Agent、RAG、LangGraph 和应用工程实践的高密度技术源。
+Last Week in AI,https://lastweekin.ai/feed/,curated_ai_sources,keep,B,technical_share,8,7,8,8,7,8,high,low,1,2,0.1,1,0.0,0,1,7.1,,AI 行业动态与研究进展的高密度周频补充源。
+Liam Ottley,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Machine Learning Street Talk,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Matt Wolfe,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+MattVidPro AI,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Matthew Berman,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+NetworkChuck,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Nick Saraev,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+No Priors,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+OpenAI,https://x.com/OpenAI,curated_ai_sources,keep,S,official,10,10,9,8,10,10,high,low,0,0,0.0,0,0.0,0,4,9.5,,OpenAI 官方主发布线，模型、产品、API 与安全更新的一手源。
+Pika Labs,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Riley Brown,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Runway,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Siraj Raval,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Tao Prompts,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+The AI Advantage,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Tina Huang,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Two Minute Papers,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Unsupervised Learning: Redpoint's AI Podcast,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Wes Roth,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Yannic Kilcher,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+leerob,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+跟李沐学AI,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Acquired,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Alex Kantrowitz,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+All-In Podcast,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Better Ideas,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Branch Education,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Business Insider,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+ColdFusion,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Core Memory Podcast,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+CrashCourse,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Curious Refuge,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Dwarkesh Patel,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+EO,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Google,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Greg Isenberg,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Invest Like The Best,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Kurzgesagt - In a Nutshell,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Lex Fridman,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Luma,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+My First Million,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Naval,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Nikhil Kamath,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Sabin Civil Engineering,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Silicon Valley Girl,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+StatQuest with Josh Starmer,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Stripe,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+The Diary Of A CEO,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+The Knowledge Project Podcast,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+The PrimeTime,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Theoretically Media,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+This Week in Startups,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Thomas Frank,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Y Combinator,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+a16z,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+companyman,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+mrblock 區塊先生,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+struthless,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Patrick Boyle,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Sequoia Capital,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Andrew Huberman,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Chris Williamson,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+MrBeast,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+National Geographic,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+PowerfulJRE,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+SmarterEveryDay,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+White Cube YouTube,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+一席,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+一条,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+TED,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+AJ&Smart,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+DesignCourse,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+DesignerUp,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Figma,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+First of Kind,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Flux Academy,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Lenny's Podcast,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Mind the Product,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+NNgroup,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Product School,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+The Futur,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+yobi321,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+3Blue1Brown,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Ali Abdaal,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Anthony Vicino,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Justin Sung,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Matt D'Avella,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+minutephysics,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+李永乐老师,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Amigoscode,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Beyond Coding,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+ByteByteGo,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Computerphile,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Fireship,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+GitHub,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Hussein Nasser,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Modern Software Engineering,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Real Engineering,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Ryan Peterman,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Spring I/O,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+The Pragmatic Engineer,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,4,5,5,4,4,4,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Theo - t3․gg,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Traversy Media,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+Web Dev Simplified,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+freeCodeCamp.org,temporary_pool_ref_redacted,temporary_youtube_pool,drop,out_of_scope,,2,3,5,4,4,2,low,low,1,3,0.1,1,0.2,2,8,,out_of_scope_media_type,本轮不做播客/YouTube/TTS/视频链路，避免把文本雷达主线复杂化。
+OpenAI Developers,https://x.com/OpenAIDevs,curated_ai_sources,keep,S,official,10,9,9,8,9,10,high,low,0,0,0.0,0,0.0,0,4,9.2,,OpenAI 开发者平台、API、SDK 和工程能力更新的一手源。
+ChatGPTapp,https://x.com/ChatGPTapp,curated_ai_sources,keep,A,official,9,9,9,8,9,10,high,low,1,0,0.0,0,0.0,0,4,8.8,,ChatGPT 产品能力、多模态体验与客户端功能更新的官方线。
+Sam Altman,https://x.com/sama,curated_ai_sources,keep,A,industry_leader,9,8,9,8,10,9,high,low,1,1,0.1,1,0.0,0,4,8.2,,OpenAI 战略、算力、产品方向与政策判断的重要人物源。
+Google AI,https://x.com/GoogleAI,curated_ai_sources,keep,A,official,9,9,9,8,9,10,high,low,1,0,0.0,0,0.0,0,4,8.8,,Gemini、Google AI 产品与研究发布的官方线。
+xAI,https://x.com/xai,curated_ai_sources,keep,A,official,9,9,9,8,9,10,high,low,1,0,0.0,0,0.0,0,4,8.8,,Grok 系列模型、API 和多模态产品能力的一手源。
+Qwen,https://x.com/Alibaba_Qwen,curated_ai_sources,keep,S,official,10,9,9,8,9,10,high,low,0,0,0.0,0,0.0,0,4,9.2,,通义千问模型、开源社区和强化学习路线的官方线。
+智谱AI,https://x.com/ZhipuAI,curated_ai_sources,keep,A,official,9,8,8,8,8,9,high,low,1,0,0.0,0,0.0,0,4,8.15,,GLM 模型、产品能力和国内基座模型生态的官方线。
+月之暗面,https://x.com/MoonshotAI,curated_ai_sources,keep,A,official,9,8,8,8,8,9,high,low,1,0,0.0,0,0.0,0,4,8.15,,Kimi 长文本、个人生产力助手和智能体演进的官方线。
+MiniMax,https://x.com/MiniMax_AI,curated_ai_sources,keep,A,official,9,8,8,8,8,9,high,low,1,0,0.0,0,0.0,0,4,8.15,,多模态语音、视频与海外 C 端产品的官方线。
+OpenRouter,https://x.com/OpenRouterAI,curated_ai_sources,keep,A,technical_share,9,8,9,8,9,9,high,low,1,1,0.0,0,0.0,0,4,8.2,,模型路由、真实调用趋势和模型生态变化的高信号平台源。
+LMSYS Arena,https://x.com/lmarena_ai,curated_ai_sources,keep,A,technical_share,9,8,8,8,9,9,high,low,0,1,0.0,0,0.0,0,4,8.25,,模型盲测竞技场、排名变动和评测结果的生态信号源。
+LlamaIndex,https://x.com/llama_index,curated_ai_sources,keep,A,technical_share,9,8,8,8,8,9,high,low,1,1,0.0,0,0.0,0,4,8.0,,RAG、数据连接、知识库和智能体工程实践源。
+Tencent Hunyuan,https://x.com/TencentHunyuan,curated_ai_sources,keep,A,official,9,8,8,8,8,9,high,low,1,0,0.0,0,0.0,0,4,8.15,,腾讯混元模型、开源权重、多模态和产业落地的一手官方源。
+Xiaomi MiMo,https://x.com/Xiaomi_MiMo,curated_ai_sources,keep,B,official,8,7,8,8,7,8,high,low,1,1,0.0,0,0.0,0,4,7.2,,端云协同、人车家生态 Agent 和 MiMo 模型实践的官方源。

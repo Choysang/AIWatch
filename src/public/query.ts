@@ -225,7 +225,8 @@ export function parseDateRange(
 }
 
 export function parsePublicQuery(params: URLSearchParams): PublicQuery {
-  const mode: PublicMode = params.get("mode") === "selected" ? "selected" : "all";
+  const mode: PublicMode =
+    params.get("mode") === "latest" || params.get("mode") === "all" ? "all" : "selected";
   const sinceRaw = params.get("since");
   const since: SemanticWindow =
     sinceRaw === "today" || sinceRaw === "week" || sinceRaw === "month" || sinceRaw === "all"

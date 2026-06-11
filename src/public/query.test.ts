@@ -12,14 +12,18 @@ import {
 const parse = (qs: string) => parsePublicQuery(new URLSearchParams(qs));
 
 describe("parsePublicQuery", () => {
-  test("defaults to all mode + all window for the reader's latest feed", () => {
+  test("defaults to selected mode + week window for the reader's low-noise feed", () => {
     const q = parse("");
-    expect(q.mode).toBe("all");
-    expect(q.since).toBe("all");
+    expect(q.mode).toBe("selected");
+    expect(q.since).toBe("week");
     expect(q.take).toBe(DEFAULT_TAKE);
   });
 
-  test("mode=all defaults the window to all", () => {
+  test("mode=latest and legacy mode=all default the window to all", () => {
+    const latest = parse("mode=latest");
+    expect(latest.mode).toBe("all");
+    expect(latest.since).toBe("all");
+
     const q = parse("mode=all");
     expect(q.mode).toBe("all");
     expect(q.since).toBe("all");

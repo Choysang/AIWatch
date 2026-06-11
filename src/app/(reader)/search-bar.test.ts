@@ -23,9 +23,10 @@ describe("search bar responsiveness", () => {
     expect(searchSource).toContain('const WINDOWS = ["today", "week", "month", "all"] as const;');
     expect(searchSource).toContain('const SEARCH_MODES = ["latest", "selected"] as const;');
     expect(searchSource).toContain(
-      'const mode: SearchMode = params.get("mode") === "selected" ? "selected" : "latest";',
+      'params.get("mode") === "latest" || params.get("mode") === "all" ? "latest" : "selected";',
     );
-    expect(searchSource).toContain('if (value === "latest") next.delete("mode");');
+    expect(searchSource).toContain('if (value === "latest") next.set("mode", "latest");');
+    expect(searchSource).toContain('else next.delete("mode");');
     expect(searchSource).toContain("const toggleEventCategory");
     expect(searchSource).not.toContain("clearEventCategory");
     expect(searchSource).not.toContain("{m.eventCategoryAll}");

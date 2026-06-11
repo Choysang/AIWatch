@@ -20,6 +20,7 @@
     "db:backfill:domain-content-type": "bun run scripts/backfill-domain-content-type.ts",
     "db:backfill:source-categories": "bun run scripts/backfill-source-categories.ts",
     "sources:import:xgo": "bun run scripts/import-xgo-sources.ts",
+    "sources:import:curated": "bun run scripts/import-curated-ai-sources.ts",
     "db:seed:empty-owner": "bun run scripts/setup-owner.ts",
     "setup:owner": "bun run scripts/setup-owner.ts",
     "test": "bun test src",

@@ -88,7 +88,8 @@ export function SearchBar() {
   const toVal = draftValue(toDraft, toParam);
   const minScoreVal = draftValue(minScoreDraft, minScoreParam);
   const timeChoice = draftValue(timeDraft, routeTimeChoice) as TimeChoice;
-  const mode: SearchMode = params.get("mode") === "selected" ? "selected" : "latest";
+  const mode: SearchMode =
+    params.get("mode") === "latest" || params.get("mode") === "all" ? "latest" : "selected";
   const selectedSourceCategories = parseSourceCategoryParam(params.get("sourceCategories"));
   const selectedEventCategory = params.get("category") as EventCategory | null;
   const nativeSubmitParams = Array.from(params.entries()).filter(([key]) => key !== "q");
@@ -116,8 +117,8 @@ export function SearchBar() {
 
   const setMode = (value: SearchMode) =>
     navigate((next) => {
-      if (value === "latest") next.delete("mode");
-      else next.set("mode", "selected");
+      if (value === "latest") next.set("mode", "latest");
+      else next.delete("mode");
     });
 
   const selectTime = (value: TimeChoice) => {

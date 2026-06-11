@@ -1224,6 +1224,13 @@ canvas {
   }
 }
 
+/* 数据新鲜度提示（信任信号：让读者知道内容多新） */
+.last-updated {
+  margin-left: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+}
+
 /* --- load more (URL-as-state pagination) --- */
 .load-more {
   display: grid;

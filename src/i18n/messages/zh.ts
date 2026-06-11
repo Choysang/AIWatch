@@ -76,6 +76,7 @@ export const zh = {
     heading: "全部 AI 动态",
     subheading: "按时间排序的全部动态；精选内容稀缺且可解释。",
     empty: "暂无动态。先运行 worker 抓取，或执行 bun run db:seed:demo 载入演示数据。",
+    lastUpdated: (when: string) => `最后更新 ${when}`,
   },
   search: {
     placeholder: "搜索标题、摘要、来源或标签…",

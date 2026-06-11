@@ -237,7 +237,16 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       <h2 className="section-intro" style={{ fontWeight: 600, color: "var(--ink)" }}>
         {m.home.heading}
       </h2>
-      <p className="section-intro">{m.home.subheading}</p>
+      <p className="section-intro">
+        {m.home.subheading}
+        {events[0] && (
+          <span className="last-updated">
+            {m.home.lastUpdated(
+              formatDateTime(events[0].publishedAt ?? events[0].promotedAt ?? events[0].createdAt),
+            )}
+          </span>
+        )}
+      </p>
 
       {events.length === 0 ? (
         <div className="empty">{isFiltered ? m.search.empty : m.home.empty}</div>
