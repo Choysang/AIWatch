@@ -8,10 +8,8 @@ const isProd = process.env.NODE_ENV === "production";
 // Content-Security-Policy (H1). Strict baseline. `connect-src` / `img-src` will widen when
 // the downstream Leaderboard Center fetches external APIs/images.
 //
-// Rollout: production enforces by default. Set CSP_ENFORCE=0 only while validating a
-// staging build in Report-Only mode. Note: enforcing `script-src 'self'` with Next's
-// streamed inline bootstrap may require a per-request nonce via middleware; validate the
-// reader + /_admin before shipping a new CSP.
+// Rollout: production enforces by default. Next's streamed RSC bootstrap currently emits
+// inline scripts, so allow them until a nonce-based middleware path is introduced.
 const csp = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -19,9 +17,10 @@ const csp = [
   "frame-ancestors 'none'",
   "img-src 'self' data: https:",
   "style-src 'self' 'unsafe-inline'",
-  "script-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
   "connect-src 'self'",
   "font-src 'self'",
+  "media-src 'self' https: data: blob:",
   "form-action 'self'",
 ].join("; ");
 
