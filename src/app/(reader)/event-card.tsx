@@ -9,7 +9,7 @@ import { messages } from "@/i18n";
 import { formatDateTime } from "@/app/_lib/format";
 import { extractCardMedia } from "@/app/_lib/media";
 import { CommentTicker } from "./comment-ticker";
-import { EventCardShell, TrackableDetailLink, TrackableOriginalLink } from "./event-view-tracker";
+import { EventCardShell, TrackableDetailLink } from "./event-view-tracker";
 import { InlineComments } from "./inline-comments";
 import { ReactionButtons } from "./reaction-buttons";
 
@@ -59,6 +59,10 @@ export function EventCard({
   const cardMedia = extractCardMedia(event.media);
   const contentLabel = eventCategoryLabel(event.category);
   const detailHref = `/events/${event.id}`;
+  // Chinese-first titles can equal the one-line summary (deriveTitle fallback);
+  // don't render the same sentence twice.
+  const summaryDuplicatesTitle =
+    !!event.summary && event.summary.replace(/[。.!！?？]\s*$/, "") === event.title;
 
   return (
     <EventCardShell eventId={event.id} detailHref={detailHref}>
@@ -101,14 +105,13 @@ export function EventCard({
         )}
       </div>
 
+      {/* Title routes to the in-site detail page (original text + comments live there).
+          The outbound x.com link moved to the detail page where it pairs with 复制链接 —
+          a raw external link is a dead click for readers who can't reach x.com. */}
       <h2>
-        {event.url ? (
-          <TrackableOriginalLink eventId={event.id} href={event.url}>
-            {event.title}
-          </TrackableOriginalLink>
-        ) : (
-          event.title
-        )}
+        <TrackableDetailLink eventId={event.id} href={detailHref}>
+          {event.title}
+        </TrackableDetailLink>
       </h2>
 
       {cardMedia && (
@@ -124,7 +127,9 @@ export function EventCard({
         </figure>
       )}
 
-      {event.summary && <p className="summary">{event.summary}</p>}
+      {event.summary && !summaryDuplicatesTitle && (
+        <p className="summary">{event.summary}</p>
+      )}
 
       {showReason && (
         <p className="reason">

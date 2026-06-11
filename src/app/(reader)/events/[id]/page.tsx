@@ -16,6 +16,7 @@ import { getViewerReactions, type ViewerReactionState } from "@/db/queries/react
 import { messages } from "@/i18n";
 import { formatDateTime } from "@/app/_lib/format";
 import { CommentsSection } from "../../comments-section";
+import { CopyLinkButton } from "../../copy-link-button";
 import { TrackableOriginalLink } from "../../event-view-tracker";
 import { ReactionButtons } from "../../reaction-buttons";
 
@@ -176,6 +177,24 @@ export default async function EventDetailPage({
             <span className="label">{card.recommendationReason}</span>
             {event.recommendationReason}
           </p>
+        )}
+
+        {/* 原帖全文（未翻译，默认折叠）：照顾打不开 x.com 的读者。 */}
+        {event.rawContent && (
+          <details className="original-text">
+            <summary>{m.detail.originalText}</summary>
+            <p className="original-text-note">{m.detail.originalTextNote}</p>
+            <div className="original-text-body">{event.rawContent}</div>
+          </details>
+        )}
+
+        {event.url && (
+          <div className="original-actions">
+            <TrackableOriginalLink eventId={event.id} href={event.url}>
+              {m.detail.openOriginal} ↗
+            </TrackableOriginalLink>
+            <CopyLinkButton url={event.url} />
+          </div>
         )}
 
         <div className="card-bottom">

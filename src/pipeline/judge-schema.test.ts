@@ -3,6 +3,7 @@ import { DEFAULT_JUDGMENT } from "@/llm/stub";
 import {
   buildFoldKey,
   deepExtractSchema,
+  deriveTitle,
   gateLightJudge,
   lightJudgeSchema,
 } from "./judge-schema";
@@ -65,10 +66,10 @@ describe("pipeline judgment contracts", () => {
     expect(parsed.core_viewpoints).toHaveLength(1);
   });
 
-  test("code derives tier from score and trash domain", () => {
+  test("code derives tier without dropping trusted-source posts", () => {
     const base = lightJudgeSchema.parse(DEFAULT_JUDGMENT);
-    expect(gateLightJudge({ ...base, score: 59 })).toBeNull();
-    expect(gateLightJudge({ ...base, domain: "trash", score: 95 })).toBeNull();
+    expect(gateLightJudge({ ...base, score: 59 })).toBe("T1");
+    expect(gateLightJudge({ ...base, domain: "trash", score: 95 })).toBe("T1");
     expect(gateLightJudge({ ...base, score: 79 })).toBe("T1");
     expect(gateLightJudge({ ...base, score: 80 })).toBe("T2");
   });
@@ -82,5 +83,34 @@ describe("pipeline judgment contracts", () => {
     expect(buildFoldKey("ChatGPT", "release")).toBe("openai|release");
     expect(buildFoldKey("chat.openai.com", "release")).toBe("openai|release");
     expect(buildFoldKey("Claude Code", "release")).toBe("anthropic|release");
+  });
+
+  test("deriveTitle keeps a Chinese raw title as-is", () => {
+    const title = deriveTitle(
+      { rawTitle: "OpenAI 发布 GPT-5 全量上线" },
+      "OpenAI 发布了 GPT-5，带来推理能力提升。",
+    );
+    expect(title).toBe("OpenAI 发布 GPT-5 全量上线");
+  });
+
+  test("deriveTitle prefers the Chinese summary over an all-English raw title", () => {
+    const title = deriveTitle(
+      { rawTitle: "Introducing GPT-5: our most capable model yet, rolling out today" },
+      "OpenAI 发布了 GPT-5，带来推理能力提升。",
+    );
+    expect(title).toBe("OpenAI 发布了 GPT-5，带来推理能力提升");
+  });
+
+  test("deriveTitle falls back to the English raw title when the summary is empty", () => {
+    const title = deriveTitle(
+      { rawTitle: "Introducing GPT-5: our most capable model yet" },
+      "",
+    );
+    expect(title).toBe("Introducing GPT-5: our most capable model yet");
+  });
+
+  test("deriveTitle falls back to the summary without a raw title", () => {
+    const title = deriveTitle({}, "Anthropic 发布了 Claude 新版本。");
+    expect(title).toBe("Anthropic 发布了 Claude 新版本");
   });
 });

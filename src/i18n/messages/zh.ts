@@ -158,10 +158,19 @@ export const zh = {
     starred: "已收藏",
     reactionError: "操作失败，请稍后再试。",
     detail: "查看详情",
+    copyLink: "复制原文链接",
+    copyLinkCopied: "已复制 ✓",
+    copyLinkFailed: "复制失败",
   },
   detail: {
     backToFeed: "返回动态",
     notFound: "未找到该事件。",
+    openOriginal: "打开原文",
+    originalText: "查看原帖全文",
+    originalTextNote: "原帖内容未经翻译，以信源原文为准。",
+  },
+  loadMore: {
+    action: "加载更多",
   },
   comments: {
     heading: "讨论",

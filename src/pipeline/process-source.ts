@@ -172,12 +172,7 @@ function makeDefaultJudge(db: DB): JudgeFn {
     );
 
     const tier = gateLightJudge(light);
-    if (!tier) {
-      throw new LowScoreDiscard(light);
-    }
-
-    // The gate guarantees the domain is not "trash" past this point.
-    const domain = light.domain as IntelligenceDomain;
+    const domain: IntelligenceDomain = light.domain === "trash" ? "discussion" : light.domain;
     const deepRaw =
       tier === "T2"
         ? await generateForTask(
@@ -230,12 +225,6 @@ function makeDefaultJudge(db: DB): JudgeFn {
     };
     return { ...judgment, summary: formatSummary(judgment) };
   };
-}
-
-class LowScoreDiscard extends Error {
-  constructor(readonly light: LightJudge) {
-    super("light_judge_discard");
-  }
 }
 
 export interface ProcessDeps {
@@ -378,13 +367,6 @@ export async function processSource(
         summary.newEvents++;
       }
     } catch (error) {
-      if (error instanceof LowScoreDiscard) {
-        await markPostPipelineState(db, post.id, "discarded", error.light);
-        await markJudgeFailed(db, post.id, "ai_low_score");
-        summary.dropped++;
-        continue;
-      }
-
       summary.failed++;
       if (error instanceof NoProviderConfiguredError) {
         await markJudgeFailed(db, post.id, "no_key");

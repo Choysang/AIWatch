@@ -70,7 +70,29 @@ export const metadata = {
 type SearchParams = Record<string, string | string[] | undefined>;
 
 const HOME_LIMIT = 30;
+// "加载更多" raises the limit in HOME_LIMIT steps via the `limit` URL param (URL-as-state:
+// shareable, SSR-only, no client fetch layer). Capped so a hand-edited URL can't dump
+// the whole table into one render.
+const HOME_LIMIT_MAX = 150;
 const HOTSPOT_CANDIDATE_LIMIT = 80;
+
+function parseHomeLimit(sp: SearchParams): number {
+  const raw = sp.limit;
+  const value = typeof raw === "string" ? Number(raw) : Array.isArray(raw) ? Number(raw[0]) : NaN;
+  if (!Number.isFinite(value) || value <= HOME_LIMIT) return HOME_LIMIT;
+  return Math.min(Math.floor(value), HOME_LIMIT_MAX);
+}
+
+/** Same-page link that keeps every active filter and only bumps `limit`. */
+function loadMoreHref(sp: SearchParams, nextLimit: number): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(sp)) {
+    if (typeof value === "string") params.set(key, value);
+    else if (Array.isArray(value) && value[0]) params.set(key, value[0]);
+  }
+  params.set("limit", String(nextLimit));
+  return `/?${params.toString()}`;
+}
 
 function toQuery(sp: SearchParams): PublicQuery {
   const params = new URLSearchParams();
@@ -99,10 +121,14 @@ function toFeedFilter(query: PublicQuery): FeedFilter {
 
 async function loadHomeData(
   query: PublicQuery,
+  limit: number,
 ): Promise<{ events: EventCardData[]; hotspots: CurrentHotspot[] }> {
   try {
-    const candidates = await searchEvents(toFeedFilter(query), HOTSPOT_CANDIDATE_LIMIT);
-    const events = candidates.slice(0, HOME_LIMIT);
+    const candidates = await searchEvents(
+      toFeedFilter(query),
+      Math.max(limit, HOTSPOT_CANDIDATE_LIMIT),
+    );
+    const events = candidates.slice(0, limit);
     try {
       const hotspots = await listCurrentHotspots(candidates.map((event) => event.id));
       return { events, hotspots };
@@ -156,8 +182,12 @@ async function loadTopComments(eventIds: string[]): Promise<Map<string, string[]
 }
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  const query = toQuery(await searchParams);
-  const { events, hotspots } = await loadHomeData(query);
+  const sp = await searchParams;
+  const query = toQuery(sp);
+  const limit = parseHomeLimit(sp);
+  const { events, hotspots } = await loadHomeData(query, limit);
+  // A full page means there may be more; render the load-more link (limit+step, capped).
+  const canLoadMore = events.length >= limit && limit < HOME_LIMIT_MAX;
   const eventIds: string[] = [];
   const commentEventIds: string[] = [];
   for (const event of events) {
@@ -289,6 +319,14 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               ))}
             </CollapsibleGroup>
           ))}
+        </div>
+      )}
+
+      {canLoadMore && (
+        <div className="load-more">
+          <a href={loadMoreHref(sp, Math.min(limit + HOME_LIMIT, HOME_LIMIT_MAX))}>
+            {m.loadMore.action}
+          </a>
         </div>
       )}
 

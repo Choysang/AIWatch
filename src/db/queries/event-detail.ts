@@ -10,6 +10,9 @@ import { events, posts, sources } from "@/db/schema";
 
 export interface EventDetail extends EventCard {
   sourceUrl: string | null;
+  /** Original post body (untranslated). Shown collapsed on the detail page so readers
+   *  who can't open x.com still get the full source text. */
+  rawContent: string | null;
 }
 
 export async function getEventDetail(
@@ -42,6 +45,7 @@ export async function getEventDetail(
       authorName: posts.authorName,
       authorHandle: posts.authorHandle,
       url: posts.url,
+      rawContent: posts.rawContent,
       likeCount: events.likeCount,
       starCount: events.starCount,
       downCount: events.downCount,

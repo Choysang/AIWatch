@@ -155,15 +155,32 @@ export interface ColdJudge {
   rawDeep: DeepExtract | null;
 }
 
-export function gateLightJudge(light: LightJudge): EventTier | null {
-  if (light.domain === "trash" || light.score < 60) return null;
+export function gateLightJudge(light: LightJudge): EventTier {
+  if (light.domain === "trash") return "T1";
   return light.score >= 80 ? "T2" : "T1";
 }
 
+/** Share of CJK characters below which a raw title reads as "foreign" to the zh reader. */
+const TITLE_CJK_MIN_RATIO = 0.15;
+
+function cjkRatio(text: string): number {
+  const chars = [...text].filter((c) => !/\s/.test(c));
+  if (chars.length === 0) return 0;
+  const cjk = chars.filter((c) => /[一-鿿㐀-䶿]/.test(c)).length;
+  return cjk / chars.length;
+}
+
+// Chinese-first cards (2026-06-12): tweets/posts arrive with English raw titles, but the
+// reader is zh-only — so when the raw title is essentially CJK-free and the judge produced
+// a Chinese one-line summary, the summary becomes the display title. The original text
+// stays reachable via the detail page's 原文 section.
 export function deriveTitle(raw: RawPost, oneLineSummary: string): string {
   const title = raw.rawTitle?.trim();
-  if (title) return title.slice(0, 200);
-  return oneLineSummary.replace(/[。.!！?？]\s*$/, "").slice(0, 200);
+  const summaryTitle = oneLineSummary.replace(/[。.!！?？]\s*$/, "").slice(0, 200);
+  if (title && (cjkRatio(title) >= TITLE_CJK_MIN_RATIO || !summaryTitle)) {
+    return title.slice(0, 200);
+  }
+  return summaryTitle || (title ?? "").slice(0, 200);
 }
 
 export function normalizeFoldEntity(value: string): string {

@@ -85,7 +85,7 @@ describe("reader nav sidebar", () => {
     expect(cssSource).not.toMatch(/\.reader-nav-sections\s*\{[^}]*overflow-y:\s*auto;/);
     expect(cssSource).toContain(".reader-nav-bottom {\n  display: flex;");
     expect(cssSource).toContain("flex: 0 0 auto;\n  margin-top: auto;");
-    expect(cssSource).toContain("--reader-nav-width: 216px;");
+    expect(cssSource).toContain("--reader-nav-width: 192px;");
     expect(cssSource).toContain("border-top: 1px solid var(--rh-line);");
     expect(cssSource).toContain("flex-direction: column;");
     expect(cssSource).toContain(".reader-nav-about {\n  flex: 0 0 auto;\n  width: 100%;");

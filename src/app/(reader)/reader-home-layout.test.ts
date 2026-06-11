@@ -25,7 +25,7 @@ describe("reader home layout", () => {
     const feedIndex = pageSource.indexOf('className="feed"');
 
     expect(pageSource).toContain('import { CurrentHotspots } from "./current-hotspots"');
-    expect(pageSource).toContain("loadHomeData(query)");
+    expect(pageSource).toContain("loadHomeData(query, limit)");
     expect(pageSource).toContain("listCurrentHotspots(candidates.map((event) => event.id))");
     expect(searchIndex).toBeGreaterThan(-1);
     expect(hotspotsIndex).toBeGreaterThan(-1);
@@ -80,9 +80,17 @@ describe("reader home layout", () => {
 
   test("uses one feed query for timeline events and hotspot candidates", () => {
     expect(pageSource).toContain("const HOTSPOT_CANDIDATE_LIMIT = 80;");
-    expect(pageSource).toContain("const candidates = await searchEvents(toFeedFilter(query), HOTSPOT_CANDIDATE_LIMIT);");
-    expect(pageSource).toContain("const events = candidates.slice(0, HOME_LIMIT);");
+    expect(pageSource).toContain("Math.max(limit, HOTSPOT_CANDIDATE_LIMIT)");
+    expect(pageSource).toContain("const events = candidates.slice(0, limit);");
     expect(pageSource).not.toContain("Promise.all([loadEvents(query), loadHotspots(query)])");
+  });
+
+  test("offers load-more pagination that keeps active filters in the URL", () => {
+    expect(pageSource).toContain("const HOME_LIMIT_MAX = 150;");
+    expect(pageSource).toContain("parseHomeLimit(sp)");
+    expect(pageSource).toContain('className="load-more"');
+    expect(pageSource).toContain('params.set("limit", String(nextLimit));');
+    expect(cssSource).toContain(".load-more {");
   });
 
   test("covers reader-home interaction surfaces in light theme", () => {

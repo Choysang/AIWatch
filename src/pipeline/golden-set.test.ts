@@ -8,7 +8,7 @@ import {
 import { DEEP_EXTRACT_SYSTEM, LIGHT_JUDGE_SYSTEM } from "./prompts";
 
 // Golden set for the deterministic code gate (spec §7), now on the public article taxonomy. These lock
-// the score→tier contract and the "exclude only structural garbage" rule against regressions. They
+// the score→tier contract and the "trusted-source posts still enter the feed" rule against regressions. They
 // validate the gate, not the LLM itself — a real model-eval harness is intentionally out of scope
 // (no API key in CI). Must include: hard negatives (looks like substance but is marketing → trash),
 // quiet positives (low-key but important text-only insight -> high score -> T2), per-category boundary
@@ -28,7 +28,7 @@ interface Sample {
     one_line_summary: string;
     fold: { primary_entity: string };
   };
-  tier: "T1" | "T2" | null;
+  tier: "T1" | "T2";
 }
 
 function sampleOutput(output: Omit<Sample["output"], "ai_relevance" | "impact" | "novelty" | "audience_usefulness" | "evidence_clarity">): Sample["output"] {
@@ -67,7 +67,7 @@ const golden: Sample[] = [
     tier: "T2",
   },
 
-  // --- hard negatives: dressed up as substance, must be trash ---
+  // --- hard negatives: dressed up as substance, still enter as T1 from trusted sources ---
   {
     name: "course-promo masquerading as a whitepaper is trash",
     output: sampleOutput({
@@ -77,7 +77,7 @@ const golden: Sample[] = [
       one_line_summary: "某 AI 训练营用白皮书包装限时折扣，无任何可验证的技术结论。",
       fold: { primary_entity: "unknown" },
     }),
-    tier: null,
+    tier: "T1",
   },
   {
     name: "hardware/consumer-gadget review is trash (out of AI-Dev scope)",
@@ -88,7 +88,7 @@ const golden: Sample[] = [
       one_line_summary: "一篇笔记本评测对比了散热与续航，与 AI 开发无直接关系。",
       fold: { primary_entity: "unknown" },
     }),
-    tier: null,
+    tier: "T1",
   },
 
   // --- per-category boundary: each public category at T1 (60-79) and T2 (>=80) ---
@@ -165,9 +165,9 @@ const golden: Sample[] = [
   { name: "buffer 80 -> T2", output: sampleOutput({ domain: "technology", score: 80, content_type: "release", one_line_summary: "某框架引入新的插件机制，改变了扩展的写法。", fold: { primary_entity: "framework" } }), tier: "T2" },
   { name: "buffer 82 -> T2", output: sampleOutput({ domain: "technology", score: 82, content_type: "release", one_line_summary: "某 Agent 库重构了调度内核，显著降低了多步任务延迟。", fold: { primary_entity: "agent-lib" } }), tier: "T2" },
 
-  // --- discard floor: 60 is the lowest survivor, 59 is dropped ---
+  // --- low score floor: 59 still survives as T1 from trusted sources ---
   { name: "score 60 -> T1 (lowest survivor)", output: sampleOutput({ domain: "discussion", score: 60, content_type: "opinion", one_line_summary: "一条常规快讯，信息密度一般但仍属 AI 范畴。", fold: { primary_entity: "misc" } }), tier: "T1" },
-  { name: "score 59 -> discarded", output: sampleOutput({ domain: "discussion", score: 59, content_type: "opinion", one_line_summary: "几乎没有信息量的转述，低于入库门槛。", fold: { primary_entity: "misc" } }), tier: null },
+  { name: "score 59 -> T1", output: sampleOutput({ domain: "discussion", score: 59, content_type: "opinion", one_line_summary: "几乎没有信息量的转述，低于深度解读门槛但仍入库。", fold: { primary_entity: "misc" } }), tier: "T1" },
 ];
 
 describe("golden set gate", () => {

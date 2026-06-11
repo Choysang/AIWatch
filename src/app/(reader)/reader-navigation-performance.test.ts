@@ -20,10 +20,10 @@ describe("reader navigation performance", () => {
     expect(reportByDatePage).toContain("revalidate: 300");
   });
 
-  test("has an instant fallback for reader route transitions", () => {
+  test("has an instant skeleton fallback for reader route transitions", () => {
     expect(existsSync(loadingPath)).toBe(true);
     const loadingSource = existsSync(loadingPath) ? readFileSync(loadingPath, "utf8") : "";
-    expect(loadingSource).toContain("正在打开");
-    expect(loadingSource).toContain('className="reader-loading"');
+    expect(loadingSource).toContain('className="skeleton-feed"');
+    expect(loadingSource).toContain("SkeletonCard");
   });
 });
