@@ -181,11 +181,42 @@ async function loadTopComments(eventIds: string[]): Promise<Map<string, string[]
   }
 }
 
+// 精选是稀缺资产：冷启动或淡周时默认首页可能只有个位数精选卡片。低于这个数
+// 时回退展示全部最新动态（精选徽标仍内联可见），显式点「精选」(URL 带 mode) 不回退。
+const SPARSE_SELECTED_MIN = 6;
+
+function isDefaultLanding(sp: SearchParams, query: PublicQuery): boolean {
+  return (
+    sp.mode === undefined &&
+    !query.q &&
+    !query.tags?.length &&
+    !query.level &&
+    !query.sourceTypes?.length &&
+    !query.sourceCategories?.length &&
+    typeof query.minScore !== "number" &&
+    !query.dateFrom &&
+    !query.dateTo &&
+    !query.category
+  );
+}
+
 export default async function HomePage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const sp = await searchParams;
   const query = toQuery(sp);
   const limit = parseHomeLimit(sp);
-  const { events, hotspots } = await loadHomeData(query, limit);
+  let { events, hotspots } = await loadHomeData(query, limit);
+  let usedLatestFallback = false;
+  if (
+    query.mode === "selected" &&
+    events.length < SPARSE_SELECTED_MIN &&
+    isDefaultLanding(sp, query)
+  ) {
+    const fallback = await loadHomeData({ ...query, mode: "all", since: "all" }, limit);
+    if (fallback.events.length > events.length) {
+      ({ events, hotspots } = fallback);
+      usedLatestFallback = true;
+    }
+  }
   // A full page means there may be more; render the load-more link (limit+step, capped).
   const canLoadMore = events.length >= limit && limit < HOME_LIMIT_MAX;
   const eventIds: string[] = [];
@@ -247,6 +278,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </span>
         )}
       </p>
+      {usedLatestFallback && <p className="section-intro">{m.home.sparseSelectedNotice}</p>}
 
       {events.length === 0 ? (
         <div className="empty">{isFiltered ? m.search.empty : m.home.empty}</div>
