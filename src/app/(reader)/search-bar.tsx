@@ -49,7 +49,34 @@ function readTimeChoice(raw: string | null): (typeof WINDOWS)[number] {
   return raw === "today" || raw === "week" || raw === "month" ? raw : "all";
 }
 
-export function SearchBar() {
+function parseSourcesParam(raw: string | null): Set<string> {
+  const set = new Set<string>();
+  if (!raw) return set;
+  for (const part of raw.split(",")) {
+    const id = part.trim();
+    if (id) set.add(id);
+  }
+  return set;
+}
+
+export interface SearchBarSourceOption {
+  id: string;
+  name: string;
+  platform: string;
+}
+
+export function SearchBar({
+  sourceOptions = [],
+  isLoggedIn = false,
+  defaultApplied = false,
+}: {
+  /** 指定信源筛选的可选项（启用中的信源）。空数组时该区不渲染。 */
+  sourceOptions?: SearchBarSourceOption[];
+  /** 登录读者可把当前信源选择存为默认（bestblogs 式定制）。 */
+  isLoggedIn?: boolean;
+  /** 本次渲染由保存的默认信源筛选驱动（URL 未带 sources 参数）。 */
+  defaultApplied?: boolean;
+}) {
   const m = messages.search;
   const router = useRouter();
   const params = useSearchParams();
@@ -83,6 +110,38 @@ export function SearchBar() {
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  // 指定信源多选：面板内为草稿态，点「应用筛选」才写回 URL（sources=id1,id2）。
+  const sourcesParam = params.get("sources") ?? "";
+  const [sourcesDraft, setSourcesDraft] = useState<DraftField>({
+    routeValue: sourcesParam,
+    value: sourcesParam,
+  });
+  const sourcesVal = draftValue(sourcesDraft, sourcesParam);
+  const selectedSources = parseSourcesParam(sourcesVal || null);
+  const [prefsStatus, setPrefsStatus] = useState<"idle" | "saved" | "cleared" | "error">("idle");
+
+  const toggleSourceDraft = (id: string) => {
+    const next = new Set(selectedSources);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSourcesDraft({ routeValue: sourcesParam, value: [...next].join(",") });
+  };
+
+  const savePreference = async (defaultSourceIds: string[] | null) => {
+    setPrefsStatus("idle");
+    try {
+      const res = await fetch("/api/preferences", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ defaultSourceIds }),
+      });
+      if (!res.ok) throw new Error(`preferences failed: ${res.status}`);
+      setPrefsStatus(defaultSourceIds === null ? "cleared" : "saved");
+    } catch {
+      setPrefsStatus("error");
+    }
+  };
+
   const text = draftValue(textDraft, queryParam);
   const fromVal = draftValue(fromDraft, fromParam);
   const toVal = draftValue(toDraft, toParam);
@@ -93,7 +152,9 @@ export function SearchBar() {
   const selectedSourceCategories = parseSourceCategoryParam(params.get("sourceCategories"));
   const selectedEventCategory = params.get("category") as EventCategory | null;
   const nativeSubmitParams = Array.from(params.entries()).filter(([key]) => key !== "q");
-  const hasPanelFilters = Boolean(params.get("since") || fromParam || toParam || minScoreParam);
+  const hasPanelFilters = Boolean(
+    params.get("since") || fromParam || toParam || minScoreParam || sourcesParam,
+  );
 
   const navigate = useCallback(
     (mutate: (next: URLSearchParams) => void) => {
@@ -171,6 +232,9 @@ export function SearchBar() {
       const score = normalizeScore(minScoreVal);
       if (score) next.set("minScore", score);
       else next.delete("minScore");
+
+      if (sourcesVal) next.set("sources", sourcesVal);
+      else next.delete("sources");
     });
 
   const clearPanelFilters = () => {
@@ -178,11 +242,13 @@ export function SearchBar() {
     setFromDraft({ routeValue: fromParam, value: "" });
     setToDraft({ routeValue: toParam, value: "" });
     setMinScoreDraft({ routeValue: minScoreParam, value: "" });
+    setSourcesDraft({ routeValue: sourcesParam, value: "" });
     navigate((next) => {
       next.delete("since");
       next.delete("from");
       next.delete("to");
       next.delete("minScore");
+      next.delete("sources");
     });
   };
 
@@ -192,6 +258,7 @@ export function SearchBar() {
     setFromDraft({ routeValue: fromParam, value: "" });
     setToDraft({ routeValue: toParam, value: "" });
     setMinScoreDraft({ routeValue: minScoreParam, value: "" });
+    setSourcesDraft({ routeValue: sourcesParam, value: "" });
     router.prefetch("/");
     startTransition(() => {
       router.push("/");
@@ -209,6 +276,7 @@ export function SearchBar() {
     params.get("sourceTypes") ||
     params.get("sourceCategories") ||
     params.get("contentTypes") ||
+    params.get("sources") ||
     params.get("category");
 
   return (
@@ -387,6 +455,66 @@ export function SearchBar() {
                     </label>
                   </div>
                 </div>
+
+                {sourceOptions.length > 0 && (
+                  <div className="search-filter-section" role="group" aria-label={m.sourcePickLabel}>
+                    <span className="filter-label">
+                      {m.sourcePickLabel}
+                      {selectedSources.size > 0 ? `（已选 ${selectedSources.size}）` : ""}
+                    </span>
+                    <div className="search-source-grid">
+                      {sourceOptions.map((option) => {
+                        const active = selectedSources.has(option.id);
+                        return (
+                          <button
+                            key={option.id}
+                            type="button"
+                            className={`chip ${active ? "is-active" : ""}`}
+                            aria-pressed={active}
+                            onClick={() => toggleSourceDraft(option.id)}
+                          >
+                            {option.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {selectedSources.size > 0 && (
+                      <button
+                        type="button"
+                        className="chip chip-clear"
+                        onClick={() => setSourcesDraft({ routeValue: sourcesParam, value: "" })}
+                      >
+                        {m.sourcePickClear}
+                      </button>
+                    )}
+                    {isLoggedIn && (
+                      <div className="search-source-prefs">
+                        <button
+                          type="button"
+                          className="chip"
+                          onClick={() => savePreference([...selectedSources])}
+                        >
+                          {m.sourcePrefSave}
+                        </button>
+                        <button
+                          type="button"
+                          className="chip chip-clear"
+                          onClick={() => savePreference(null)}
+                        >
+                          {m.sourcePrefClear}
+                        </button>
+                        {prefsStatus !== "idle" && (
+                          <span className="search-source-prefs-status">
+                            {m.sourcePrefStatus[prefsStatus]}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {defaultApplied && (
+                      <p className="search-source-prefs-note">{m.sourcePrefApplied}</p>
+                    )}
+                  </div>
+                )}
 
                 <div className="search-filter-actions">
                   <button type="button" className="chip chip-clear" onClick={clearPanelFilters}>

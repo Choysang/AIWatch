@@ -375,6 +375,31 @@ canvas {
   gap: 0.45rem;
   flex-wrap: wrap;
 }
+/* 指定信源多选（54+ 项）：限高滚动，避免面板被撑爆。 */
+.search-source-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  max-height: 11rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+.search-source-prefs {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  grid-column: 2;
+}
+.search-source-prefs-status,
+.search-source-prefs-note {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  margin: 0;
+}
+.search-source-prefs-note {
+  grid-column: 2;
+}
 .score-input-label {
   display: inline-flex;
   align-items: center;

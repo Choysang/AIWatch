@@ -15,6 +15,8 @@ import { getOwnerAnnotations, type AnnotationVerdict } from "@/db/queries/owner-
 import { getViewerReactions, type ViewerReactionState } from "@/db/queries/reactions";
 import { getTopCommentsForEvents } from "@/db/queries/comments";
 import { listCurrentHotspots, type CurrentHotspot } from "@/db/queries/current-hotspots";
+import { listSourceOptions, type SourceOption } from "@/db/queries/sources";
+import { getUserPreference } from "@/db/queries/user-preferences";
 import { messages } from "@/i18n";
 import { log } from "@/log";
 import { parsePublicQuery, type PublicQuery } from "@/public/query";
@@ -112,6 +114,7 @@ function toFeedFilter(query: PublicQuery): FeedFilter {
     tags: query.tags,
     sourceTypes: query.sourceTypes,
     sourceCategories: query.sourceCategories,
+    sourceIds: query.sourceIds,
     level: query.level,
     minScore: query.minScore,
     category: query.category,
@@ -205,6 +208,7 @@ const SPARSE_SELECTED_MIN = 6;
 function isDefaultLanding(sp: SearchParams, query: PublicQuery): boolean {
   return (
     sp.mode === undefined &&
+    sp.sources === undefined &&
     !query.q &&
     !query.tags?.length &&
     !query.level &&
@@ -217,10 +221,52 @@ function isDefaultLanding(sp: SearchParams, query: PublicQuery): boolean {
   );
 }
 
+// 登录读者的默认信源筛选（bestblogs 式定制）：URL 未显式带 sources 参数时应用保存的偏好。
+async function applySavedSourceDefaults(
+  sp: SearchParams,
+  query: PublicQuery,
+): Promise<{ query: PublicQuery; defaultApplied: boolean; isLoggedIn: boolean }> {
+  let userId: string | null = null;
+  try {
+    const session = await getSession();
+    userId = (session?.user as { id?: string } | undefined)?.id ?? null;
+  } catch {
+    userId = null;
+  }
+  if (!userId) return { query, defaultApplied: false, isLoggedIn: false };
+  if (sp.sources !== undefined) return { query, defaultApplied: false, isLoggedIn: true };
+  try {
+    const pref = await getUserPreference(userId);
+    if (pref && pref.defaultSourceIds.length > 0) {
+      return {
+        query: { ...query, sourceIds: pref.defaultSourceIds },
+        defaultApplied: true,
+        isLoggedIn: true,
+      };
+    }
+  } catch (error) {
+    log.warn("[reader] applySavedSourceDefaults failed", handledErrorDetails(error));
+  }
+  return { query, defaultApplied: false, isLoggedIn: true };
+}
+
+async function loadSourceOptions(): Promise<SourceOption[]> {
+  try {
+    return await listSourceOptions();
+  } catch (error) {
+    log.warn("[reader] loadSourceOptions failed", handledErrorDetails(error));
+    return [];
+  }
+}
+
 export default async function HomePage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const sp = await searchParams;
-  const query = toQuery(sp);
+  const parsedQuery = toQuery(sp);
   const limit = parseHomeLimit(sp);
+  const [{ query, defaultApplied, isLoggedIn }, sourceOptions] = await Promise.all([
+    applySavedSourceDefaults(sp, parsedQuery),
+    loadSourceOptions(),
+  ]);
   let { events, hotspots } = await loadHomeData(query, limit);
   let usedLatestFallback = false;
   if (
@@ -258,6 +304,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       query.level ||
       query.sourceTypes?.length ||
       query.sourceCategories?.length ||
+      query.sourceIds?.length ||
       typeof query.minScore === "number" ||
       query.dateFrom ||
       query.dateTo ||
@@ -281,7 +328,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <ReaderSidebar items={sidebarItems} />
         <NotificationBell />
       </div>
-      <SearchBar />
+      <SearchBar
+        sourceOptions={sourceOptions}
+        isLoggedIn={isLoggedIn}
+        defaultApplied={defaultApplied}
+      />
       <CurrentHotspots items={hotspots} />
 
       <h2 className="section-intro" style={{ fontWeight: 600, color: "var(--ink)" }}>

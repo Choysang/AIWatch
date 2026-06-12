@@ -21,6 +21,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { user as authUser } from "./auth-schema";
 
 // --- enums ---
 export const platformEnum = pgEnum("platform", [
@@ -599,6 +600,18 @@ export const ownerAnnotations = pgTable(
 // migrations from this single schema entrypoint (drizzle.config points here).
 export { account, session, user, verification } from "./auth-schema";
 
+// --- user_preferences (登录读者的默认信源筛选定制，借鉴 bestblogs) ---
+// 一用户一行。default_source_ids 为空数组 = 已显式清空（不筛选）；行不存在 = 从未定制。
+// 首页 SSR 在 URL 未带 sources 参数时应用该默认值。
+export const userPreferences = pgTable("user_preferences", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => authUser.id, { onDelete: "cascade" }),
+  defaultSourceIds: text("default_source_ids").array().notNull().default(sql`'{}'::text[]`),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
 export const schema = {
   sources,
   posts,
@@ -616,4 +629,5 @@ export const schema = {
   llmSpendLedger,
   feedback,
   ownerAnnotations,
+  userPreferences,
 };
