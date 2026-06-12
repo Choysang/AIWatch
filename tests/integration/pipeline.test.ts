@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { startEmbeddedPostgres, type PgHandle } from "./helpers/embedded-pg";
+import { DEEP_EXTRACT_PROMPT_VERSION } from "@/pipeline/prompts";
 
 let pgHandle: PgHandle;
 let savedEnv: Record<string, string | undefined>;
@@ -123,7 +124,7 @@ describe("pipeline spine (real Postgres)", () => {
   test("stamps provenance on judgments and scores", async () => {
     const [judgment] = await getDb().select().from(schema.eventJudgments).limit(1);
     expect(judgment!.provider).toBe("stub");
-    expect(judgment!.promptVersion).toBe("deep-extract-v2");
+    expect(judgment!.promptVersion).toBe(DEEP_EXTRACT_PROMPT_VERSION);
     expect(judgment!.routingConfigVersion).toBe("routing-v4");
     expect(judgment!.triggerReason).toBe("initial");
 
