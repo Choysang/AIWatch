@@ -26,8 +26,8 @@ describe("composeScoresV2", () => {
     expect(r.qualityScore).toBeCloseTo(67, 6);
     // confidence: evid 90*.35 + L3 70*.25 + multiSource 0 + expertNeutral 50*.15 = 56.5
     expect(r.confidenceScore).toBeCloseTo(56.5, 6);
-    // gated = 67*(0.5+0.5*0.565)=52.4275; neutral comment/citation add 0; ×1.0
-    expect(r.selectionScore).toBeCloseTo(52.4275, 4);
+    // gated = 67*(0.5+0.5*0.565)=52.4275; neutral comment/citation add 0; howto ×1.05
+    expect(r.selectionScore).toBeCloseTo(55.048875, 4);
     expect(r.maxLevel).toBe("S");
   });
 

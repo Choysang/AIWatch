@@ -8,7 +8,7 @@ describe("computeSelectionScore", () => {
     const { selectionScore } = computeSelectionScore({
       qualityScore: 80,
       confidenceScore: 100,
-      contentType: "howto",
+      contentType: "news",
       ...neutralSignals,
     });
     expect(selectionScore).toBeCloseTo(80, 6);
@@ -18,7 +18,7 @@ describe("computeSelectionScore", () => {
     const { selectionScore } = computeSelectionScore({
       qualityScore: 80,
       confidenceScore: 0,
-      contentType: "howto",
+      contentType: "news",
       ...neutralSignals,
     });
     expect(selectionScore).toBeCloseTo(40, 6);
@@ -31,7 +31,15 @@ describe("computeSelectionScore", () => {
       contentType: "opinion",
       ...neutralSignals,
     }).selectionScore;
-    expect(opinion).toBeCloseTo(90, 6); // 100 * 0.9
+    expect(opinion).toBeCloseTo(95, 6); // 100 * 0.95
+
+    const howto = computeSelectionScore({
+      qualityScore: 80,
+      confidenceScore: 100,
+      contentType: "howto",
+      ...neutralSignals,
+    }).selectionScore;
+    expect(howto).toBeCloseTo(84, 6); // 80 * 1.05 — practice content gets the release edge
 
     const release = computeSelectionScore({
       qualityScore: 100,
@@ -46,7 +54,7 @@ describe("computeSelectionScore", () => {
     const strong = computeSelectionScore({
       qualityScore: 50,
       confidenceScore: 100,
-      contentType: "howto",
+      contentType: "news",
       commentQualityScore: 100,
       citationQualityScore: 100,
     }).selectionScore;
@@ -55,7 +63,7 @@ describe("computeSelectionScore", () => {
     const weak = computeSelectionScore({
       qualityScore: 50,
       confidenceScore: 100,
-      contentType: "howto",
+      contentType: "news",
       commentQualityScore: 0,
       citationQualityScore: 0,
     }).selectionScore;
@@ -66,14 +74,14 @@ describe("computeSelectionScore", () => {
     const base = computeSelectionScore({
       qualityScore: 50,
       confidenceScore: 100,
-      contentType: "howto",
+      contentType: "news",
       viewCount: 0,
       ...neutralSignals,
     }).selectionScore;
     const viewed = computeSelectionScore({
       qualityScore: 50,
       confidenceScore: 100,
-      contentType: "howto",
+      contentType: "news",
       viewCount: 200,
       ...neutralSignals,
     });

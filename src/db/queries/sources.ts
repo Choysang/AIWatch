@@ -272,6 +272,21 @@ export async function listManagedSources(db: DB = defaultDb): Promise<ManagedSou
     .orderBy(sql`${sources.onboardedAt} desc nulls last`, asc(sources.name));
 }
 
+/** Reader source-filter options: enabled, non-archived sources (id + display fields only). */
+export interface SourceOption {
+  id: string;
+  name: string;
+  platform: string;
+}
+
+export async function listSourceOptions(db: DB = defaultDb): Promise<SourceOption[]> {
+  return db
+    .select({ id: sources.id, name: sources.name, platform: sources.platform })
+    .from(sources)
+    .where(and(isNull(sources.archivedAt), eq(sources.enabled, true)))
+    .orderBy(asc(sources.platform), asc(sources.name));
+}
+
 export async function listSourceHealth(db: DB = defaultDb): Promise<SourceHealthRow[]> {
   return db
     .select({

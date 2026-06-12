@@ -21,6 +21,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { user as authUser } from "./auth-schema";
 
 // --- enums ---
 export const platformEnum = pgEnum("platform", [
@@ -575,9 +576,41 @@ export const feedback = pgTable(
   (t) => [index("feedback_created_idx").on(t.createdAt)],
 );
 
+// --- owner_annotations (点6 偏好标注) ---
+// 主理人对事件/信源的有用性判决 — 不可变输入（行可改判但不删），偏好画像与打分修正由
+// 确定性聚合推导（docs/annotation-preference-design.md）。单主理人产品：一对象一行。
+export const ownerAnnotations = pgTable(
+  "owner_annotations",
+  {
+    id: text("id").primaryKey(),
+    subjectType: text("subject_type", { enum: ["event", "source"] }).notNull(),
+    subjectId: text("subject_id").notNull(),
+    verdict: text("verdict", { enum: ["useful", "not_useful"] }).notNull(),
+    note: text("note"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("owner_annotations_subject_uq").on(t.subjectType, t.subjectId),
+    index("owner_annotations_created_idx").on(t.createdAt),
+  ],
+);
+
 // better-auth tables live in auth-schema.ts; re-export so drizzle-kit emits their
 // migrations from this single schema entrypoint (drizzle.config points here).
 export { account, session, user, verification } from "./auth-schema";
+
+// --- user_preferences (登录读者的默认信源筛选定制，借鉴 bestblogs) ---
+// 一用户一行。default_source_ids 为空数组 = 已显式清空（不筛选）；行不存在 = 从未定制。
+// 首页 SSR 在 URL 未带 sources 参数时应用该默认值。
+export const userPreferences = pgTable("user_preferences", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => authUser.id, { onDelete: "cascade" }),
+  defaultSourceIds: text("default_source_ids").array().notNull().default(sql`'{}'::text[]`),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
 
 export const schema = {
   sources,
@@ -595,4 +628,6 @@ export const schema = {
   auditLogs,
   llmSpendLedger,
   feedback,
+  ownerAnnotations,
+  userPreferences,
 };

@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { parseFeed } from "./rss";
+import { afterEach, describe, expect, test } from "bun:test";
+import { internalFeedAllowHosts, parseFeed } from "./rss";
 
 const RSS_2_0 = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
@@ -113,5 +113,24 @@ describe("parseFeed", () => {
 <rss version="2.0"><channel>${items}</channel></rss>`);
     expect(posts).toHaveLength(10);
     expect(posts[0]!.rawContent).toContain("a & b <tag>");
+  });
+});
+
+describe("internalFeedAllowHosts", () => {
+  const saved = process.env.WEWE_RSS_BASE_URL;
+  afterEach(() => {
+    if (saved === undefined) delete process.env.WEWE_RSS_BASE_URL;
+    else process.env.WEWE_RSS_BASE_URL = saved;
+  });
+
+  test("returns only the configured wewe-rss hostname; empty without config", () => {
+    delete process.env.WEWE_RSS_BASE_URL;
+    expect(internalFeedAllowHosts()).toEqual([]);
+
+    process.env.WEWE_RSS_BASE_URL = "http://wewe-rss:4000";
+    expect(internalFeedAllowHosts()).toEqual(["wewe-rss"]);
+
+    process.env.WEWE_RSS_BASE_URL = "not a url";
+    expect(internalFeedAllowHosts()).toEqual([]);
   });
 });

@@ -109,6 +109,17 @@ export const zh = {
     scoreLabel: "评分",
     scoreUnlimited: "不限",
     scoreMinLabel: "最低分",
+    // 指定信源多选 + 登录默认定制（bestblogs 式）。
+    sourcePickLabel: "指定信源",
+    sourcePickClear: "清空已选",
+    sourcePrefSave: "存为我的默认",
+    sourcePrefClear: "清除我的默认",
+    sourcePrefStatus: {
+      saved: "已保存，登录访问时自动应用",
+      cleared: "已清除默认",
+      error: "保存失败，请重试",
+    },
+    sourcePrefApplied: "已应用你保存的默认信源筛选",
     // Reader-facing source taxonomy. Stored on sources.categories; single posts still use
     // contentType for their own event classification.
     sourceCategoryLabel: "信源",

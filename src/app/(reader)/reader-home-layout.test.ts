@@ -9,7 +9,7 @@ const cssSource = readFileSync(join(import.meta.dir, "..", "globals.css"), "utf8
 describe("reader home layout", () => {
   test("puts the primary controls and search before the feed so the page starts with useful UI", () => {
     const controlsIndex = pageSource.indexOf('className="reader-control-strip"');
-    const searchIndex = pageSource.indexOf("<SearchBar />");
+    const searchIndex = pageSource.indexOf("<SearchBar");
     const feedIndex = pageSource.indexOf('className="feed"');
 
     expect(controlsIndex).toBeGreaterThan(-1);
@@ -20,7 +20,7 @@ describe("reader home layout", () => {
   });
 
   test("places the current hotspots block between search and the timeline cards", () => {
-    const searchIndex = pageSource.indexOf("<SearchBar />");
+    const searchIndex = pageSource.indexOf("<SearchBar");
     const hotspotsIndex = pageSource.indexOf("<CurrentHotspots");
     const feedIndex = pageSource.indexOf('className="feed"');
 

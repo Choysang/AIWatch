@@ -99,6 +99,8 @@ export interface FeedFilter {
   tags?: string[];
   sourceTypes?: SourceType[];
   sourceCategories?: SourceCategory[];
+  /** Per-source filter: only events whose main source id is in this list. */
+  sourceIds?: string[];
   contentTypes?: ContentType[];
   level?: PromotedLevel;
   minScore?: number;
@@ -145,6 +147,9 @@ export async function searchEvents(
   }
   if (filter.sourceCategories?.length) {
     conds.push(arrayOverlaps(sources.categories, filter.sourceCategories));
+  }
+  if (filter.sourceIds?.length) {
+    conds.push(inArray(events.mainSourceId, filter.sourceIds));
   }
   if (filter.contentTypes?.length) {
     conds.push(inArray(events.contentType, filter.contentTypes));

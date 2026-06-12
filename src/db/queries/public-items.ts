@@ -89,6 +89,10 @@ export async function listPublicItems(
   if (q.sourceCategories?.length) {
     conds.push(arrayOverlaps(sources.categories, q.sourceCategories));
   }
+  if (q.sourceIds?.length) {
+    // Per-source facet (`sources=` param): events whose main source id matches.
+    conds.push(inArray(events.mainSourceId, q.sourceIds));
+  }
   if (q.contentTypes?.length) {
     conds.push(inArray(events.contentType, q.contentTypes));
   }

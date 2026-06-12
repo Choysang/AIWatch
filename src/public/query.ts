@@ -76,6 +76,8 @@ export interface PublicQuery {
   sourceTypes?: SourceType[];
   /** Reader-facing AI source category facet (ANY-of). Undefined = no filter. */
   sourceCategories?: SourceCategory[];
+  /** Per-source facet: only events whose main source is one of these ids (ANY-of). */
+  sourceIds?: string[];
   /** Content-type facet (ANY-of). Undefined = no filter. */
   contentTypes?: ContentType[];
   level?: PromotedLevel;
@@ -152,6 +154,22 @@ export function parseTags(raw: string | null): string[] | undefined {
     const tag = part.trim();
     if (tag) seen.add(tag);
     if (seen.size >= MAX_TAGS) break;
+  }
+  return seen.size ? [...seen] : undefined;
+}
+
+/** Cap on per-source filters per request (the whole pool is ~60; anything more is "all"). */
+export const MAX_SOURCE_IDS = 100;
+const SOURCE_ID_RE = /^[a-z0-9_-]{1,64}$/i;
+
+/** Parse a comma-separated `sources` param of source ids. Malformed entries are dropped. */
+export function parseSourceIds(raw: string | null): string[] | undefined {
+  if (!raw) return undefined;
+  const seen = new Set<string>();
+  for (const part of raw.split(",")) {
+    const id = part.trim();
+    if (id && SOURCE_ID_RE.test(id)) seen.add(id);
+    if (seen.size >= MAX_SOURCE_IDS) break;
   }
   return seen.size ? [...seen] : undefined;
 }
@@ -244,6 +262,7 @@ export function parsePublicQuery(params: URLSearchParams): PublicQuery {
   const tags = parseTags(params.get("tags"));
   const sourceTypes = parseSourceTypes(params.get("sourceTypes"));
   const sourceCategories = parseSourceCategories(params.get("sourceCategories"));
+  const sourceIds = parseSourceIds(params.get("sources"));
   const contentTypes = parseContentTypes(params.get("contentTypes"));
   const { dateFrom, dateTo } = parseDateRange(params.get("from"), params.get("to"));
   const minScore = parseMinScore(params.get("minScore"));
@@ -256,6 +275,7 @@ export function parsePublicQuery(params: URLSearchParams): PublicQuery {
     tags,
     sourceTypes,
     sourceCategories,
+    sourceIds,
     contentTypes,
     level,
     minScore,

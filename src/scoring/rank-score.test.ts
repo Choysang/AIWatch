@@ -16,8 +16,30 @@ describe("computeRankScore — pure rank-score with feedback bands", () => {
       expect(breakdown.starBoost).toBe(0);
       expect(breakdown.viewBoost).toBe(0);
       expect(breakdown.downPenalty).toBe(0);
-      expect(breakdown.configVersion).toBe("rank-v3");
+      expect(breakdown.configVersion).toBe("rank-v4");
     }
+  });
+
+  test("ownerBoost is additive and the rank floor still holds (rank-v4)", () => {
+    const boosted = computeRankScore({
+      baseScore: 50,
+      likeCount: 0,
+      starCount: 0,
+      ageHours: 1,
+      ownerBoost: 12,
+    });
+    expect(boosted.rankScore).toBe(62);
+    expect(boosted.breakdown.ownerBoost).toBe(12);
+
+    const punished = computeRankScore({
+      baseScore: 10,
+      likeCount: 0,
+      starCount: 0,
+      ageHours: 1,
+      ownerBoost: -20,
+    });
+    expect(punished.rankScore).toBe(0); // floored, not negative
+    expect(punished.breakdown.ownerBoost).toBe(-20);
   });
 
   test("band 0-6h has the smallest user-feedback boost", () => {

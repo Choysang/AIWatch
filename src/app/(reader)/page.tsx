@@ -11,9 +11,12 @@ import { type CSSProperties } from "react";
 import { getSession } from "@/app/_lib/session";
 import { READER_ID_COOKIE, verifyReaderId } from "@/auth/reader-id";
 import { searchEvents, type EventCard as EventCardData, type FeedFilter } from "@/db/queries/feed";
+import { getOwnerAnnotations, type AnnotationVerdict } from "@/db/queries/owner-annotations";
 import { getViewerReactions, type ViewerReactionState } from "@/db/queries/reactions";
 import { getTopCommentsForEvents } from "@/db/queries/comments";
 import { listCurrentHotspots, type CurrentHotspot } from "@/db/queries/current-hotspots";
+import { listSourceOptions, type SourceOption } from "@/db/queries/sources";
+import { getUserPreference } from "@/db/queries/user-preferences";
 import { messages } from "@/i18n";
 import { log } from "@/log";
 import { parsePublicQuery, type PublicQuery } from "@/public/query";
@@ -111,6 +114,7 @@ function toFeedFilter(query: PublicQuery): FeedFilter {
     tags: query.tags,
     sourceTypes: query.sourceTypes,
     sourceCategories: query.sourceCategories,
+    sourceIds: query.sourceIds,
     level: query.level,
     minScore: query.minScore,
     category: query.category,
@@ -171,6 +175,22 @@ async function loadViewerReactions(
   }
 }
 
+// 点6：主理人（owner/admin）在信息流上直接标注；非主理人返回 null（卡片不渲染按钮）。
+async function loadOwnerAnnotations(
+  eventIds: string[],
+): Promise<Map<string, AnnotationVerdict> | null> {
+  if (eventIds.length === 0) return null;
+  try {
+    const session = await getSession();
+    const role = (session?.user as { role?: string } | undefined)?.role ?? "user";
+    if (role !== "owner" && role !== "admin") return null;
+    return await getOwnerAnnotations("event", eventIds);
+  } catch (error) {
+    log.warn("[reader] loadOwnerAnnotations failed", handledErrorDetails(error));
+    return null;
+  }
+}
+
 async function loadTopComments(eventIds: string[]): Promise<Map<string, string[]>> {
   if (eventIds.length === 0) return new Map();
   try {
@@ -188,6 +208,7 @@ const SPARSE_SELECTED_MIN = 6;
 function isDefaultLanding(sp: SearchParams, query: PublicQuery): boolean {
   return (
     sp.mode === undefined &&
+    sp.sources === undefined &&
     !query.q &&
     !query.tags?.length &&
     !query.level &&
@@ -200,10 +221,52 @@ function isDefaultLanding(sp: SearchParams, query: PublicQuery): boolean {
   );
 }
 
+// 登录读者的默认信源筛选（bestblogs 式定制）：URL 未显式带 sources 参数时应用保存的偏好。
+async function applySavedSourceDefaults(
+  sp: SearchParams,
+  query: PublicQuery,
+): Promise<{ query: PublicQuery; defaultApplied: boolean; isLoggedIn: boolean }> {
+  let userId: string | null = null;
+  try {
+    const session = await getSession();
+    userId = (session?.user as { id?: string } | undefined)?.id ?? null;
+  } catch {
+    userId = null;
+  }
+  if (!userId) return { query, defaultApplied: false, isLoggedIn: false };
+  if (sp.sources !== undefined) return { query, defaultApplied: false, isLoggedIn: true };
+  try {
+    const pref = await getUserPreference(userId);
+    if (pref && pref.defaultSourceIds.length > 0) {
+      return {
+        query: { ...query, sourceIds: pref.defaultSourceIds },
+        defaultApplied: true,
+        isLoggedIn: true,
+      };
+    }
+  } catch (error) {
+    log.warn("[reader] applySavedSourceDefaults failed", handledErrorDetails(error));
+  }
+  return { query, defaultApplied: false, isLoggedIn: true };
+}
+
+async function loadSourceOptions(): Promise<SourceOption[]> {
+  try {
+    return await listSourceOptions();
+  } catch (error) {
+    log.warn("[reader] loadSourceOptions failed", handledErrorDetails(error));
+    return [];
+  }
+}
+
 export default async function HomePage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const sp = await searchParams;
-  const query = toQuery(sp);
+  const parsedQuery = toQuery(sp);
   const limit = parseHomeLimit(sp);
+  const [{ query, defaultApplied, isLoggedIn }, sourceOptions] = await Promise.all([
+    applySavedSourceDefaults(sp, parsedQuery),
+    loadSourceOptions(),
+  ]);
   let { events, hotspots } = await loadHomeData(query, limit);
   let usedLatestFallback = false;
   if (
@@ -229,9 +292,10 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   }
   // Reactions and top-comments are independent; only A/S cards render comment highlights,
   // so don't query comment snippets for cards that cannot show them.
-  const [reactions, topComments] = await Promise.all([
+  const [reactions, topComments, ownerAnnotations] = await Promise.all([
     loadViewerReactions(eventIds),
     loadTopComments(commentEventIds),
+    loadOwnerAnnotations(eventIds),
   ]);
   const m = messages;
   const isFiltered = Boolean(
@@ -240,6 +304,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       query.level ||
       query.sourceTypes?.length ||
       query.sourceCategories?.length ||
+      query.sourceIds?.length ||
       typeof query.minScore === "number" ||
       query.dateFrom ||
       query.dateTo ||
@@ -263,7 +328,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <ReaderSidebar items={sidebarItems} />
         <NotificationBell />
       </div>
-      <SearchBar />
+      <SearchBar
+        sourceOptions={sourceOptions}
+        isLoggedIn={isLoggedIn}
+        defaultApplied={defaultApplied}
+      />
       <CurrentHotspots items={hotspots} />
 
       <h2 className="section-intro" style={{ fontWeight: 600, color: "var(--ink)" }}>
@@ -348,6 +417,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                                     downed={r.downed}
                                     accentLabel={accent.label}
                                     topComments={topComments.get(event.id)}
+                                    ownerVerdict={
+                                      ownerAnnotations
+                                        ? ownerAnnotations.get(event.id) ?? null
+                                        : undefined
+                                    }
                                   />
                                 </SpotlightCard>
                               </div>

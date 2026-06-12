@@ -10,8 +10,9 @@
 //      push it.
 //   3. Reader view increment: a small log-saturated bonus, counted only after the user opens
 //      the detail page or original source from a card.
-//   4. content_type multiplier (open point D2, locked): opinion ×0.9, release ×1.05,
-//      others ×1.0 — classification influences selection, a core point-8 goal.
+//   4. content_type multiplier (open point D2, locked; retuned 2026-06-12 for owner
+//      preference): release/howto ×1.05, opinion ×0.95, others ×1.0 — classification
+//      influences selection, a core point-8 goal.
 // Final score is clamped to [0,100].
 //
 // Separately, maxLevel encodes open point C1 (locked): confidence below the cap floor (40)

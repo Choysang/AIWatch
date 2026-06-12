@@ -35,6 +35,8 @@ export interface SelectedBreakdownV2 {
   rankInWindow: number;
   slotLimit: number;
   directPushed: boolean;
+  /** B only (promotion-v3): the APP_TZ publish day whose daily tournament was won. */
+  bucketDay?: string;
   computedAt: string;
 }
 
@@ -99,6 +101,7 @@ export async function checkPromotionV2(
         rankInWindow: d.rankInWindow,
         slotLimit: d.slotLimit,
         directPushed: d.directPushed === true,
+        ...(d.bucketDay ? { bucketDay: d.bucketDay } : {}),
         computedAt: now.toISOString(),
       };
 

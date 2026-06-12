@@ -16,6 +16,8 @@ let schema: typeof import("@/db/schema");
 let reactions: typeof import("@/db/queries/reactions");
 let recompute: typeof import("@/db/jobs/recompute-rank-scores");
 let rankScore: typeof import("@/scoring/rank-score");
+let annotations: typeof import("@/db/queries/owner-annotations");
+let ownerAffinity: typeof import("@/scoring/owner-affinity");
 
 const NOW = new Date("2026-05-26T12:00:00Z");
 const HOUR_MS = 60 * 60 * 1000;
@@ -47,6 +49,8 @@ beforeAll(async () => {
   reactions = await import("@/db/queries/reactions");
   recompute = await import("@/db/jobs/recompute-rank-scores");
   rankScore = await import("@/scoring/rank-score");
+  annotations = await import("@/db/queries/owner-annotations");
+  ownerAffinity = await import("@/scoring/owner-affinity");
 
   await migrate(getDb(), { migrationsFolder: "src/db/migrations" });
 }, 120_000);
@@ -59,6 +63,7 @@ afterAll(async () => {
 }, 60_000);
 
 beforeEach(async () => {
+  await getDb().delete(schema.ownerAnnotations);
   await getDb().delete(schema.eventReactions);
   await getDb().delete(schema.eventScores);
   await getDb().delete(schema.eventJudgments);
@@ -358,6 +363,59 @@ describe("event reactions + rank-score recompute (real Postgres)", () => {
     const fresh = await readEventCounts("evt_fresh");
     const old = await readEventCounts("evt_old");
     expect(old.rankScore!).toBeGreaterThan(fresh.rankScore!);
+  });
+
+  test("rank-v4: owner annotations feed the SQL recompute and match the TS owner-boost path", async () => {
+    const sourceId = await seedSource();
+    const publishedAt = new Date(NOW.getTime() - 3 * HOUR_MS);
+    for (const id of ["evt_u1", "evt_u2", "evt_u3", "evt_neg"]) {
+      await seedEvent({ id, sourceId, publishedAt, baseScore: 50 });
+    }
+    // 3 useful + 1 not_useful on the same source -> source affinity (3-1)/4 = 0.5 (n >= 3).
+    for (const id of ["evt_u1", "evt_u2", "evt_u3"]) {
+      await annotations.setOwnerAnnotation({ subjectType: "event", subjectId: id, verdict: "useful" });
+    }
+    await annotations.setOwnerAnnotation({
+      subjectType: "event",
+      subjectId: "evt_neg",
+      verdict: "not_useful",
+    });
+
+    const result = await recompute.recomputeRankScores(NOW);
+    expect(result.configVersion).toBe("rank-v4");
+    expect(result.updated).toBeGreaterThan(0);
+
+    const { profile, directVerdicts } = await recompute.loadOwnerAffinityProfile(getDb());
+    expect(profile.source.get(sourceId)?.affinity).toBeCloseTo(0.5, 6);
+
+    // SQL parity: rank = computeRankScore(..., ownerBoost = computeOwnerBoost(...)) per event.
+    for (const evtId of ["evt_u1", "evt_neg"]) {
+      const row = await readEventCounts(evtId);
+      const boost = ownerAffinity.computeOwnerBoost(
+        {
+          directVerdict: directVerdicts.get(evtId) ?? null,
+          sourceId,
+          category: null,
+          contentType: null,
+        },
+        profile,
+        rankScore.rankScoreConfig.owner,
+      );
+      const expected = rankScore.computeRankScore({
+        baseScore: 50,
+        likeCount: row.likeCount,
+        starCount: row.starCount,
+        downCount: row.downCount,
+        viewCount: row.viewCount,
+        ageHours: 3,
+        ownerBoost: boost.ownerBoost,
+      });
+      expect(row.rankScore).toBeCloseTo(expected.rankScore, 4);
+    }
+
+    // Direction check: useful-annotated rises above base, not_useful sinks below it.
+    expect((await readEventCounts("evt_u1")).rankScore!).toBeGreaterThan(50);
+    expect((await readEventCounts("evt_neg")).rankScore!).toBeLessThan(50);
   });
 
   test("getViewerReactions returns liked/starred per event for the viewer", async () => {

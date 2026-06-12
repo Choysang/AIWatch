@@ -178,6 +178,21 @@ export function parseFeed(xml: string): RawPost[] {
   });
 }
 
+/**
+ * safeFetch allow-list for the operator's internal feed bridges (currently wewe-rss for
+ * WeChat MP feeds). Like rsshubAllowHosts: a self-hosted bridge resolves to a Docker-private
+ * IP that the SSRF guard blocks by default, so we whitelist exactly the configured hostname.
+ */
+export function internalFeedAllowHosts(): string[] {
+  const base = (process.env.WEWE_RSS_BASE_URL ?? "").trim();
+  if (!base) return [];
+  try {
+    return [new URL(base).hostname];
+  } catch {
+    return [];
+  }
+}
+
 export class RssConnector implements SourceConnector {
   readonly type = "rss" as const;
 
@@ -186,8 +201,15 @@ export class RssConnector implements SourceConnector {
     if (!target) {
       throw new Error(`[rss] source ${source.id} has no connectorRef/url to fetch`);
     }
+    // Browser-like UA + Accept: several WordPress feeds (MarkTechPost, AI News) hard-403
+    // bare bot UAs; a realistic header set is required to read their public feeds.
     const res = await safeFetch(target, {
-      headers: { "user-agent": "AIWatch/0.1 (+https://aiwatch.local)" },
+      headers: {
+        "user-agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+        accept: "application/rss+xml, application/atom+xml, application/xml;q=0.9, */*;q=0.8",
+      },
+      allowHosts: internalFeedAllowHosts(),
     });
     if (!res.ok) {
       throw new Error(`[rss] fetch failed for ${target}: ${res.status} ${res.statusText}`);

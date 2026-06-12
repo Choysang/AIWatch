@@ -41,6 +41,14 @@ describe("parsePublicQuery", () => {
     expect(parse("level=Z").level).toBeUndefined();
   });
 
+  test("parses the per-source `sources` facet, dropping malformed ids", () => {
+    expect(parse("sources=src_a,src_b").sourceIds).toEqual(["src_a", "src_b"]);
+    // De-dupes, trims, and drops ids outside [a-z0-9_-]{1,64}.
+    expect(parse("sources=src_a, src_a ,bad id,x'y").sourceIds).toEqual(["src_a"]);
+    expect(parse("sources=").sourceIds).toBeUndefined();
+    expect(parse("").sourceIds).toBeUndefined();
+  });
+
   test("parses an optional minimum quality score", () => {
     expect(parse("minScore=80").minScore).toBe(80);
     expect(parse("minScore=0").minScore).toBe(0);
