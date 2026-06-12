@@ -169,6 +169,13 @@
       "when": 1781107200000,
       "tag": "0023_event_down_reaction",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1781244566096,
+      "tag": "0024_right_polaris",
+      "breakpoints": true
     }
   ]
 }

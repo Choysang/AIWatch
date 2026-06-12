@@ -11,6 +11,7 @@ import { type CSSProperties } from "react";
 import { getSession } from "@/app/_lib/session";
 import { READER_ID_COOKIE, verifyReaderId } from "@/auth/reader-id";
 import { searchEvents, type EventCard as EventCardData, type FeedFilter } from "@/db/queries/feed";
+import { getOwnerAnnotations, type AnnotationVerdict } from "@/db/queries/owner-annotations";
 import { getViewerReactions, type ViewerReactionState } from "@/db/queries/reactions";
 import { getTopCommentsForEvents } from "@/db/queries/comments";
 import { listCurrentHotspots, type CurrentHotspot } from "@/db/queries/current-hotspots";
@@ -171,6 +172,22 @@ async function loadViewerReactions(
   }
 }
 
+// 点6：主理人（owner/admin）在信息流上直接标注；非主理人返回 null（卡片不渲染按钮）。
+async function loadOwnerAnnotations(
+  eventIds: string[],
+): Promise<Map<string, AnnotationVerdict> | null> {
+  if (eventIds.length === 0) return null;
+  try {
+    const session = await getSession();
+    const role = (session?.user as { role?: string } | undefined)?.role ?? "user";
+    if (role !== "owner" && role !== "admin") return null;
+    return await getOwnerAnnotations("event", eventIds);
+  } catch (error) {
+    log.warn("[reader] loadOwnerAnnotations failed", handledErrorDetails(error));
+    return null;
+  }
+}
+
 async function loadTopComments(eventIds: string[]): Promise<Map<string, string[]>> {
   if (eventIds.length === 0) return new Map();
   try {
@@ -229,9 +246,10 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   }
   // Reactions and top-comments are independent; only A/S cards render comment highlights,
   // so don't query comment snippets for cards that cannot show them.
-  const [reactions, topComments] = await Promise.all([
+  const [reactions, topComments, ownerAnnotations] = await Promise.all([
     loadViewerReactions(eventIds),
     loadTopComments(commentEventIds),
+    loadOwnerAnnotations(eventIds),
   ]);
   const m = messages;
   const isFiltered = Boolean(
@@ -348,6 +366,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                                     downed={r.downed}
                                     accentLabel={accent.label}
                                     topComments={topComments.get(event.id)}
+                                    ownerVerdict={
+                                      ownerAnnotations
+                                        ? ownerAnnotations.get(event.id) ?? null
+                                        : undefined
+                                    }
                                   />
                                 </SpotlightCard>
                               </div>

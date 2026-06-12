@@ -8,6 +8,7 @@ import type { EventCard as EventCardData } from "@/db/queries/feed";
 import { messages } from "@/i18n";
 import { formatDateTime } from "@/app/_lib/format";
 import { extractCardMedia } from "@/app/_lib/media";
+import { AnnotationButtons, type OwnerVerdict } from "./annotation-buttons";
 import { CommentTicker } from "./comment-ticker";
 import { EventCardShell, TrackableDetailLink } from "./event-view-tracker";
 import { InlineComments } from "./inline-comments";
@@ -32,6 +33,8 @@ interface EventCardProps {
   accentLabel?: string;
   /** Top reader comments for the rotating ticker (reader-home only). */
   topComments?: string[];
+  /** 点6：主理人标注状态。undefined = 非主理人，不渲染标注按钮。 */
+  ownerVerdict?: OwnerVerdict | null;
 }
 
 export function EventCard({
@@ -41,6 +44,7 @@ export function EventCard({
   downed = false,
   accentLabel,
   topComments,
+  ownerVerdict,
 }: EventCardProps) {
   const m = messages.card;
   const level = event.selectedLevel;
@@ -164,6 +168,9 @@ export function EventCard({
           initialStarred={starred}
           initialDowned={downed}
         />
+        {ownerVerdict !== undefined && (
+          <AnnotationButtons eventId={event.id} initialVerdict={ownerVerdict} />
+        )}
       </div>
 
       {/* SP3 point C: inline discussion preview without leaving the feed. */}
