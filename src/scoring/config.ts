@@ -105,7 +105,7 @@ export interface ScoringV2Config {
 }
 
 export const scoringV2Config: ScoringV2Config = {
-  version: "scoring-v2.1",
+  version: "scoring-v2.2",
   relevanceMin: 50,
   // De-popularized intrinsic quality (externalHeat/userValue removed vs base_score; userValue
   // folds into confidence per open point B1). Re-normalized to sum 1.
@@ -126,13 +126,15 @@ export const scoringV2Config: ScoringV2Config = {
     viewSaturation: 200,
     confidenceCapToBBelow: 40,
   },
-  // opinion is harder to promote; release gets a small edge. Open point D2: included.
+  // Owner preference (2026-06-12): AI-coding practice content (howto) ranks alongside
+  // releases, and opinion's penalty is softened — the owner wants practitioner write-ups
+  // (skills/prompt-engineering/usage guides) competing for daily selection, not suppressed.
   // Keyed to the dual-axis content types (release/research/howto/opinion/news).
   contentTypeSelectionMultiplier: {
     release: 1.05,
     research: 1.0,
-    howto: 1.0,
-    opinion: 0.9,
+    howto: 1.05,
+    opinion: 0.95,
     news: 1.0,
   },
 };
@@ -173,14 +175,16 @@ export const scoringConfig: ScoringConfig = {
   decayHalfLifeDays: { B: 3, A: 10, S: 30 },
   freshnessHalfLifeDays: 2,
 
-  // Promotion tournament (Slice 1). B-tier uses base_score directly (spec § B/daily: "score >= 75
-  // or expert direct-push"); A/S use promotion_score (Scoring Integrity slice) which composes
-  // base + expert + citation + comment.
+  // Promotion tournament. promotion-v3 (owner decision 2026-06-12): B (当日精选) is a
+  // per-publish-day bucket tournament — a late-discovered post competes for the daily
+  // selection of its own APP_TZ publish day, up to windowDays.B back, instead of a rolling
+  // now-1d window that silently dropped anything crawled late. slots.B is per day-bucket
+  // (owner wants ~5-10 cards/day). A/S keep rolling windows.
   promotion: {
-    version: "promotion-v2",
+    version: "promotion-v3",
     thresholds: { B: 75, A: 86, S: 94 },
-    slots: { B: 20, A: 12, S: 5 },
-    windowDays: { B: 1, A: 7, S: 30 },
+    slots: { B: 10, A: 12, S: 5 },
+    windowDays: { B: 30, A: 7, S: 30 },
     labels: { B: "当日精选", A: "本周精选", S: "本月精选" },
   },
 

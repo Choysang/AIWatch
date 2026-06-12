@@ -77,8 +77,31 @@ describe("computePromotionsV2", () => {
       [cand({ id: "stale_b", selectionScore: 99, publishedAt: ago(3) })],
       NOW,
     );
-    // 3 days old: outside B's 1-day window; eligible for A/S windows (7/30d) -> wins S.
+    // S runs first (tier order S->A->B): a 99 wins S outright and never reaches B.
     expect(decisions.find((d) => d.id === "stale_b")?.level).toBe("S");
+  });
+
+  test("a late-discovered post wins the daily tournament of its own publish day (promotion-v3)", () => {
+    const decisions = computePromotionsV2(
+      [cand({ id: "late", selectionScore: 80, publishedAt: ago(4) })],
+      NOW,
+    );
+    const d = decisions.find((x) => x.id === "late");
+    expect(d?.level).toBe("B");
+    // ago(4) = 2026-05-23T12:00Z = 20:00 Asia/Shanghai -> civil day 2026-05-23.
+    expect(d?.bucketDay).toBe("2026-05-23");
+  });
+
+  test("B buckets are per publish day: one day's overflow cannot crowd out another day", () => {
+    const day1 = Array.from({ length: 12 }, (_, i) =>
+      cand({ id: `d1_${i}`, selectionScore: 85 - i * 0.5, publishedAt: ago(2) }),
+    );
+    const day2 = [cand({ id: "d2_only", selectionScore: 76, publishedAt: ago(0.2) })];
+    const decisions = computePromotionsV2([...day1, ...day2], NOW);
+    const bWinners = decisions.filter((d) => d.level === "B");
+    // day1: 12 qualified but only 10 per-day slots; day2's lone candidate wins independently.
+    expect(bWinners.filter((d) => d.id.startsWith("d1_")).length).toBe(10);
+    expect(bWinners.find((d) => d.id === "d2_only")?.level).toBe("B");
   });
 
   test("never returns a decision below the candidate's current level (no downgrade upstream)", () => {

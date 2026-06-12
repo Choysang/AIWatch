@@ -9,7 +9,13 @@
 //     low-trust item can't rocket to S.
 //   - Expert direct-push remains a B auto-qualifier, bypassing the B score threshold.
 //   - Winners only; non-winners and out-of-window events are untouched (no downgrade).
+//
+// promotion-v3 (owner decision 2026-06-12): B is bucketed by APP_TZ publish day. Each civil
+// day holds its own tournament with slots.B slots, so a post crawled days after it was
+// published still claims a 当日精选 slot on its own publish day (windowDays.B bounds how far
+// back). The old rolling now-1d window made late-discovered content permanently ineligible.
 
+import { appCalendarDate } from "@/core/time";
 import { scoringConfig, type ScoringConfig } from "./config";
 import { levelRank } from "./promotion";
 import type { PromotedLevel, SelectedLevel } from "./types";
@@ -42,6 +48,8 @@ export interface PromotionDecisionV2 {
   rankInWindow: number;
   slotLimit: number;
   directPushed?: boolean;
+  /** B only: the APP_TZ publish day ("YYYY-MM-DD") whose daily tournament this event won. */
+  bucketDay?: string;
 }
 
 interface CandidateWithScore {
@@ -93,9 +101,46 @@ export function computePromotionsV2(
       }
     }
 
-    eligible.sort(compareCandidates);
-
     const slots = p.slots[level];
+
+    if (level === "B") {
+      // Per-publish-day buckets (promotion-v3): each APP_TZ civil day runs its own
+      // tournament, so late-discovered posts compete only against their own day.
+      const buckets = new Map<string, CandidateWithScore[]>();
+      for (const e of eligible) {
+        // publishedAt is non-null here (filtered above).
+        const day = appCalendarDate(e.source.publishedAt as Date);
+        const bucket = buckets.get(day);
+        if (bucket) {
+          bucket.push(e);
+        } else {
+          buckets.set(day, [e]);
+        }
+      }
+      for (const [day, bucket] of buckets) {
+        bucket.sort(compareCandidates);
+        bucket.slice(0, slots).forEach((w, index) => {
+          assigned.add(w.source.id);
+          const decision: PromotionDecisionV2 = {
+            id: w.source.id,
+            level,
+            label: p.labels[level],
+            selectionScore: w.score,
+            maxLevel: w.source.maxLevel,
+            threshold,
+            windowDays: p.windowDays[level],
+            rankInWindow: index + 1,
+            slotLimit: slots,
+            bucketDay: day,
+          };
+          if (w.directPushed) decision.directPushed = true;
+          decisions.push(decision);
+        });
+      }
+      continue;
+    }
+
+    eligible.sort(compareCandidates);
     eligible.slice(0, slots).forEach((w, index) => {
       assigned.add(w.source.id);
       const decision: PromotionDecisionV2 = {
