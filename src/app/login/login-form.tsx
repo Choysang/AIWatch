@@ -1,13 +1,18 @@
 "use client";
 
 // Reader-facing auth form. Anonymous reading stays open; signing in gives each reader an
-// account for comments and notifications. Email OTP is the default path, with OAuth
-// buttons shown only when the server has provider credentials configured.
+// account for comments and notifications. Two credential modes — email OTP (default) and
+// email + password (sign-in or sign-up) — plus OAuth buttons shown only when the server
+// has provider credentials configured.
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/app/_lib/auth-client";
 import { messages } from "@/i18n";
+
+const MIN_PASSWORD_LENGTH = 8;
+
+type Mode = "otp" | "password";
 
 export function LoginForm({
   googleEnabled,
@@ -20,13 +25,30 @@ export function LoginForm({
 }) {
   const router = useRouter();
   const t = messages.login;
+  const [mode, setMode] = useState<Mode>("otp");
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [otp, setOtp] = useState("");
+  const [password, setPassword] = useState("");
   const [codeSent, setCodeSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [sendingCode, setSendingCode] = useState(false);
+
+  function switchMode(nextMode: Mode) {
+    setMode(nextMode);
+    setError(null);
+    setOtp("");
+    setPassword("");
+    setCodeSent(false);
+    setIsSignUp(false);
+  }
+
+  function onSignedIn() {
+    router.push(next);
+    router.refresh();
+  }
 
   async function sendCode() {
     const trimmedEmail = email.trim();
@@ -45,13 +67,11 @@ export function LoginForm({
     setCodeSent(true);
   }
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function submitOtp() {
     if (!codeSent) {
       await sendCode();
       return;
     }
-
     setError(null);
     setPending(true);
     const result = await authClient.signIn.emailOtp({
@@ -64,41 +84,81 @@ export function LoginForm({
       setError(result.error.message ?? t.signInFailed);
       return;
     }
-    router.push(next);
-    router.refresh();
+    onSignedIn();
   }
 
-  async function onGoogleSignIn() {
+  async function submitPassword() {
     setError(null);
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(t.passwordTooShort);
+      return;
+    }
     setPending(true);
-    const result = await authClient.signIn.social({
-      provider: "google",
-      callbackURL: next,
-    });
+    const result = isSignUp
+      ? await authClient.signUp.email({
+          email: email.trim(),
+          password,
+          name: name.trim() || email.trim().split("@")[0] || "reader",
+        })
+      : await authClient.signIn.email({ email: email.trim(), password });
     setPending(false);
     if (result.error) {
-      setError(result.error.message ?? t.googleFailed);
+      setError(result.error.message ?? (isSignUp ? t.signUpFailed : t.signInFailed));
+      return;
+    }
+    onSignedIn();
+  }
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (mode === "otp") await submitOtp();
+    else await submitPassword();
+  }
+
+  async function onOauthSignIn(provider: "google" | "wechat") {
+    setError(null);
+    setPending(true);
+    const result = await authClient.signIn.social({ provider, callbackURL: next });
+    setPending(false);
+    if (result.error) {
+      setError(result.error.message ?? (provider === "google" ? t.googleFailed : t.wechatFailed));
     }
   }
 
-  async function onWechatSignIn() {
-    setError(null);
-    setPending(true);
-    const result = await authClient.signIn.social({
-      provider: "wechat",
-      callbackURL: next,
-    });
-    setPending(false);
-    if (result.error) {
-      setError(result.error.message ?? t.wechatFailed);
-    }
-  }
+  const otpSubmitLabel = codeSent ? t.signInSubmit : t.sendCode;
+  const passwordSubmitLabel = isSignUp ? t.signUpSubmit : t.passwordSubmit;
+  const submitDisabled =
+    pending ||
+    sendingCode ||
+    !email.trim() ||
+    (mode === "otp" ? codeSent && !otp.trim() : !password);
 
   return (
     <form className="login-card card" onSubmit={onSubmit}>
       <h1 style={{ fontFamily: "var(--font-serif)", marginTop: 0 }}>
         {messages.appName} · {t.signInTitle}
       </h1>
+
+      <div className="login-tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "otp"}
+          className={mode === "otp" ? "login-tab login-tab-active" : "login-tab"}
+          onClick={() => switchMode("otp")}
+        >
+          {t.otpTab}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "password"}
+          className={mode === "password" ? "login-tab login-tab-active" : "login-tab"}
+          onClick={() => switchMode("password")}
+        >
+          {t.passwordTab}
+        </button>
+      </div>
 
       <label htmlFor="email">{t.emailLabel}</label>
       <input
@@ -115,17 +175,21 @@ export function LoginForm({
         required
       />
 
-      <label htmlFor="name">{t.nameLabel}</label>
-      <input
-        id="name"
-        type="text"
-        autoComplete="nickname"
-        placeholder={t.namePlaceholder}
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
+      {(mode === "otp" || isSignUp) && (
+        <>
+          <label htmlFor="name">{t.nameLabel}</label>
+          <input
+            id="name"
+            type="text"
+            autoComplete="nickname"
+            placeholder={t.namePlaceholder}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </>
+      )}
 
-      {codeSent && (
+      {mode === "otp" && codeSent && (
         <>
           <label htmlFor="otp">{t.codeLabel}</label>
           <input
@@ -141,27 +205,69 @@ export function LoginForm({
         </>
       )}
 
-      <button
-        type="submit"
-        disabled={pending || sendingCode || !email.trim() || (codeSent && !otp.trim())}
-      >
-        {pending || sendingCode ? t.submitting : codeSent ? t.signInSubmit : t.sendCode}
+      {mode === "password" && (
+        <>
+          <label htmlFor="password">{t.passwordLabel}</label>
+          <input
+            id="password"
+            type="password"
+            autoComplete={isSignUp ? "new-password" : "current-password"}
+            minLength={MIN_PASSWORD_LENGTH}
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setError(null);
+            }}
+            required
+          />
+        </>
+      )}
+
+      <button type="submit" disabled={submitDisabled}>
+        {pending || sendingCode
+          ? t.submitting
+          : mode === "otp"
+            ? otpSubmitLabel
+            : passwordSubmitLabel}
       </button>
 
-      {codeSent && (
+      {mode === "otp" && codeSent && (
         <button type="button" className="link-button login-resend" onClick={sendCode} disabled={sendingCode}>
           {t.resendCode}
         </button>
       )}
 
+      {mode === "password" && (
+        <button
+          type="button"
+          className="link-button"
+          onClick={() => {
+            setIsSignUp((v) => !v);
+            setError(null);
+          }}
+        >
+          {isSignUp ? t.toSignIn : t.toSignUp}
+        </button>
+      )}
+
       {googleEnabled && (
-        <button type="button" className="login-oauth-button" onClick={onGoogleSignIn} disabled={pending}>
+        <button
+          type="button"
+          className="login-oauth-button"
+          onClick={() => onOauthSignIn("google")}
+          disabled={pending}
+        >
           {t.googleSubmit}
         </button>
       )}
 
       {wechatEnabled && (
-        <button type="button" className="login-oauth-button" onClick={onWechatSignIn} disabled={pending}>
+        <button
+          type="button"
+          className="login-oauth-button"
+          onClick={() => onOauthSignIn("wechat")}
+          disabled={pending}
+        >
           {t.wechatSubmit}
         </button>
       )}
