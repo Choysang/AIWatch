@@ -1264,5 +1264,19 @@
     "ai_density_score": 8,
     "recommendedBy": "owner-20260612",
     "recommendReason": "hermes-desktop 开源项目本身及其工程实现的版本动态。"
+  },
+  {
+    "name": "数字生命卡兹克",
+    "handle": "@Khazix0918",
+    "url": "https://x.com/Khazix0918",
+    "platform": "x",
+    "connectorType": "rsshub",
+    "connectorRef": "/twitter/user/Khazix0918",
+    "category": "technical_share",
+    "sourceType": "kol",
+    "level": "L3",
+    "ai_density_score": 9,
+    "recommendedBy": "owner-20260612",
+    "recommendReason": "AI 实践测评 KOL（公众号同名），X 账号同步其 AI 工具实测与教程内容。"
   }
 ]
