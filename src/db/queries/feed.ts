@@ -75,7 +75,17 @@ export const cardColumns = {
   viewCount: events.viewCount,
 } as const;
 
-/** Most recent events first (All AI Dynamics default sort). */
+// Civil-day bucket in APP_TZ over the same effective-time chain the reader timeline
+// groups by (published → promoted → created; see timeline-tree.ts effectiveTime and
+// format.ts dayKey). buildTimelineTree assumes a newest-first, day-contiguous stream:
+// sorting day-first keeps each day bucket whole while still letting quality (tier,
+// corroboration) rank cards *within* a day. Sorting tier across the whole window
+// instead used to interleave days and let old T2 events crowd today's items out of
+// the LIMIT.
+const APP_TZ = process.env.APP_TZ ?? "Asia/Shanghai";
+const effectiveDay = sql`(coalesce(${events.publishedAt}, ${events.promotedAt}, ${events.createdAt}) at time zone ${APP_TZ})::date`;
+
+/** Most recent events first (All AI Dynamics default sort): day desc, quality within day. */
 export async function listRecentEvents(limit = 30, db: DB = defaultDb): Promise<EventCard[]> {
   const rows = await db
     .select(cardColumns)
@@ -83,6 +93,7 @@ export async function listRecentEvents(limit = 30, db: DB = defaultDb): Promise<
     .leftJoin(sources, eq(sources.id, events.mainSourceId))
     .leftJoin(posts, eq(posts.id, events.mainPostId))
     .orderBy(
+      sql`${effectiveDay} desc`,
       sql`case ${events.pipelineTier} when 'T2' then 2 when 'T1' then 1 else 0 end desc`,
       desc(events.sourceCount),
       desc(events.publishedAt),
@@ -111,9 +122,10 @@ export interface FeedFilter {
 }
 
 /**
- * Filtered reader feed (search + filter UI). Mirrors `listPublicItems` semantics:
- * selected mode sorts by promotion time and excludes unselected events; all mode
- * sorts by effective publish time. Search is server-side (ILIKE + tag overlap).
+ * Filtered reader feed (search + filter UI). Mirrors `listPublicItems` filter semantics:
+ * selected mode windows by promotion time and excludes unselected events; all mode
+ * windows by effective publish time. Ordering is day-first (timeline contiguity),
+ * quality within day. Search is server-side (ILIKE + tag overlap).
  */
 export async function searchEvents(
   filter: FeedFilter,
@@ -169,6 +181,7 @@ export async function searchEvents(
     .leftJoin(posts, eq(posts.id, events.mainPostId))
     .where(conds.length ? and(...conds) : undefined)
     .orderBy(
+      sql`${effectiveDay} desc`,
       sql`case ${events.pipelineTier} when 'T2' then 2 when 'T1' then 1 else 0 end desc`,
       desc(events.sourceCount),
       sql`${sortKey} desc nulls last`,
