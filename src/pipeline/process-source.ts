@@ -46,9 +46,17 @@ import {
   LIGHT_JUDGE_PROMPT_VERSION,
   LIGHT_JUDGE_SYSTEM,
 } from "./prompts";
+import { clampToTokenBudget } from "@/llm/token-estimate";
 import { normalizePost } from "./normalize";
 import { isBeforeSourceOnboarding } from "./onboarding-cutoff";
 import { simhash } from "./simhash";
+
+// Token budgets for the untrusted source text inside each judge prompt. They leave
+// headroom under routing.ts maxInputTokens (light 3000 / deep 5000) for the system
+// prompt (~1.2k tokens) and the prompt envelope. Before this clamp the longest prod
+// post (~80k chars) went to the triage call whole.
+const LIGHT_CONTENT_TOKEN_BUDGET = 1800;
+const DEEP_CONTENT_TOKEN_BUDGET = 3500;
 
 export interface ProcessSummary {
   fetched: number;
@@ -79,7 +87,10 @@ function escapeUntrustedSource(value: string): string {
 
 export function buildRawPrompt(raw: RawPost): string {
   const sourceText = escapeUntrustedSource(
-    [`标题: ${raw.rawTitle ?? "(无)"}`, `内容: ${raw.rawContent ?? "(无)"}`].join("\n"),
+    clampToTokenBudget(
+      [`标题: ${raw.rawTitle ?? "(无)"}`, `内容: ${raw.rawContent ?? "(无)"}`].join("\n"),
+      LIGHT_CONTENT_TOKEN_BUDGET,
+    ),
   );
   return [
     "# Untrusted Source Text",
@@ -151,7 +162,9 @@ async function generateForTask<T>(
 }
 
 export function buildDeepPrompt(raw: RawPost, light: LightJudge): string {
-  const sourceText = escapeUntrustedSource(raw.rawContent ?? raw.rawTitle ?? "");
+  const sourceText = escapeUntrustedSource(
+    clampToTokenBudget(raw.rawContent ?? raw.rawTitle ?? "", DEEP_CONTENT_TOKEN_BUDGET),
+  );
   return [
     `领域: ${light.domain}`,
     `内容类型: ${light.content_type}`,
