@@ -12,6 +12,8 @@
 // expertValue components). A floor of 0 is enforced via `Math.max` only as a
 // defensive guard — base_score is non-negative by construction.
 
+import type { OwnerBoostConfig } from "./owner-affinity";
+
 export interface RankScoreConfig {
   version: string;
   /** Count at which the like-normalized signal reaches ~98%. */
@@ -21,6 +23,8 @@ export interface RankScoreConfig {
   viewSaturation: number;
   /** Max points contributed by card/detail/source opens at saturation. */
   viewBoost: number;
+  /** rank-v4 (点6 切片C): owner annotation boost weights (see owner-affinity.ts). */
+  owner: OwnerBoostConfig;
   /** Time-banded boost weights. Bands are evaluated in order; the first whose
    *  `maxAgeHours` is strictly greater than `ageHours` wins. Last band must use
    *  `Infinity` to catch 7d+. */
@@ -37,12 +41,14 @@ export interface RankScoreConfig {
 }
 
 export const rankScoreConfig: RankScoreConfig = {
-  version: "rank-v3",
+  version: "rank-v4",
   likeSaturation: 100,
   starSaturation: 20,
   downSaturation: 30,
   viewSaturation: 200,
   viewBoost: 4,
+  // 点6 设计锁定值：not_useful 直接压 20 分 ≈ 把误判资讯挤出首屏。
+  owner: { usefulBoost: 12, notUsefulPenalty: 20, affinityBoostMax: 6, minSamples: 3 },
   bands: [
     // 0-6h: cold. External heat dominates base_score; user feedback is sparse.
     { label: "0-6h", maxAgeHours: 6, likeBoost: 2, starBoost: 3, downPenalty: 2 },
@@ -67,6 +73,9 @@ export interface RankScoreInputs {
   viewCount?: number;
   /** Hours since event.publishedAt. Negative inputs are treated as 0. */
   ageHours: number;
+  /** rank-v4: precomputed owner boost (directBoost + affinityBoost from owner-affinity.ts).
+   *  Already bounded by config; may be negative. Defaults to 0 (no annotations). */
+  ownerBoost?: number;
 }
 
 export interface RankScoreBreakdown {
@@ -77,6 +86,7 @@ export interface RankScoreBreakdown {
   starBoost: number;
   viewBoost: number;
   downPenalty: number;
+  ownerBoost: number;
   rankScore: number;
 }
 
@@ -119,7 +129,11 @@ export function computeRankScore(
   const starBoost = starNorm * band.starBoost;
   const downPenalty = downNorm * band.downPenalty;
   const viewBoost = viewNorm * config.viewBoost;
-  const rankScore = Math.max(0, inputs.baseScore + likeBoost + starBoost + viewBoost - downPenalty);
+  const ownerBoost = inputs.ownerBoost ?? 0;
+  const rankScore = Math.max(
+    0,
+    inputs.baseScore + likeBoost + starBoost + viewBoost + ownerBoost - downPenalty,
+  );
   return {
     rankScore,
     breakdown: {
@@ -130,6 +144,7 @@ export function computeRankScore(
       starBoost,
       viewBoost,
       downPenalty,
+      ownerBoost,
       rankScore,
     },
   };

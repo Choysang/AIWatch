@@ -169,7 +169,7 @@ export function EventCard({
           initialDowned={downed}
         />
         {ownerVerdict !== undefined && (
-          <AnnotationButtons eventId={event.id} initialVerdict={ownerVerdict} />
+          <AnnotationButtons subjectId={event.id} initialVerdict={ownerVerdict} />
         )}
       </div>
 

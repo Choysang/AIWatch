@@ -3,10 +3,14 @@
 // private, non-routable folder). Unlinked from public nav (decision B); requires login
 // + a console role (decision 10).
 
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { formatDateTime } from "@/app/_lib/format";
 import { getSession, isAdminRole } from "@/app/_lib/session";
 import { can } from "@/auth/rbac";
+import { loadOwnerAffinityProfile } from "@/db/jobs/recompute-rank-scores";
+import { getOwnerAnnotations } from "@/db/queries/owner-annotations";
+import { sourceAffinitySuggestion } from "@/scoring/owner-affinity";
 import { listContributions, type ContributionRow } from "@/db/queries/contributions";
 import { listFeedback, type FeedbackRow } from "@/db/queries/feedback";
 import { listPromotedEvents, type PromotedEventRow } from "@/db/queries/promotions";
@@ -16,7 +20,7 @@ import { messages } from "@/i18n";
 import { DEFAULT_SOURCE_PROFILE } from "@/sources/source-form";
 import { inferAiSourceCategory } from "@/sources/ai-source-categories";
 import { checkManagedSourcesFetchHealth } from "@/sources/source-health-check";
-import { SourceManagementSection } from "./sources/source-management";
+import { SourceManagementSection, type SourceAnnotationCell } from "./sources/source-management";
 import type { SourceRecommendationReviewItem } from "./sources/source-review-dialog";
 
 // Admin console: titled for the operator, but never indexed (unlinked from public nav).
@@ -83,6 +87,22 @@ export default async function AdminPage() {
     listContributions(),
   ]);
   const sources = await checkManagedSourcesFetchHealth(sourceRows);
+
+  // 点6 切片E：每信源的主理人判决 + 事件标注聚合（亲和度/晋降级建议）。
+  const [sourceVerdicts, { profile }] = await Promise.all([
+    getOwnerAnnotations("source", sources.map((s) => s.id)),
+    loadOwnerAffinityProfile(),
+  ]);
+  const annotationCells: Record<string, SourceAnnotationCell> = {};
+  for (const s of sources) {
+    const entry = profile.source.get(s.id);
+    annotationCells[s.id] = {
+      verdict: sourceVerdicts.get(s.id) ?? null,
+      affinity: entry ? { n: entry.n, affinity: entry.affinity } : null,
+      suggestion: sourceAffinitySuggestion(entry),
+    };
+  }
+
   const pc = messages.admin.promotionColumns;
   const rc = messages.admin.reportColumns;
   const fc = messages.admin.feedbackColumns;
@@ -99,7 +119,9 @@ export default async function AdminPage() {
       <header className="masthead">
         <h1 style={{ fontSize: "1.8rem" }}>{messages.admin.title}</h1>
         <nav>
-          <span className="tagline">信源、精选、报告与审核</span>
+          <span className="tagline">
+            信源、精选、报告与审核 · <Link href="/_admin/annotations">主理人标注台</Link>
+          </span>
         </nav>
       </header>
 
@@ -107,6 +129,7 @@ export default async function AdminPage() {
         rows={sources}
         reviewItems={sourceReviewItems}
         canModerateSources={canModerateSources}
+        annotationCells={annotationCells}
       />
 
       <h2 style={{ fontFamily: "var(--font-serif)", marginTop: "3rem" }}>

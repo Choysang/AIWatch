@@ -1,4 +1,5 @@
 import { formatDateOnly } from "@/app/_lib/format";
+import { AnnotationButtons, type OwnerVerdict } from "@/app/(reader)/annotation-buttons";
 import type { ManagedSourceRow } from "@/db/queries/sources";
 import { sourceCategoryLabel } from "@/sources/ai-source-categories";
 import { SourceAddDialog } from "./source-add-dialog";
@@ -104,12 +105,33 @@ function HeaderCell(props: { children: React.ReactNode; colIndex: number; classN
   );
 }
 
+/** 点6 切片E：每信源的主理人判决 + 该源事件标注聚合（亲和度 + 晋降级建议）。 */
+export interface SourceAnnotationCell {
+  verdict: OwnerVerdict | null;
+  /** Event-annotation aggregate for this source (null = no annotated events yet). */
+  affinity: { n: number; affinity: number } | null;
+  suggestion: "promote" | "demote" | null;
+}
+
+function SuggestionBadge({ suggestion }: { suggestion: "promote" | "demote" | null }) {
+  if (!suggestion) return null;
+  return (
+    <span
+      className={`pill ${suggestion === "promote" ? "healthy" : "unavailable"}`}
+      title="基于事件标注聚合（|亲和度| ≥ 0.5 且样本 ≥ 5）的建议"
+    >
+      {suggestion === "promote" ? "建议入池" : "建议降级"}
+    </span>
+  );
+}
+
 export function SourceManagementSection(props: {
   rows: ManagedSourceRow[];
   reviewItems: SourceRecommendationReviewItem[];
   canModerateSources: boolean;
+  annotationCells?: Record<string, SourceAnnotationCell>;
 }) {
-  const { rows, reviewItems, canModerateSources } = props;
+  const { rows, reviewItems, canModerateSources, annotationCells } = props;
 
   return (
     <section className="admin-section">
@@ -141,10 +163,11 @@ export function SourceManagementSection(props: {
               <col data-col-index={canModerateSources ? 3 : 2} style={{ width: "15%" }} />
               <col data-col-index={canModerateSources ? 4 : 3} style={{ width: canModerateSources ? "17%" : "20%" }} />
               <col data-col-index={canModerateSources ? 5 : 4} style={{ width: canModerateSources ? "7%" : "8%" }} />
-              <col data-col-index={canModerateSources ? 6 : 5} style={{ width: canModerateSources ? "15%" : "17%" }} />
-              <col data-col-index={canModerateSources ? 7 : 6} style={{ width: "7%" }} />
-              <col data-col-index={canModerateSources ? 8 : 7} style={{ width: "8%" }} />
-              {canModerateSources ? <col data-col-index={9} style={{ width: "5%" }} /> : null}
+              <col data-col-index={canModerateSources ? 6 : 5} style={{ width: canModerateSources ? "11%" : "13%" }} />
+              <col data-col-index={canModerateSources ? 7 : 6} style={{ width: "6%" }} />
+              <col data-col-index={canModerateSources ? 8 : 7} style={{ width: "7%" }} />
+              <col data-col-index={canModerateSources ? 9 : 8} style={{ width: canModerateSources ? "11%" : "12%" }} />
+              {canModerateSources ? <col data-col-index={10} style={{ width: "5%" }} /> : null}
             </colgroup>
             <thead>
               <tr>
@@ -161,12 +184,14 @@ export function SourceManagementSection(props: {
                 <HeaderCell colIndex={canModerateSources ? 6 : 5}>推荐理由</HeaderCell>
                 <HeaderCell colIndex={canModerateSources ? 7 : 6}>推荐人</HeaderCell>
                 <HeaderCell colIndex={canModerateSources ? 8 : 7}>接入日期</HeaderCell>
-                {canModerateSources ? <HeaderCell colIndex={9}>操作</HeaderCell> : null}
+                <HeaderCell colIndex={canModerateSources ? 9 : 8}>主理人标注</HeaderCell>
+                {canModerateSources ? <HeaderCell colIndex={10}>操作</HeaderCell> : null}
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => {
                 const status = sourceStatus(row);
+                const cell = annotationCells?.[row.id];
                 return (
                   <tr key={row.id}>
                     {canModerateSources ? (
@@ -202,6 +227,20 @@ export function SourceManagementSection(props: {
                     <td data-label="推荐理由" className="admin-soft">{row.recommendReason ?? ""}</td>
                     <td data-label="推荐人" className="admin-soft">{row.recommendedBy ?? ""}</td>
                     <td data-label="接入日期">{formatDateOnly(row.onboardedAt)}</td>
+                    <td data-label="主理人标注">
+                      <AnnotationButtons
+                        subjectId={row.id}
+                        subjectType="source"
+                        initialVerdict={cell?.verdict ?? null}
+                      />
+                      {cell?.affinity ? (
+                        <div className="admin-muted" style={{ fontVariantNumeric: "tabular-nums" }}>
+                          事件亲和 {cell.affinity.affinity > 0 ? "+" : ""}
+                          {cell.affinity.affinity.toFixed(2)}（{cell.affinity.n} 条）{" "}
+                          <SuggestionBadge suggestion={cell.suggestion} />
+                        </div>
+                      ) : null}
+                    </td>
                     {canModerateSources ? (
                       <td data-label="操作">
                         <div className="admin-row-actions">

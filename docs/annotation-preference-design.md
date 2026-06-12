@@ -76,10 +76,10 @@ affinityBoost = clamp(-6..+6, 6 × mean(affinity(source), affinity(category), af
 
 | 切片 | 内容 | 状态 |
 |---|---|---|
-| A | migration + owner_annotations 查询层 + POST/GET API（owner 鉴权）| 待做 |
-| B | 卡片标注按钮（owner-only client island）| 待做 |
-| C | affinity 聚合纯函数 + rank-v4 ownerBoost + recompute SQL parity | 待做 |
-| D | /_admin/annotations 意图画像页 + 来源健康两列 | 待做 |
-| E | 信源行标注 + 晋降级建议规则 | 待做 |
+| A | migration + owner_annotations 查询层 + POST/GET API（owner 鉴权）| ✅ 完成（9989d86）|
+| B | 卡片标注按钮（owner-only client island）| ✅ 完成（9989d86）|
+| C | affinity 聚合纯函数 + rank-v4 ownerBoost + recompute SQL parity | ✅ 完成（2026-06-12，owner-affinity.ts + rank-v4 + VALUES 注入 SQL）|
+| D | /_admin/annotations 意图画像页 + 来源健康两列 | ✅ 完成（2026-06-12，标注台 + 信源表「主理人标注」列）|
+| E | 信源行标注 + 晋降级建议规则 | ✅ 完成（2026-06-12，sourceAffinitySuggestion ±0.5/n≥5）|
 
 切片 A→C 即闭环（标注→打分变化）；D/E 是可视化与信源侧延伸。

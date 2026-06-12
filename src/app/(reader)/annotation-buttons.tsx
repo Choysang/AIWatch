@@ -1,17 +1,20 @@
 "use client";
 
-// 点6 切片B：主理人卡片标注岛（有用/没用）。仅 owner/admin 渲染（SSR 端判定），
-// 乐观切换，再点同一判决撤销。失败回滚并提示。
+// 点6 切片B/E：主理人标注岛（有用/没用）。仅 owner/admin 渲染（SSR 端判定），
+// 乐观切换，再点同一判决撤销。失败回滚并提示。事件卡片与信源行共用
+// （subjectType 默认 event；信源行传 source）。
 
 import { useState } from "react";
 
 export type OwnerVerdict = "useful" | "not_useful";
 
 export function AnnotationButtons({
-  eventId,
+  subjectId,
+  subjectType = "event",
   initialVerdict,
 }: {
-  eventId: string;
+  subjectId: string;
+  subjectType?: "event" | "source";
   initialVerdict: OwnerVerdict | null;
 }) {
   const [verdict, setVerdict] = useState<OwnerVerdict | null>(initialVerdict);
@@ -26,7 +29,7 @@ export function AnnotationButtons({
       const res = await fetch("/api/annotations", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ subjectType: "event", subjectId: eventId, verdict: target }),
+        body: JSON.stringify({ subjectType, subjectId, verdict: target }),
       });
       if (!res.ok) throw new Error(`annotation failed: ${res.status}`);
     } catch {
