@@ -245,7 +245,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       query.dateTo ||
       query.mode === "selected",
   );
-  const sidebarItems: SidebarEventItem[] = events.slice(0, 8).map((event) => ({
+  // 点8：速览栏是快速标题看板，跟随当前筛选（items 直接取自筛选后的 events）。
+  const sidebarItems: SidebarEventItem[] = events.slice(0, 12).map((event) => ({
     id: event.id,
     title: event.title,
     sourceName: event.sourceName,

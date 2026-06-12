@@ -6,6 +6,7 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { getSession } from "@/app/_lib/session";
+import { htmlToReadableText } from "@/app/_lib/html-text";
 import { extractCardMedia } from "@/app/_lib/media";
 import { SubpageNav } from "@/app/subpage-nav";
 import { READER_ID_COOKIE, verifyReaderId } from "@/auth/reader-id";
@@ -179,12 +180,13 @@ export default async function EventDetailPage({
           </p>
         )}
 
-        {/* 原帖全文（未翻译，默认折叠）：照顾打不开 x.com 的读者。 */}
+        {/* 原帖全文（未翻译，默认折叠）：照顾打不开 x.com 的读者。
+            点10：原始内容是 HTML（RSS/RSSHub），渲染前转可读纯文本，配合 pre-wrap 还原换行。 */}
         {event.rawContent && (
           <details className="original-text">
             <summary>{m.detail.originalText}</summary>
             <p className="original-text-note">{m.detail.originalTextNote}</p>
-            <div className="original-text-body">{event.rawContent}</div>
+            <div className="original-text-body">{htmlToReadableText(event.rawContent)}</div>
           </details>
         )}
 

@@ -35,6 +35,19 @@
 - Last Week in AI 为周更，latest 落后数日属正常节奏，不算 stale。
 - 公众号源（中文生态重要补充）整体搁置：唯一可行通道是第三方/自托管 RSS 桥接，稳定性与合规风险高；若启用，方案是自托管桥接并按本报告同一标准重新申报，记录在 `docs/future_ideas.md`。
 
+## B 级观察源复评（2026-06-12）
+
+审计 CSV 中 11 行 keep/B 实为 8 个去重源，其中 6 个已在终选轮直接入池
+（量子位、Last Week in AI、Latent Space、Jina AI、李继刚、Xiaomi MiMo），账面与终池清单滞后，以本节为准。
+池外仅剩 2 个，本轮复评结论均为不晋级：
+
+| 源 | final_score | 复评结论 |
+|---|---|---|
+| LlamaIndex Blog | 7.55 | 不晋级：`/blog/feed` 与 `blog.llamaindex.ai/feed` 仍 404（渠道死亡）；X 官号 @llama_index 已在池内覆盖 |
+| Qdrant Blog | 6.7 | 不晋级：feed 已恢复 200（`/articles/index.xml`）但最新文章停在 2025-03，时效失格；分数也低于池内门槛（≈7.0） |
+
+下一次晋降级评估改用池内实际数据（精选贡献率 + 读者标注偏好），不再重跑纸面评分。
+
 ## 优胜劣汰机制（常态化）
 
 - `bun run sources:import:curated --archive-non-curated`：以 JSON 为准做幂等同步，池外源软归档（不删数据）。

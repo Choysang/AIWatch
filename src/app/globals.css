@@ -3074,9 +3074,15 @@ html[data-reader-theme="light"] .reader-home {
   --reader-nav-width: 64px;
 }
 .page.reader-home {
-  width: calc(100% - var(--reader-nav-width) - var(--reader-nav-gap) - var(--reader-page-right-gap));
+  /* 点8：右侧速览栏展开时占据布局空间（--reader-sidebar-reserve 由 ReaderSidebar 设在 :root），
+     中间内容自适应收缩，与左侧导航同一模式 */
+  width: calc(
+    100% - var(--reader-nav-width) - var(--reader-nav-gap) - var(--reader-page-right-gap) -
+      var(--reader-sidebar-reserve, 0px)
+  );
   margin-left: calc(var(--reader-nav-width) + var(--reader-nav-gap));
-  margin-right: var(--reader-page-right-gap);
+  margin-right: calc(var(--reader-page-right-gap) + var(--reader-sidebar-reserve, 0px));
+  transition: width 180ms ease, margin-right 180ms ease;
 }
 .reader-nav-sidebar {
   position: fixed;
@@ -4112,11 +4118,112 @@ html[data-reader-theme="light"] .reader-sidebar-actions a:hover {
   }
 }
 
+/* ============================================================
+   点7+点8（2026-06-12）：信息流紧凑化 — 一屏 2–3 张卡片，速览栏变窄变小字。
+   置于文件末尾以覆盖前面的展开式规则。
+   ============================================================ */
+
+/* 卡片：收紧内边距与纵向节奏 */
+.reader-home .card {
+  padding: 0.8rem 1rem;
+}
+.reader-home .card-meta-row {
+  margin-bottom: 0.3rem;
+}
+.reader-home .card-top {
+  margin-bottom: 0.4rem;
+  font-size: 0.78rem;
+}
+.reader-home .card h2,
+.tl-featured .card h2 {
+  font-size: 1.06rem;
+  line-height: 1.35;
+  margin-bottom: 0.4rem;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* 摘要：信息流里压成最多 3 行（详情页不受影响），快速浏览靠标题+首句 */
 .reader-home .summary,
 .reader-home .tl-featured .summary,
-.reader-home .tl-standard .summary,
+.reader-home .tl-standard .summary {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  white-space: normal;
+  font-size: 0.88rem;
+  line-height: 1.62;
+  margin-bottom: 0.5rem;
+}
 .reader-home .tl-compact .summary {
-  display: block;
-  -webkit-line-clamp: unset;
-  overflow: visible;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.reader-home .reason {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 0.8rem;
+}
+
+/* 配图限高，避免单图占满一屏 */
+.reader-home .card-media,
+.reader-home .card-media img,
+.reader-home .card-media video {
+  max-height: 150px;
+}
+
+/* 行间距：流与组的纵向间隔收紧 */
+.reader-home .feed {
+  gap: 1.1rem;
+}
+.reader-home .day-items {
+  --tl-gap: 0.75rem;
+}
+.reader-home .card-bottom {
+  padding-top: 0.4rem;
+}
+.reader-home .inline-comments {
+  margin-top: 0.55rem;
+  padding-top: 0.45rem;
+}
+
+/* 点8：速览栏 = 快速标题看板 — 更窄、更小字 */
+.reader-sidebar h2 {
+  font-size: 0.92rem;
+}
+.reader-sidebar-list {
+  gap: 0.5rem;
+  padding-left: 1rem;
+  font-size: 0.8rem;
+}
+.reader-sidebar-jump {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.reader-sidebar-meta {
+  font-size: 0.7rem;
+  color: var(--rh-faint);
+}
+
+/* 手机：恢复单列自然高度（reserve 不参与布局，速览栏仍为全宽浮层） */
+@media (max-width: 760px) {
+  .page.reader-home {
+    width: auto;
+    margin-right: 0;
+  }
+  .reader-home .card h2,
+  .tl-featured .card h2 {
+    -webkit-line-clamp: 3;
+  }
 }

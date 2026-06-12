@@ -108,10 +108,15 @@ function makeDefaultClassify(db: DB): ClassifyFn {
     });
 
     if (!isStub) {
-      await recordLlmSpend(
+      const costUsd = await recordLlmSpend(
         { task: "light_judge", provider: route.provider, model: route.model, usage: result.usage },
         db,
       );
+      if (costUsd === null) {
+        console.warn(
+          `[spend_guard] no price entry for ${route.provider}::${route.model} — call NOT recorded in spend ledger`,
+        );
+      }
     }
     return { domain: result.value.domain, contentType: result.value.content_type };
   };

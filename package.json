@@ -19,6 +19,7 @@
     "db:seed:demo": "bun run scripts/seed-demo.ts",
     "db:backfill:domain-content-type": "bun run scripts/backfill-domain-content-type.ts",
     "db:backfill:source-categories": "bun run scripts/backfill-source-categories.ts",
+    "db:backfill:chinese-titles": "bun run scripts/backfill-chinese-titles.ts",
     "sources:import:xgo": "bun run scripts/import-xgo-sources.ts",
     "sources:import:curated": "bun run scripts/import-curated-ai-sources.ts",
     "sources:audit": "bun run scripts/audit-source-health.ts",

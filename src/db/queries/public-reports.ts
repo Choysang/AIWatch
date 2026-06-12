@@ -1,7 +1,7 @@
-// Report read queries. Public daily endpoints (decision 13: /daily, /daily/{date},
-// /dailies) serve only PUBLISHED daily reports. Weekly/monthly stay as drafts in the
-// admin console until reviewed (spec), so they are not exposed here. A separate admin
-// listing surfaces every kind/status for the console.
+// Report read queries. Public endpoints serve only PUBLISHED reports, filtered by kind.
+// 点11 (2026-06-12): weekly/monthly auto-publish like daily (the draft-review flow never
+// landed), so the kind-generic queries back /reports, /reports/weekly and /reports/monthly.
+// A separate admin listing surfaces every kind/status for the console.
 
 import { and, desc, eq } from "drizzle-orm";
 import { db as defaultDb, type DB } from "@/db/client";
@@ -27,31 +27,42 @@ function toPublic(row: { content: unknown; generatedAt: Date }): PublicReport {
   return { ...(row.content as ReportContent), generated_at: row.generatedAt.toISOString() };
 }
 
-/** Latest published daily report, or null when none exists yet. */
-export async function getLatestDaily(db: DB = defaultDb): Promise<PublicReport | null> {
+/** Latest published report of a kind, or null when none exists yet (点11: 周/月报公开). */
+export async function getLatestByKind(
+  kind: ReportKind,
+  db: DB = defaultDb,
+): Promise<PublicReport | null> {
   const rows = await db
     .select({ content: reports.content, generatedAt: reports.generatedAt })
     .from(reports)
-    .where(and(eq(reports.kind, "daily"), eq(reports.status, "published")))
+    .where(and(eq(reports.kind, kind), eq(reports.status, "published")))
     .orderBy(desc(reports.reportDate))
     .limit(1);
   return rows[0] ? toPublic(rows[0]) : null;
 }
 
-/** Published daily report for an exact calendar date (YYYY-MM-DD in APP_TZ), or null. */
-export async function getDailyByDate(date: string, db: DB = defaultDb): Promise<PublicReport | null> {
+/** Published report of a kind for an exact calendar date (YYYY-MM-DD in APP_TZ), or null. */
+export async function getByKindAndDate(
+  kind: ReportKind,
+  date: string,
+  db: DB = defaultDb,
+): Promise<PublicReport | null> {
   const rows = await db
     .select({ content: reports.content, generatedAt: reports.generatedAt })
     .from(reports)
     .where(
-      and(eq(reports.kind, "daily"), eq(reports.status, "published"), eq(reports.reportDate, date)),
+      and(eq(reports.kind, kind), eq(reports.status, "published"), eq(reports.reportDate, date)),
     )
     .limit(1);
   return rows[0] ? toPublic(rows[0]) : null;
 }
 
-/** Recent published daily reports, newest first (capped). For /dailies + reader archive. */
-export async function listDailies(take = 14, db: DB = defaultDb): Promise<PublicReportListItem[]> {
+/** Recent published reports of a kind, newest first (capped). For archives + /dailies. */
+export async function listByKind(
+  kind: ReportKind,
+  take = 14,
+  db: DB = defaultDb,
+): Promise<PublicReportListItem[]> {
   const capped = Math.min(Math.max(1, Math.floor(take)), MAX_DAILIES);
   const rows = await db
     .select({
@@ -61,7 +72,7 @@ export async function listDailies(take = 14, db: DB = defaultDb): Promise<Public
       generatedAt: reports.generatedAt,
     })
     .from(reports)
-    .where(and(eq(reports.kind, "daily"), eq(reports.status, "published")))
+    .where(and(eq(reports.kind, kind), eq(reports.status, "published")))
     .orderBy(desc(reports.reportDate))
     .limit(capped);
   return rows.map((r) => ({
@@ -70,6 +81,21 @@ export async function listDailies(take = 14, db: DB = defaultDb): Promise<Public
     summary: r.summary,
     generated_at: r.generatedAt.toISOString(),
   }));
+}
+
+/** Latest published daily report, or null when none exists yet. */
+export function getLatestDaily(db: DB = defaultDb): Promise<PublicReport | null> {
+  return getLatestByKind("daily", db);
+}
+
+/** Published daily report for an exact calendar date (YYYY-MM-DD in APP_TZ), or null. */
+export function getDailyByDate(date: string, db: DB = defaultDb): Promise<PublicReport | null> {
+  return getByKindAndDate("daily", date, db);
+}
+
+/** Recent published daily reports, newest first (capped). For /dailies + reader archive. */
+export function listDailies(take = 14, db: DB = defaultDb): Promise<PublicReportListItem[]> {
+  return listByKind("daily", take, db);
 }
 
 /** Admin console row: every kind/status, newest first. */

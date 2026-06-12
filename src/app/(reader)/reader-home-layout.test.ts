@@ -66,8 +66,10 @@ describe("reader home layout", () => {
 
   test("lets the reader content fill the available width with only a small right gap", () => {
     expect(cssSource).toContain("--reader-page-right-gap: min(5vw, 1.25rem);");
+    // 点8：右侧速览栏展开时占据布局空间 — 宽度计算包含 --reader-sidebar-reserve
+    expect(cssSource).toContain("var(--reader-sidebar-reserve, 0px)");
     expect(cssSource).toContain(
-      "width: calc(100% - var(--reader-nav-width) - var(--reader-nav-gap) - var(--reader-page-right-gap));",
+      "margin-right: calc(var(--reader-page-right-gap) + var(--reader-sidebar-reserve, 0px));",
     );
     expect(cssSource).not.toContain("width: min(\n    1160px,");
   });

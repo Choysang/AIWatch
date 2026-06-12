@@ -2,8 +2,7 @@
 // no LLM editorial step). Loads events for the window, runs the pure assembler, and
 // upserts the calendar-keyed report row (decision E). The window is rolling and ends at
 // `now` (spec: "last 24h" / "yesterday follow-up"); the row is keyed by the publish date
-// in APP_TZ so /api/public/daily/{date} can address it. Daily auto-publishes; weekly and
-// monthly land as `draft` for review (spec).
+// in APP_TZ so /api/public/daily/{date} can address it. All kinds auto-publish (点11).
 
 import { and, eq, gte, lt, or } from "drizzle-orm";
 import { newId } from "@/core/ids";
@@ -123,8 +122,10 @@ export async function generateReport(
     config: cfg,
   });
 
-  const status: ReportStatus = kind === "daily" ? "published" : "draft";
-  const publishedAt = status === "published" ? now : null;
+  // 点11（2026-06-12）：周报/月报原设计是 draft 等人工复核，但复核流从未落地，读者侧
+  // 模块因此常年空白。报告是确定性拼装（无 LLM 编辑步），三种粒度统一自动发布。
+  const status: ReportStatus = "published";
+  const publishedAt = now;
   const counts: SectionCounts = {
     focus: content.sections[0]!.items.length,
     watching: content.sections[1]!.items.length,
