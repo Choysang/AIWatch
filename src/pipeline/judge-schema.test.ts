@@ -6,6 +6,7 @@ import {
   deriveTitle,
   gateLightJudge,
   lightJudgeSchema,
+  TRASH_SUMMARY_FALLBACK,
 } from "./judge-schema";
 
 describe("pipeline judgment contracts", () => {
@@ -36,6 +37,33 @@ describe("pipeline judgment contracts", () => {
     const { ai_relevance, impact, novelty, audience_usefulness, evidence_clarity, ...scoreOnly } =
       DEFAULT_JUDGMENT;
     expect(lightJudgeSchema.safeParse(scoreOnly).success).toBe(false);
+  });
+
+  test("light schema clamps an empty trash summary to the deterministic fallback", () => {
+    const parsed = lightJudgeSchema.parse({
+      ...DEFAULT_JUDGMENT,
+      domain: "trash",
+      one_line_summary: "",
+    });
+    expect(parsed.one_line_summary).toBe(TRASH_SUMMARY_FALLBACK);
+  });
+
+  test("light schema still fails closed on an empty summary for non-trash domains", () => {
+    const result = lightJudgeSchema.safeParse({
+      ...DEFAULT_JUDGMENT,
+      domain: "technology",
+      one_line_summary: "",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  test("light schema keeps a non-empty trash summary untouched", () => {
+    const parsed = lightJudgeSchema.parse({
+      ...DEFAULT_JUDGMENT,
+      domain: "trash",
+      one_line_summary: "泛财经内容，与 AI-Dev 无关。",
+    });
+    expect(parsed.one_line_summary).toBe("泛财经内容，与 AI-Dev 无关。");
   });
 
   test("light schema normalizes legacy category and content-type values", () => {
