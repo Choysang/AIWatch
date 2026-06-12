@@ -30,9 +30,15 @@ export const KNOWN_MODEL_PRICES: readonly ModelPrice[] = [
   // Qwen / DashScope (compatible-mode flagship chat tier)
   { provider: "qwen", model: "qwen-plus", inputUsdPer1m: 0.4, outputUsdPer1m: 1.2 },
   { provider: "qwen", model: "qwen-max", inputUsdPer1m: 2.4, outputUsdPer1m: 9.6 },
-  // SiliconFlow via openai_compatible (prod single-model routing; snapshot 2026-06-12)
+  // SiliconFlow via openai_compatible (prod single-model routing; snapshot 2026-06-13
+  // from the gateway's public /api/pricing: ratio x $2 per 1M)
   { provider: "openai_compatible", model: "pro/moonshotai/kimi-k2.6", inputUsdPer1m: 0.95, outputUsdPer1m: 4.0 },
   { provider: "openai_compatible", model: "moonshotai/kimi-k2.6", inputUsdPer1m: 0.95, outputUsdPer1m: 4.0 },
+  { provider: "openai_compatible", model: "pro/moonshotai/kimi-k2.5", inputUsdPer1m: 0.58, outputUsdPer1m: 3.0 },
+  { provider: "openai_compatible", model: "minimaxai/minimax-m2.5", inputUsdPer1m: 0.3, outputUsdPer1m: 1.2 },
+  { provider: "openai_compatible", model: "pro/minimaxai/minimax-m2.5", inputUsdPer1m: 0.3, outputUsdPer1m: 1.2 },
+  { provider: "openai_compatible", model: "deepseek-ai/deepseek-v4-pro", inputUsdPer1m: 0.43, outputUsdPer1m: 0.86 },
+  { provider: "openai_compatible", model: "deepseek-ai/deepseek-v4-flash", inputUsdPer1m: 0.14, outputUsdPer1m: 0.28 },
 ] as const;
 
 // Indexed by `${provider}::${model.toLowerCase()}` for O(1) case-insensitive lookup.
