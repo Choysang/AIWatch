@@ -30,6 +30,9 @@ export const KNOWN_MODEL_PRICES: readonly ModelPrice[] = [
   // Qwen / DashScope (compatible-mode flagship chat tier)
   { provider: "qwen", model: "qwen-plus", inputUsdPer1m: 0.4, outputUsdPer1m: 1.2 },
   { provider: "qwen", model: "qwen-max", inputUsdPer1m: 2.4, outputUsdPer1m: 9.6 },
+  // SiliconFlow via openai_compatible (prod single-model routing; snapshot 2026-06-12)
+  { provider: "openai_compatible", model: "pro/moonshotai/kimi-k2.6", inputUsdPer1m: 0.95, outputUsdPer1m: 4.0 },
+  { provider: "openai_compatible", model: "moonshotai/kimi-k2.6", inputUsdPer1m: 0.95, outputUsdPer1m: 4.0 },
 ] as const;
 
 // Indexed by `${provider}::${model.toLowerCase()}` for O(1) case-insensitive lookup.

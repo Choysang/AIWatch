@@ -137,10 +137,15 @@ async function generateForTask<T>(
   });
 
   if (!isStub) {
-    await recordLlmSpend(
+    const costUsd = await recordLlmSpend(
       { task, provider: route.provider, model: route.model, usage: result.usage },
       db,
     );
+    if (costUsd === null) {
+      log.warn(
+        `[spend_guard] no price entry for ${route.provider}::${route.model} — call NOT recorded in spend ledger (add it to KNOWN_MODEL_PRICES)`,
+      );
+    }
   }
   return result.value;
 }
