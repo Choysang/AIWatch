@@ -28,11 +28,21 @@ function scrollToEventCard(eventId: string) {
 
 export function ReaderSidebar({ items }: { items: SidebarEventItem[] }) {
   const [open, setOpen] = useState(false);
-  const [width, setWidth] = useState(340);
+  const [width, setWidth] = useState(264);
 
   useEffect(() => {
     setOpen(window.innerWidth >= 1180);
   }, []);
+
+  // 点8：速览栏与左侧导航一致 — 展开时占据布局空间（中间内容自适应收缩），
+  // 而不是浮层盖住卡片。预留宽度通过根上的 CSS 变量传给 .page.reader-home。
+  useEffect(() => {
+    const reserve = open ? `${width + 16}px` : "0px";
+    document.documentElement.style.setProperty("--reader-sidebar-reserve", reserve);
+    return () => {
+      document.documentElement.style.removeProperty("--reader-sidebar-reserve");
+    };
+  }, [open, width]);
 
   const startResize = (e: React.PointerEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -40,7 +50,7 @@ export function ReaderSidebar({ items }: { items: SidebarEventItem[] }) {
     const startWidth = width;
 
     const onMove = (ev: PointerEvent) => {
-      setWidth(Math.min(520, Math.max(280, startWidth + startX - ev.clientX)));
+      setWidth(Math.min(380, Math.max(220, startWidth + startX - ev.clientX)));
     };
     const onUp = () => {
       window.removeEventListener("pointermove", onMove);
