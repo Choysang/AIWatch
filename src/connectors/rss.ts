@@ -9,6 +9,16 @@ const parser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: "@_",
   trimValues: true,
+  // Real-world feeds (X timelines, large blog archives) legitimately carry thousands of
+  // HTML entities; the library default of 1000 total expansions rejects them outright.
+  // Raise the totals but keep the depth/size guards that actually stop billion-laughs.
+  processEntities: {
+    enabled: true,
+    maxExpansionDepth: 10,
+    maxEntitySize: 10_000,
+    maxTotalExpansions: 200_000,
+    maxExpandedLength: 20_000_000,
+  },
 });
 
 function asText(value: unknown): string | null {

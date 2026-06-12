@@ -95,4 +95,23 @@ describe("parseFeed", () => {
       poster: "https://pbs.twimg.com/media/poster.jpg",
     });
   });
+
+  test("parses entity-heavy feeds beyond the library's 1000-expansion default", () => {
+    // Real X/blog feeds carry thousands of legit HTML entities; the parser must not
+    // reject them with "Entity expansion limit exceeded".
+    const noisy = "a &amp; b &lt;tag&gt; &quot;q&quot; ".repeat(60); // 240 entities/item
+    const items = Array.from(
+      { length: 10 },
+      (_, i) => `
+    <item>
+      <title>Post ${i} ${noisy}</title>
+      <link>https://example.com/${i}</link>
+      <description>${noisy}</description>
+    </item>`,
+    ).join("");
+    const posts = parseFeed(`<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>${items}</channel></rss>`);
+    expect(posts).toHaveLength(10);
+    expect(posts[0]!.rawContent).toContain("a & b <tag>");
+  });
 });
