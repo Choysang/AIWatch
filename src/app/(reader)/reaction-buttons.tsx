@@ -1,4 +1,7 @@
-// Reaction buttons (Slice 8): quick useful/useless feedback plus like / star counts per event card.
+// Reaction buttons (Slice 8, reworked 方案B): positive feedback lives ONLY in the bottom
+// ♥ like / ★ star row; the hover-revealed top-right corner keeps a single 👎 "不感兴趣"
+// that visibly collapses the card (see .card:has(.quick-feedback-button.is-negative.on)
+// in globals.css) and offers an undo banner. Down still feeds the rank-v4 penalty.
 // Optimistic updates with rollback on failure. Calls POST /api/events/[id]/reactions.
 // Identity comes from the request cookie/session — this component just sends ops.
 
@@ -129,17 +132,6 @@ export function ReactionButtons({
       <div className="quick-feedback" aria-label={m.quickFeedback}>
         <button
           type="button"
-          className={`quick-feedback-button is-positive ${state.liked ? "on" : ""}`}
-          aria-pressed={state.liked}
-          aria-label={state.liked ? m.liked : m.like}
-          title={state.liked ? m.liked : m.like}
-          disabled={isPending}
-          onClick={() => toggle("like")}
-        >
-          <span aria-hidden="true">👍</span>
-        </button>
-        <button
-          type="button"
           className={`quick-feedback-button is-negative ${state.downed ? "on" : ""}`}
           aria-pressed={state.downed}
           aria-label={state.downed ? m.downed : m.down}
@@ -150,6 +142,14 @@ export function ReactionButtons({
           <span aria-hidden="true">👎</span>
         </button>
       </div>
+      {state.downed && (
+        <div className="downed-banner">
+          <span>{m.downedNotice}</span>
+          <button type="button" disabled={isPending} onClick={() => toggle("down")}>
+            {m.undo}
+          </button>
+        </div>
+      )}
       <button
         type="button"
         className={`reaction reaction-like ${state.liked ? "on" : ""}`}

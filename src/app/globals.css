@@ -786,13 +786,57 @@ canvas {
   cursor: progress;
   opacity: 0.55;
 }
-.quick-feedback-button.on.is-positive {
-  background: var(--accent-weak);
-  color: var(--accent);
-}
 .quick-feedback-button.on.is-negative {
   background: oklch(30% 0.055 25);
   color: oklch(76% 0.14 28);
+}
+/* 方案B: a downed card collapses to a quiet semi-transparent stub. The banner
+   (rendered by ReactionButtons when downed) sits inside the visible stub and
+   carries the undo affordance; the corner 👎 stays reachable as a second undo. */
+.card:not(.card-detail):has(.quick-feedback-button.is-negative.on) {
+  max-height: 4.6rem;
+  overflow: hidden;
+  opacity: 0.55;
+}
+.card:not(.card-detail):has(.quick-feedback-button.is-negative.on):hover,
+.card:not(.card-detail):has(.quick-feedback-button.is-negative.on):focus-within {
+  opacity: 0.85;
+}
+/* On the detail page the banner reads as plain inline feedback, not an overlay. */
+.card-detail .downed-banner {
+  position: static;
+}
+.downed-banner {
+  position: absolute;
+  top: 0.8rem;
+  left: 1.1rem;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper-raised);
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+.downed-banner button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}
+.downed-banner button:hover:not(:disabled),
+.downed-banner button:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+.downed-banner button:disabled {
+  cursor: progress;
+  opacity: 0.55;
 }
 .reaction {
   display: inline-flex;

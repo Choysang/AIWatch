@@ -51,3 +51,7 @@
 package-lock.json
 pnpm-lock.yaml
 yarn.lock
+
+# Local debug screenshots / audit artifacts (agent sessions)
+aiwatch-*.png
+aiwatch-audit-report.html
