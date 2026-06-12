@@ -1,6 +1,6 @@
 // Integration test for report generation + public read path against real Postgres
 // (decision H). Covers deterministic section assembly through the DB, calendar-keyed
-// upsert, the daily public queries/routes, and that weekly drafts stay out of public.
+// upsert, the daily public queries/routes, and that weekly reports publish under their own kind.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
@@ -165,12 +165,16 @@ describe("generateReport (daily) + public read (real Postgres)", () => {
     expect(miss).toBeNull();
   });
 
-  test("weekly reports are drafts and are never served by the public daily queries", async () => {
+  test("weekly reports auto-publish (点11) but never leak into the daily queries", async () => {
     await seedDay();
     const weekly = await generateReport("weekly", NOW);
-    expect(weekly.status).toBe("draft");
-    expect(await getLatestDaily()).toBeNull(); // no published daily yet
+    expect(weekly.status).toBe("published");
+    expect(await getLatestDaily()).toBeNull(); // kind filter: weekly is not a daily
     expect(await listDailies()).toHaveLength(0);
+    const { getLatestByKind } = await import("@/db/queries/public-reports");
+    const publicWeekly = await getLatestByKind("weekly");
+    expect(publicWeekly).not.toBeNull();
+    expect(publicWeekly!.kind).toBe("weekly");
   });
 
   test("GET /api/public/daily returns the report JSON with long CDN cache headers", async () => {

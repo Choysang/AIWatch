@@ -46,7 +46,10 @@ describe("reader nav sidebar", () => {
     expect(navSource).toContain("onClick={() => setMeExpanded(true)}");
     expect(navSource).toContain('hidden={!meExpanded}');
     expect(navSource).toContain('setMeExpanded(pathname?.startsWith("/me") ?? false);');
-    expect(navSource).toContain('aria-disabled="true"');
+    // 点11：周报/月报由禁用占位升级为真实链接
+    expect(navSource).toContain('href="/reports/weekly"');
+    expect(navSource).toContain('href="/reports/monthly"');
+    expect(navSource).not.toContain('aria-disabled="true"');
     expect(navSource).toContain("关于");
     expect(navSource).not.toContain("反馈与贡献");
     expect(navSource).not.toContain("README");

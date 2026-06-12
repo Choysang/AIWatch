@@ -304,8 +304,8 @@ export function ReaderNavSidebar() {
         </Link>
         <div className="reader-nav-report-subitems" aria-label="速览周期" hidden={!reportExpanded}>
           <Link href="/reports">日报</Link>
-          <span aria-disabled="true">周报</span>
-          <span aria-disabled="true">月报</span>
+          <Link href="/reports/weekly">周报</Link>
+          <Link href="/reports/monthly">月报</Link>
         </div>
 
         <Link
