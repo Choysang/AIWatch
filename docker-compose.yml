@@ -1,0 +1,60 @@
+# Local development / self-host topology (decision F/15: `docker compose up` is the
+# primary self-host path — Postgres + web + worker). The hosted shape mirrors this:
+# containerized web + single Bun worker + managed Postgres + CDN.
+#
+# Quick start:
+#   cp .env.example .env   # set BETTER_AUTH_SECRET + POSTGRES_PASSWORD; LLM/connector keys optional
+#   docker compose up --build
+#   docker compose run --rm web bun run db:seed:demo        # optional demo data
+#   docker compose run --rm web bun run setup:owner you@example.com 'password'
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aiwatch}
+      # Set POSTGRES_PASSWORD in .env for any non-throwaway deployment. The default is a
+      # dev convenience only.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aiwatch}
+      POSTGRES_DB: ${POSTGRES_DB:-aiwatch}
+    # Production hardening (M5): do NOT publish Postgres to the host by default — the web
+    # and worker containers reach it over the compose network. To inspect locally, bind to
+    # loopback only by setting POSTGRES_BIND=127.0.0.1:5432 in .env (never 0.0.0.0:5432 on a
+    # public host).
+    ports:
+      - "${POSTGRES_BIND:-127.0.0.1:5432}:5432"
+    volumes:
+      - aiwatch_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aiwatch} -d ${POSTGRES_DB:-aiwatch}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-aiwatch}:${POSTGRES_PASSWORD:-aiwatch}@db:5432/${POSTGRES_DB:-aiwatch}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/worker.Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-aiwatch}:${POSTGRES_PASSWORD:-aiwatch}@db:5432/${POSTGRES_DB:-aiwatch}
+      TZ: ${APP_TZ:-Asia/Shanghai}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  aiwatch_pg:

@@ -1,0 +1,175 @@
+# 子项目1 设计：阅读器布局与多层时间轴
+
+**日期：** 2026-06-01
+**分支：** feat/spend-guard-and-reader-polish
+**范围：** 用户需求点 1（顶部贴顶）、点 6（年/月/周/日 四层折叠时间轴）、点 7a（移除卡片「查看详情」）
+
+> 这是把用户 8 点需求拆成的 4 个独立子项目中的**第 1 个**（纯前端，零数据库改动）。其余子项目（筛选与分类体系、评论+登录+通知、评分体系重构）各自单独走设计→计划→实现。
+
+---
+
+## 1. 目标与非目标
+
+### 目标
+1. **顶部贴顶**：去掉阅读器首页顶部的空白内边距，让大标题（masthead）紧贴页面最上沿。
+2. **多层折叠时间轴**：把当前的单层「按天」分组，替换为 **年 > 月 > ISO周 > 日** 四层可折叠/展开结构。
+3. **移除「查看详情」**：去掉事件卡片底部的 `查看详情 →` 链接。
+
+### 非目标（明确不在本子项目内）
+- 不改任何数据库 schema、评分或管线。唯一的查询触碰：在 `feed.ts` 卡片投影里补选**已存在**的 `created_at` 列（用作分组时间回退），无迁移。
+- 不动搜索/筛选逻辑（属于子项目2）。
+- 不做内联评论区、登录、通知（属于子项目3）。
+- `/events/[id]` 详情页**路由保留**，仅从卡片移除入口链接（直接访问 URL 仍可用）。
+
+---
+
+## 2. 设计决策（已与用户锁定）
+
+| 决策点 | 锁定选择 |
+|--------|---------|
+| 点1 顶部 | **仅去掉顶部空白**：保留大标题、标语、「全部AI动态」介绍段，只把页面最顶部的内边距压到贴顶 |
+| 点6 周跨月 | **ISO 周，挂到起始月**：一周整体归属于「该周周一（ISO周起始日）所在的年/月」 |
+| 默认展开 | **自动展开到今天的路径**：展开 今年>本月>本周>今天 这条链路，其余年/月/周/日折叠 |
+| 点7a 时机 | **现在就移除** |
+
+---
+
+## 3. 点1：顶部贴顶
+
+**问题**：`.page { padding: var(--space-page); }` 给页面四周都加了内边距，顶部那段把 masthead 往下推。
+
+**改动**：在 `.reader-home` 作用域内将**顶部内边距**压到 0（或极小值），保留左右与底部内边距。只影响阅读器首页，`/reports`、`/about`、admin 等其它页面不受影响。
+
+```css
+/* globals.css，reader-home 作用域 */
+.reader-home {
+  padding-top: 0; /* 覆盖 .page 的 var(--space-page) 顶部部分 */
+}
+```
+
+> 实现时确认 `--space-page` 是否为单值简写；若是四值或上下一致，则在 `.reader-home` 用 `padding-top: 0` 覆盖即可，必要时同步微调 `.masthead` 的 `margin`/`padding-top`，使标题真正贴顶。masthead 现有的 `margin-bottom: 2.5rem`（与下方介绍/搜索的间距）保持不变。
+
+**验收**：阅读器首页顶部不再有可见空白，大标题第一行紧贴视口顶部（除浏览器默认外边距外）。其它页面布局不变。
+
+---
+
+## 4. 点6：多层折叠时间轴
+
+### 4.1 分组模型
+
+把已按时间排序（最新在前）的事件流，归入嵌套桶：
+
+```
+今年（2026）
+ └─ 6月
+     └─ 第23周
+         └─ 6月3日 周二
+             └─ [卡片] [卡片] ...
+         └─ 6月2日 周一
+             └─ [卡片] ...
+     └─ 第22周（ISO周，跨月→整周挂在「周一所在月」5月或6月）
+ └─ 5月
+     └─ ...
+```
+
+**关键规则（ISO周挂起始月）：**
+- 每个事件取其在 APP_TZ 下的**民用日期** `YYYY-MM-DD`（复用现有 `dayKey()`，避免任何时区/DST 偏移问题——只对民用日期做运算，不对时间戳做算术）。
+- 由该日期计算其 **ISO 周的周一（周起始日）**。
+- **周的归属年/月 = 周一的年/月**。因此一个横跨 5/31–6/2 的周，整周挂在「周一所在月」之下，不拆分、不重复。
+- **日挂在其所属周之下**；日的标题仍显示该日自身的完整日期（即便它落在与周归属月不同的月份，也由日期标签消除歧义）。
+- 年的归属同理取自周一（跨年的周整体挂在周一所在年）。
+
+**时间字段优先级**：`publishedAt ?? promotedAt ?? createdAt`。`events.created_at` 是 `NOT NULL DEFAULT now()`（schema 已保证），所以这条回退链**永远**得到一个有效时间——**不存在「未知时间」的情况**，无需该兜底桶。这与 feed 查询现有排序键 `coalesce(published_at, created_at)` 一致。
+
+> 注意：当前 `page.tsx` 用的是 `publishedAt ?? promotedAt ?? null`（漏了 `createdAt`），这正是会冒出「未知」的根因。修复办法是在 `feed.ts` 的卡片投影里**补选已存在的 `createdAt` 列**（仅是 SELECT 多取一列，**不是** schema 迁移），并把它作为回退末项。
+
+### 4.2 各层标题与计数
+
+| 层级 | 标题示例 | 计数 |
+|------|---------|------|
+| 年 | `2026 年` | 该年事件总数 |
+| 月 | `6 月` | 该月事件总数 |
+| 周 | `第23周`（今年的 ISO 周序号，由周一所在 ISO 周-年计算） | 该周事件总数 |
+| 日 | `2026年6月3日 周二`（复用 `formatDayHeading`） | 当日事件数 |
+
+每层标题右侧显示后代事件计数（沿用现有 `.day-count` 视觉）。计数由分组工具一次性算出（每个父节点 = 其子节点计数之和）。
+
+### 4.3 默认展开/折叠
+
+- **展开**：从**最新一条事件所在的日**出发，展开其全部祖先（年→月→周→日）这一条路径。其余同级全部折叠。
+  - 采用「最新事件所在日」而非系统当前日期，保证即便今天无内容，进页面看到的第一段内容也是展开的；正常情况下最新事件即今天，符合「展开到今天」。
+- 叶子（日）层默认展开其卡片列表。
+
+### 4.4 组件结构
+
+复用并泛化现有 `DaySection`：
+
+- **`timeline-tree.ts`（新增，纯函数，可单测）**
+  位置：`src/app/_lib/timeline-tree.ts`
+  - `buildTimelineTree(events): TimelineYear[]` — 返回嵌套结构。
+  - 内部使用 `dayKey()` 取民用日期、`isoWeekStart(ymd)` 计算 ISO 周一、`isoWeekNumber(ymd)` 计算今年第几周（均在本文件内实现，纯民用日期运算）。
+  - 节点类型：
+    ```ts
+    interface TimelineDay   { key: string; heading: string; count: number; items: EventCard[] }
+    interface TimelineWeek  { key: string; heading: string; count: number; days: TimelineDay[] }
+    interface TimelineMonth { key: string; heading: string; count: number; weeks: TimelineWeek[] }
+    interface TimelineYear  { key: string; heading: string; count: number; months: TimelineMonth[] }
+    ```
+  - 为每个节点标注 `onLatestPath: boolean`（是否位于「最新事件所在日」的祖先链上）。页面据此设 `defaultCollapsed = !onLatestPath`，「最新日路径」的判定只在工具里发生一次（单一真相源）。
+  - 保证组内/组间顺序：与输入一致（最新在前），单遍扫描保持连续桶。
+
+- **`CollapsibleGroup`（由 `DaySection` 泛化的客户端组件）**
+  位置：`src/app/(reader)/collapsible-group.tsx`（重命名/扩展 `day-section.tsx`）
+  - props：`level: "year" | "month" | "week" | "day"`、`heading: string`、`count: number`、`defaultCollapsed?: boolean`、`children`。
+  - 仅持有 open/closed 本地状态；服务端渲染的子内容以 `children` 传入（沿用 RSC-as-children，事件数据不跨边界）。
+  - 折叠时 `hidden` 而非卸载，保留卡片内客户端岛（点赞等）状态。
+  - `level` 用于差异化样式（缩进、字号、是否吸顶）。
+
+- **页面 `page.tsx`**
+  - 用 `buildTimelineTree` 替换 `groupByDay`。
+  - 递归渲染：年 `CollapsibleGroup` → 月 → 周 → 日；日层内沿用现有 `tl-row`（左侧时间轨 + 连接线 + `SpotlightCard` + `EventCard`）。
+  - `defaultCollapsed` 依「最新日路径」计算后逐层传入。
+
+### 4.5 样式与吸顶
+
+- **吸顶**：保持简单——仅**日**层标题沿用现有 `position: sticky; top: 0`；年/月/周标题为普通流式标题（不吸顶），避免多层 sticky 堆叠的 z-index/偏移复杂度。
+- **层级缩进**：年/月/周逐层轻微左缩进与字号递减，形成视觉层次（年最大、日最小）；具体数值在实现时按现有 `--tl-*` 与排版变量微调。
+- 复用现有 `.day-caret`（▸/▾）、`.day-count`、dark-theme 覆盖；为新层级补充 `.tl-group--year/month/week` 等修饰类。
+
+### 4.6 验收
+- 给定一组跨年/跨月/跨周/跨日的事件，渲染出正确的四层嵌套，且跨月的周整周挂在「周一所在月」。
+- 每层可独立折叠/展开，互不影响；折叠父级会隐藏其全部后代。
+- 进入页面时，最新事件所在的 年→月→周→日 路径默认展开，其余折叠。
+- 折叠再展开后，卡片内点赞/收藏的客户端状态不丢失。
+- 各层计数等于其后代事件数之和。
+
+---
+
+## 5. 点7a：移除「查看详情」
+
+- 删除 `event-card.tsx` 中卡片底部的 `<Link className="detail-link" href={/events/${id}}>查看详情 →</Link>`。
+- 移除随之失效的 `import Link`（若 `Link` 在该文件无其它用途）。
+- `/events/[id]` 路由文件保留；i18n 中 `messages.card.detail` 文案保留（暂不引用，子项目3可能复用）。
+- **已知后果（用户已确认接受）**：在子项目3上线内联评论前，读者没有进入评论区的 UI 入口。
+
+---
+
+## 6. 测试计划
+
+- **单元（TDD，bun:test）**：`timeline-tree.test.ts`
+  - ISO 周一与 ISO 周序号计算正确（含跨月、跨年的周）。
+  - 跨月周整周归属「周一所在月」。
+  - 计数在各层正确累加。
+  - `publishedAt`/`promotedAt` 均为 null 时回退到 `createdAt`，仍归入正确的日（不出现「未知」分组）。
+  - 顺序保持最新在前。
+  - 「最新日路径」`defaultCollapsed` 推导正确。
+- **构建/类型**：`bun run build` / `tsc --noEmit` 通过。
+- **手动**：本地起站点核对顶部贴顶、四层折叠交互、卡片不再有「查看详情」、折叠保留点赞状态。
+
+---
+
+## 7. 风险
+
+- **低**。纯前端、零数据迁移。
+- 唯一需小心处的是 ISO 周/月归属的边界（跨月、跨年），已用纯民用日期运算 + 单测覆盖。
+- 多层折叠的视觉层次需要少量样式打磨；功能正确性不依赖样式。

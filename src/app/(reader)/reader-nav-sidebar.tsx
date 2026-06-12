@@ -1,0 +1,349 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { authClient } from "@/app/_lib/auth-client";
+import { isConsoleRole } from "@/auth/console-roles";
+import { messages } from "@/i18n";
+
+type ReaderThemeMode = "dark" | "system" | "light";
+
+const READER_THEME_STORAGE_KEY = "aiwatch:reader-theme-mode";
+const DEFAULT_READER_THEME_MODE: ReaderThemeMode = "dark";
+
+const READER_THEME_OPTIONS: { name: ReaderThemeMode; label: string }[] = [
+  { name: "dark", label: "夜间" },
+  { name: "system", label: "跟随系统" },
+  { name: "light", label: "日间" },
+];
+
+function accountInitial(displayName: string): string {
+  return displayName.trim().slice(0, 1).toUpperCase() || "U";
+}
+
+function isReaderThemeMode(value: string | null): value is ReaderThemeMode {
+  return value === "dark" || value === "system" || value === "light";
+}
+
+function effectiveReaderTheme(mode: ReaderThemeMode): "dark" | "light" {
+  if (mode !== "system") return mode;
+  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+}
+
+function applyReaderTheme(mode: ReaderThemeMode) {
+  document.documentElement.dataset.readerThemeMode = mode;
+  document.documentElement.dataset.readerTheme = effectiveReaderTheme(mode);
+}
+
+function ReaderNavIcon({ name }: { name: "content" | "reports" | "me" | "about" }) {
+  return (
+    <svg
+      className="reader-nav-svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {name === "content" && (
+        <>
+          <path d="M8 4h9.5v14H8z" />
+          <path d="M6 6H4.5v14H14v-2" />
+          <path d="M11 9h3.5" />
+          <path d="M11 12h3.5" />
+        </>
+      )}
+      {name === "reports" && (
+        <>
+          <path d="M4.5 5.5A2.5 2.5 0 0 1 7 3h4.5v16H7a2.5 2.5 0 0 0-2.5 2z" />
+          <path d="M19.5 5.5A2.5 2.5 0 0 0 17 3h-4.5v16H17a2.5 2.5 0 0 1 2.5 2z" />
+        </>
+      )}
+      {name === "me" && (
+        <>
+          <circle cx="12" cy="8" r="3.1" />
+          <path d="M5.5 20a6.5 6.5 0 0 1 13 0" />
+          <path d="M18.3 5.4 19.4 4l1.1 1.4" />
+        </>
+      )}
+      {name === "about" && (
+        <>
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="M12 11v5" />
+          <path d="M12 8h.01" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+function ReaderThemeIcon({ name }: { name: ReaderThemeMode }) {
+  return (
+    <svg
+      className="reader-theme-svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {name === "dark" && <path d="M20 14.6A7.5 7.5 0 0 1 9.4 4 7.8 7.8 0 1 0 20 14.6z" />}
+      {name === "system" && (
+        <>
+          <rect x="4.5" y="5.5" width="15" height="10.5" rx="1.6" />
+          <path d="M9 19h6" />
+          <path d="M12 16v3" />
+        </>
+      )}
+      {name === "light" && (
+        <>
+          <circle cx="12" cy="12" r="3.2" />
+          <path d="M12 2.8v2" />
+          <path d="M12 19.2v2" />
+          <path d="m4.5 4.5 1.4 1.4" />
+          <path d="m18.1 18.1 1.4 1.4" />
+          <path d="M2.8 12h2" />
+          <path d="M19.2 12h2" />
+          <path d="m4.5 19.5 1.4-1.4" />
+          <path d="m18.1 5.9 1.4-1.4" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+function ReaderThemeSwitch() {
+  const [mode, setMode] = useState<ReaderThemeMode>(DEFAULT_READER_THEME_MODE);
+
+  useEffect(() => {
+    const storedMode = localStorage.getItem(READER_THEME_STORAGE_KEY);
+    const nextMode = isReaderThemeMode(storedMode) ? storedMode : DEFAULT_READER_THEME_MODE;
+    setMode(nextMode);
+    applyReaderTheme(nextMode);
+  }, []);
+
+  useEffect(() => {
+    if (mode !== "system") return;
+    const media = window.matchMedia("(prefers-color-scheme: light)");
+    const onChange = () => applyReaderTheme("system");
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, [mode]);
+
+  function chooseMode(nextMode: ReaderThemeMode) {
+    setMode(nextMode);
+    localStorage.setItem(READER_THEME_STORAGE_KEY, nextMode);
+    applyReaderTheme(nextMode);
+  }
+
+  return (
+    <div className="reader-theme-switch" role="radiogroup" aria-label="浏览模式">
+      {READER_THEME_OPTIONS.map((option) => (
+        <button
+          type="button"
+          key={option.name}
+          className={`reader-theme-option ${mode === option.name ? "is-active" : ""}`}
+          role="radio"
+          aria-checked={mode === option.name}
+          aria-label={option.label}
+          title={option.label}
+          onClick={() => chooseMode(option.name)}
+        >
+          <ReaderThemeIcon name={option.name} />
+          <span className="reader-nav-tooltip">{option.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ReaderNavAccount() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { data, isPending } = authClient.useSession();
+  const [signingOut, setSigningOut] = useState(false);
+  const t = messages.account;
+
+  if (isPending) {
+    return (
+      <div className="reader-nav-account is-loading" aria-hidden="true">
+        <span className="reader-nav-avatar">
+          <span className="reader-nav-tooltip">加载中</span>
+        </span>
+        <span className="reader-nav-account-text">
+          <strong>加载中</strong>
+          <small>正在读取账号</small>
+        </span>
+      </div>
+    );
+  }
+
+  const user =
+    data?.user as { name?: string; email?: string; role?: string } | undefined;
+
+  if (!user) {
+    const next = encodeURIComponent(pathname || "/");
+    return (
+      <Link href={`/login?next=${next}`} className="reader-nav-account">
+        <span className="reader-nav-avatar" aria-hidden="true">
+          IN
+          <span className="reader-nav-tooltip">登录 / 注册</span>
+        </span>
+        <span className="reader-nav-account-text">
+          <strong>登录 / 注册</strong>
+          <small>登录后可评论信源卡片</small>
+        </span>
+      </Link>
+    );
+  }
+
+  async function onSignOut() {
+    setSigningOut(true);
+    await authClient.signOut();
+    setSigningOut(false);
+    router.refresh();
+  }
+
+  const displayName = user.name || user.email || "已登录";
+
+  return (
+    <div className="reader-nav-account">
+      <span className="reader-nav-avatar" aria-hidden="true">
+        {accountInitial(displayName)}
+        <span className="reader-nav-tooltip">{displayName}</span>
+      </span>
+      <span className="reader-nav-account-text">
+        <strong title={displayName}>{displayName}</strong>
+        <small>{user.email || "已登录账号"}</small>
+      </span>
+      <span className="reader-nav-account-actions">
+        {isConsoleRole(user.role) && <Link href="/_admin">{t.console}</Link>}
+        <button type="button" onClick={onSignOut} disabled={signingOut}>
+          {signingOut ? t.signingOut : t.signOut}
+        </button>
+      </span>
+    </div>
+  );
+}
+
+export function ReaderNavSidebar() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+  const [reportExpanded, setReportExpanded] = useState(false);
+  const [meExpanded, setMeExpanded] = useState(false);
+
+  useEffect(() => {
+    setCollapsed(window.innerWidth < 960);
+    router.prefetch("/");
+    router.prefetch("/reports");
+    router.prefetch("/me/likes");
+    router.prefetch("/me/stars");
+    router.prefetch("/me/comments");
+    router.prefetch("/about");
+  }, [router]);
+
+  useEffect(() => {
+    setReportExpanded(pathname?.startsWith("/reports") ?? false);
+  }, [pathname]);
+
+  useEffect(() => {
+    setMeExpanded(pathname?.startsWith("/me") ?? false);
+  }, [pathname]);
+
+  return (
+    <aside className={`reader-nav-sidebar ${collapsed ? "is-collapsed" : ""}`} aria-label="AIWatch 主侧栏">
+      <div className="reader-nav-top">
+        <button
+          type="button"
+          className="reader-nav-brand"
+          aria-label={collapsed ? "展开主侧栏" : "收起主侧栏"}
+          aria-expanded={!collapsed}
+          onClick={() => setCollapsed((value) => !value)}
+        >
+          <span className="reader-nav-mark">
+            AI
+            <span className="reader-nav-tooltip" aria-hidden="true">AIWatch</span>
+          </span>
+          <span className="reader-nav-text">AIWatch</span>
+        </button>
+      </div>
+
+      <nav className="reader-nav-sections" aria-label="读者导航">
+        <Link href="/" className="reader-nav-item" aria-label="内容广场">
+          <span className="reader-nav-icon" aria-hidden="true">
+            <ReaderNavIcon name="content" />
+            <span className="reader-nav-tooltip">内容广场</span>
+          </span>
+          <span className="reader-nav-text">
+            <strong>内容广场</strong>
+            <small>首页展示的全部动态</small>
+          </span>
+        </Link>
+
+        <Link
+          href="/reports"
+          className="reader-nav-item"
+          aria-label="每日速览"
+          aria-expanded={reportExpanded}
+          onClick={() => setReportExpanded(true)}
+        >
+          <span className="reader-nav-icon" aria-hidden="true">
+            <ReaderNavIcon name="reports" />
+            <span className="reader-nav-tooltip">每日速览</span>
+          </span>
+          <span className="reader-nav-text">
+            <strong>每日速览</strong>
+            <small>日、周、月报内容</small>
+          </span>
+        </Link>
+        <div className="reader-nav-report-subitems" aria-label="速览周期" hidden={!reportExpanded}>
+          <Link href="/reports">日报</Link>
+          <span aria-disabled="true">周报</span>
+          <span aria-disabled="true">月报</span>
+        </div>
+
+        <Link
+          href="/me/likes"
+          className="reader-nav-item"
+          aria-label="我的互动"
+          aria-expanded={meExpanded}
+          onClick={() => setMeExpanded(true)}
+        >
+          <span className="reader-nav-icon" aria-hidden="true">
+            <ReaderNavIcon name="me" />
+            <span className="reader-nav-tooltip">我的互动</span>
+          </span>
+          <span className="reader-nav-text">
+            <strong>我的互动</strong>
+            <small>点赞、收藏、评论</small>
+          </span>
+        </Link>
+        <div className="reader-nav-me-subitems" aria-label="我的互动分类" hidden={!meExpanded}>
+          <Link href="/me/likes">点赞</Link>
+          <Link href="/me/stars">收藏</Link>
+          <Link href="/me/comments">评论</Link>
+        </div>
+      </nav>
+
+      <ReaderThemeSwitch />
+      <div className="reader-nav-bottom">
+        <Link href="/about" className="reader-nav-item reader-nav-about" aria-label="关于">
+          <span className="reader-nav-icon" aria-hidden="true">
+            <ReaderNavIcon name="about" />
+            <span className="reader-nav-tooltip">关于</span>
+          </span>
+          <span className="reader-nav-text">
+            <strong>关于</strong>
+          </span>
+        </Link>
+        <ReaderNavAccount />
+      </div>
+    </aside>
+  );
+}

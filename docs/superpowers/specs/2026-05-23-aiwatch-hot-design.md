@@ -829,15 +829,186 @@ V1 is successful when:
 - The repository can be shared publicly without real API keys or private production configuration.
 - The project can be self-hosted with sample data and local environment configuration.
 
+## Resolved Implementation Decisions
+
+Resolved in a design grilling session on 2026-05-23. These supersede the previously open list. Decisions are recorded in dependency order.
+
+### 1. Runtime and package manager
+
+- Bun is required for install, dev, and CI. `bun.lock` is the only lockfile; `package-lock.json` / `pnpm-lock.yaml` / `yarn.lock` are banned from commits.
+- `packageManager: "bun@x.y.z"` pinned. Commands: `bun install`, `bun run dev`, `bun run build`, CI `bun install --frozen-lockfile`.
+- Recommended runtime Bun; compatible runtime Node.js. Node compatibility applies to runtime code only, never to dependency installation. Non-Docker self-host must install Bun first; Docker images ship Bun.
+
+### 2. Application topology
+
+- Next.js web app plus a separate Bun worker, one repo, two process types.
+- Web (Node-compatible runtime) serves the reader site (SSR/SEO), the admin console (unlinked route group, authenticated), and `/api/public/*` read endpoints.
+- Worker (Bun) runs crawling, scoring, promotion, and the 08:00 report cron.
+
+### 3. Database
+
+- PostgreSQL everywhere (hosted and self-host), one engine.
+- DB-as-queue via `SKIP LOCKED`, so no Redis in V1.
+- Full-text search via `tsvector` + GIN now; `pgvector` later with no migration. Self-host via `docker compose`.
+
+### 4. Data access and migrations
+
+- Drizzle ORM + drizzle-kit. One shared TypeScript schema for web and worker. Migrations: `bun run db:generate` / `bun run db:migrate`.
+- CRUD via the Drizzle query builder; complex scoring / promotion / queue-lock / search may use raw SQL, confined to `db/queries` and `db/jobs`, never scattered in business code.
+- Drizzle's role is a unified boundary for schema, types, simple queries, and migrations, not to hide SQL. Scoring and promotion are expressed as plain, clear SQL.
+
+### 5. Worker job runner
+
+- graphile-worker. Queue lives in the `graphile_worker` schema (library-owned); `public.*` is Drizzle-owned.
+- Scheduling: coarse cron enqueues DB-selected source jobs (not 120 per-source crontab lines). Dedup via `jobKey = crawl-source:{sourceId}:{timeBucket}`.
+- Risk: validate under Bun on day 1. Fallback: hand-rolled Drizzle + `SKIP LOCKED`, only if graphile-worker fails under Bun.
+
+### 6. LLM and deterministic boundary (Strict)
+
+- LLM owns, as immutable inputs only: ai_relevance, impact, novelty, audience_usefulness prediction, evidence_clarity; category/tags/summary/title/recommendation_reason; merge candidate; comment classification.
+- Code owns, deterministic SQL: source score, external heat, real user score (Wilson/Bayesian over likes/stars/saves/clicks), expert score (real certified-expert actions only), citation and comment quality aggregates, base/promotion/rank scores, time decay, B/A/S promotion, follow-up schedule.
+- `audience_usefulness_score` is the LLM cold-start prediction, never real feedback. `expert_value_score` comes only from real expert actions; the LLM may not impersonate an expert.
+- Principle: LLM judgments are immutable inputs; deterministic SQL computes all derived scores. Re-tuning a weight is a SQL re-run, never a re-inference.
+
+### 7. Scoring engine home
+
+- Config-as-code, version-stamped. `scoring/config.ts` (typed, git-reviewed, explicit `scoring_config_version`) holds base/promotion/rank weights, B/A/S thresholds, slot limits, decay params, expert/user weight rules, follow-up rules.
+- Change flow: PR, review, version bump, deploy, graphile-worker recompute backfill (SQL-only, no LLM).
+- Every computed score stores `scoring_config_version`, `prompt_version`, `model_id`, `computed_at`, and a score-breakdown snapshot.
+- Admin may preview/dry-run a draft config but cannot publish; going live requires draft, PR, review, deploy.
+
+### 8. Source acquisition
+
+- Pluggable connectors: `SourceConnector { fetch(source): Promise<RawPost[]> }`. Adapters: rss, github, hn, youtube_rss, huggingface, reddit, rsshub, mock. All normalize to `RawPost[]`. MockConnector serves sample data offline.
+- Posture: RSS-first plus official APIs plus optional RSSHub. Hard tier (X, Zhihu, Bilibili, Weibo) via RSSHubConnector, fail-closed; X official API is an optional paid fallback; third-party scrapers deferred.
+- Principle: Source is data (DB rows, admin-managed CRUD plus enable/disable, level, frequency, health). Connector is code. Subscription controls whether a source is active.
+- Soft-delete by default (archive); physical delete only if a source never crawled successfully and has no posts/events referencing it.
+- Product rule: hard-tier failure reduces coverage, not system availability.
+
+### 9. Crawl governance
+
+- Layered: connector caps in code/config; per-source frequency/enabled/health in DB; tokens and budget caps in env.
+- Source circuit-breaker: 5 consecutive failures degrade and double the interval; 20 consecutive auto-disable plus admin flag.
+- Connector-wide failure pauses that connector 15-60 minutes and does not mass-disable its sources.
+- Unified spend_guard (X API plus LLM): 80% warns and sheds optional work (deep citation/comment follow-ups first); 100% fails closed paid connectors and non-critical LLM, with raw posts left pending.
+
+### 10. Auth and RBAC
+
+- better-auth. One `users` table for public engagement, experts, and the console. Local email/password first; OAuth optional; no managed provider required for self-host.
+- DB-backed revocable sessions; httpOnly secure cookies.
+- RBAC roles: user, expert, moderator, selected_author, admin, owner, readonly_operator. Capability map lives in code; `expert_domain` and `expert_weight` are app fields. Console is an unlinked route group, moderator+ for writes, readonly inspect-only, sensitive actions audited.
+- Owner bootstrap via setup command or one-time env token; no hardcoded admin.
+- Day-1 spike under Bun + Next.js + Drizzle/Postgres; downgrade to roll-your-own minimal auth (not Auth.js) only on architecture mismatch.
+
+### 11. LLM provider routing
+
+- Task-level model routing, config-driven, env-keyed, fail-closed. One `LLMProvider.structuredGenerate<T>` interface.
+- Providers: OpenAI, Anthropic, Google, DeepSeek, Qwen, and OpenAI-compatible via custom `baseUrl` (Ollama, vLLM, LM Studio, SiliconFlow, OpenRouter, DashScope).
+- Per-layer config (prefilter, cold_judge, comment_classification, merge_detection, s_level_review): provider, model, promptVersion, maxInputTokens, maxOutputTokens, temperature.
+- Keys from env only. Missing key fails closed for that route only. Judgments stamp provider, model_id, prompt_version, routing_config_version, computed_at.
+- Structured output enforced, validated, clamped, with one retry; malformed marks the post `judge_failed`, never silently defaulted. A $0 deterministic gate runs before the cheap prefilter model. Docs warn about third-party proxies (model substitution, data leakage, opaque billing).
+
+### 12. Event formation pipeline (event-level judgment)
+
+- The Event is the scoring/ranking/promotion object; the Post is raw source material.
+- Pipeline: RawPost, $0 deterministic gate, cheap prefilter (sets initial_relevance_status), event resolution (deterministic merge on canonical URL / official release URL / GitHub repo+release tag / arXiv ID / Hugging Face model ID; LLM merge_detection for ambiguous cases: high merge, medium associate, low new event), strong cold_judge once per event, deterministic SQL scoring.
+- Rejudge only on material new information (first official source, core-team detail, price/API/open-weight change, controversy or failed reproduction, comments/citations showing the judgment is stale). Duplicates and related posts enrich the event, not multiply LLM cost.
+
+### 13. Public API and Skill
+
+- Read-only, no key: `/api/public/{items,daily,daily/:date,dailies}` and `/aiwatch-skill/SKILL.md`. Cursor pagination, hard page-size and depth caps, no bulk export.
+- Defense: CDN/HTTP cache is primary (per-endpoint `s-maxage` 30s-3600s, `stale-while-revalidate` where safe); per-IP in-memory token bucket for abuse control (per-instance, abuse-grade). No Redis; it may re-enter only if public abuse becomes a real production problem.
+- Observability: user-agent logging, latency/error counters, admin Skill-health view.
+- `SKILL.md` is static or quasi-static: it teaches the agent how to call the API and never embeds feed data, so fetching the Skill cannot become an implicit data export.
+
+### 14. Contribution flow
+
+- Two-track by target. DB is live truth; git seed files are bootstrap-only; no dual-write path for live sources.
+- In-app: source recommendations, metadata fixes, tag/category suggestions, merge/association suggestions, correction reports. Reviewed in the admin console; on `applied`, writes the DB target plus an audit-log row. States: submitted, triaged, approved/rejected, applied.
+- GitHub: code, docs, seed files, example config, scoring config, prompt config. Reviewed by PR.
+- Permissions: public submit, moderators triage, selected-authors/admins approve, only admin/owner applies sensitive changes (source level, expert weight, scoring config).
+
+### 15. Data-sharing policy and seed/install
+
+- Hosted AIWatch data (sources, events, posts, judgments, scores, reports) is proprietary operational data: not published as repo seed, no full export.
+- The repo ships code, schema/migrations, docs, and mock/demo fixtures only. Self-hosters configure their own sources, credentials, and LLM providers. DB is live truth per deployment.
+- `bun run db:seed:demo` seeds 3-5 mock sources, 5-10 mock posts/events, pre-baked fake judgments, and one sample daily report. `bun run db:seed:empty-owner` bootstraps the owner. `docs/examples/sources.example.json` is a format example only. There is no `seed:sources` that imports a real or semi-real source library.
+- Install: `bun install`, `bun run db:migrate`, `bun run db:seed:demo`, `bun run dev`; or `docker compose up` (Postgres + web + worker) as the primary self-host path.
+
 ## Open Implementation Decisions
 
-- Exact database choice.
-- Exact crawler vendor/API choices for X, Zhihu, and CSDN.
-- Exact web framework and job queue.
-- Exact rate-limit values.
-- Exact admin permission model.
-- Initial 80-120 source list.
-- Exact contribution review workflow in GitHub versus in-app backend.
-- Exact local installation command and sample dataset format.
+Remaining open items are operational or build-time, not architectural:
 
-These decisions should be made during implementation planning, not expanded in this product spec.
+- Initial curated 80-120 source list. This is an operational asset, maintained in the production DB, and intentionally not distributed in the public repo.
+- Final exact numeric values (fetch frequencies, connector concurrency caps, inbound rate limits, budget thresholds). Start from the defaults proposed during the design session and tune during the build.
+
+## Build & Delivery Decisions
+
+Resolved in the build-planning grill on 2026-05-23, covering how the project is created from this spec. Recorded A-H in dependency order.
+
+### A. Build order: thin vertical slice first
+
+- Walking skeleton, not layer-by-layer. The biggest risk is spine integration (Bun worker -> Postgres -> LLM judgment -> deterministic scoring -> web render), so prove one end-to-end line before widening.
+- Slice 0 goal: one source, one crawl, one event, one judgment, one deterministic score, one reader card, one admin health view.
+- Slice 0 chain: repo+Bun+Next+worker scaffold; Postgres+Drizzle migrations; graphile-worker runs a crawl-source job; RSS/Mock connector fetches 1 RawPost; $0 gate + canonical-URL dedup; create 1 Event; cold_judge (real or stub) writes a versioned judgment; deterministic base_score writes a score snapshot; reader homepage renders the event card; better-auth login (minimal); admin shows source health.
+- Auth in Slice 0 is minimal: create owner, login, protect /_admin, view source health. No full RBAC, contributions, expert weights, public Skill, reports, or B/A/S promotion in Slice 0.
+
+### B. Repo structure: single package, one dependency tree
+
+- One `package.json`, one `bun install`. Next.js app under `src/app`, Bun worker under `worker/`, shared framework-agnostic modules under `src/` (`db`, `scoring`, `llm`, `connectors`, `core`, `auth`).
+- No workspaces in V1 (KISS/YAGNI; promote later if needed).
+- Import boundaries (lint-enforced later): `worker/**` cannot import `src/app/**`; `src/app/**` cannot import `worker/**`; `src/{db,scoring,llm,connectors,core,auth}/**` cannot import `next`/`react`.
+- `/_admin` is a real path (real directory); `(reader)` is a route group (not in URL).
+
+### C. Slice 0 DB schema
+
+- Tables: `sources`, `posts`, `events`, `event_posts`, `event_judgments`, `event_scores`, plus minimal better-auth/user tables, plus library-owned `graphile_worker.*`.
+- `event_judgments` and `event_scores` are append-only/immutable. `events` holds `current_judgment_id` / `current_score_id` pointers plus denormalized hot fields for fast reads/sort.
+- IDs are prefixed ULIDs stored as `text` (`evt_...`, `src_...`). Timestamps are `timestamptz` stored UTC. Stable categories use `pgEnum`. LLM dimension scores are independent `smallint` columns.
+- `posts`: no global unique on `canonical_url`; use `unique(source_id, canonical_url)` + `idx(canonical_url)` + `content_hash` index. Global dedup happens via event resolution, not by rejecting post inserts.
+- `main_source_id` is derived from `main_post_id` and only updated by jobs.
+- `event_judgments` carries `trigger_reason` (initial/official_update/major_correction/new_evidence/manual_rejudge) and optional `trigger_post_id`.
+- `event_scores` carries `scoring_config_version`, `judgment_id`, `breakdown` jsonb, and `display_score`.
+- Deferred until later slices: `contributions`, `audit_logs`, `comments`, `reports`, `reference_source_sets`, spend/usage tracking, FTS.
+
+### D. Scoring v1 (Slice 0)
+
+- Config-as-code in `src/scoring/config.ts`, `scoring_config_version = "scoring-v1"`. Slice 0 implements deterministic `base_score` only.
+- `base_score = source*0.20 + ai_relevance*0.15 + impact*0.20 + novelty*0.10 + external_heat*0.15 + audience_usefulness*0.10 + expert_value*0.10`. All inputs normalized 0-100; weights sum to 1.
+- `source_score` from level: L1=100, L2=85, L3=70, L4=55, L5=40 (blend with `source_quality_score` deferred).
+- `external_heat_score` = `clamp(100 * log1p(heat_raw) / log1p(platform_saturation), 0, 100)`, per-platform saturation; unknown platform -> default saturation; missing metrics -> heat_raw=0.
+- LLM dimensions are direct 0-100 inputs. Cold start: `user_value` = LLM `audience_usefulness_score`; `expert_value` = neutral 50 (0=expert negative, 50=no signal, 100=expert strong positive).
+- Slice 0: `quality_score = base_score = rank_score`; `display_score = round(base_score)`. Decay uses `last_strong_signal_at` (not `published_at`). Per-event base_score is TS (unit golden tests); bulk recompute + promotion tournament are raw SQL in `db/jobs` (later slices).
+- Deferred (proposed defaults only, calibrate with real data): grade floors B75/A86/S94; decay half-lives B3d/A10d/S30d; freshness half-life 2d; slot limits B20/day, A12/week, S5/month; user signal Wilson-vs-Bayesian depends on whether exposures/clicks are tracked.
+
+### E. Time and timezone
+
+- All timestamps stored as `timestamptz` UTC. `APP_TZ` defaults to `Asia/Shanghai`, env-configurable; used for reports, UI display defaults, and semantic date parsing. Never depend on server local timezone.
+- Daily report cron means 08:00 in `APP_TZ`. If graphile-worker crontab supports timezones, set it explicitly; otherwise set worker `TZ=APP_TZ` and document it.
+- Feed/items semantic windows are rolling (today=24h, week=7d, month=30d). Reports are calendar-keyed: `/api/public/daily/{date}` uses `YYYY-MM-DD` in the `APP_TZ` calendar; `/daily` is the latest generated report.
+- Semantic windows are resolved server-side; clients/Skill never compute date boundaries. Reader UI displays time in `APP_TZ`; user-locale personalization deferred.
+
+### F. Hosted deployment shape
+
+- Containerized web + single Bun worker + managed Postgres + CDN. Same repo, same image family, same env model; self-host docker-compose stays structurally similar.
+- web: stateless, horizontally scalable, in-memory IP limiter remains per-instance approximate. worker: V1 single instance, owns cron scheduling.
+- CDN respects `Cache-Control` `s-maxage`/`stale-while-revalidate`; admin routes bypass cache.
+- Vercel split deferred (would orphan the long-running worker across two platforms). Single-VPS all-in-one is not the default (managed Postgres backups/PITR preferred).
+- Preferred shape: Fly.io / Railway / Render / container-capable VPS + managed Postgres + CDN. Vendor, ICP, and mainland-China access/CDN decided at deploy time without changing the topology.
+
+### G. Language strategy
+
+- Chinese-first, i18n-ready. V1 ships only Chinese UI but all UI strings go through a message catalog (`src/i18n/messages/zh.ts`); `UI_LOCALE` defaults to `zh` and is configurable.
+- Original source content preserved (`raw_title`, `raw_content`, source URL). Generated display fields (`display_title`, `summary`, `recommendation_reason`) default to `CONTENT_LANG` = `zh`. No full-article translation in V1.
+- `category` defaults to Chinese; `tags` may be mixed (proper nouns preserved, Chinese topic tags allowed).
+- Scoring is language-independent: language never directly boosts or penalizes a score; English and Chinese sources use the same dimensions; the LLM judges signal quality, not language.
+- Chinese full-text search requires an explicit decision at the search slice (default Postgres `tsvector` does not tokenize Chinese): choose among simple+trigram, zhparser/pg_jieba, PGroonga, or external search.
+
+### H. Test strategy
+
+- `bun test` for unit + DB-integration; Playwright for E2E. No Vitest/jsdom/component-test stack in V1.
+- DB integration runs against a real temporary Postgres (CI service or Testcontainers): apply Drizzle migrations, insert fixtures, run jobs/queries, assert rows + scores + provenance. Mocking the DB would not test the SQL core.
+- LLM: CI uses `StubLLMProvider` with deterministic fixtures; real-provider tests are behind an env flag and not required for CI pass. Connectors: `MockConnector` for skeleton/demo, recorded HTTP fixtures for real adapters; no live network in CI.
+- Coverage: 80% global floor as the gate once the harness stabilizes; scoring/gate/dedup/promotion/governance should be near-exhaustive; UI uses E2E smoke for critical flows, not jsdom markup tests.
+- Tests-first (strict): base_score, external_heat_score, $0 gate, canonical/content-hash dedup, append-only judgment/score behavior, promotion (later). Test-after/E2E acceptable for: repo scaffold, simple page rendering, route wiring, admin shell.
+- `graphile-worker executes crawl job` lives in an `integration:worker` group so it does not block the fast unit suite, but CI still runs it.

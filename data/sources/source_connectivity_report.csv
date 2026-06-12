@@ -1,0 +1,31 @@
+name,platform,connector_type,target,status_code,content_type,parseable,item_count,last_item_date,verdict,error
+李继刚,x,rsshub,/twitter/user/lijigang_com,-,-,-,-,-,skipped,no-rsshub-base
+量子位,rss,rss,https://www.qbitai.com/feed,200,application/rss+xml; charset=UTF-8,yes,10,2026-06-11,ok,
+月之暗面,x,rsshub,/twitter/user/MoonshotAI,-,-,-,-,-,skipped,no-rsshub-base
+智谱AI,x,rsshub,/twitter/user/ZhipuAI,-,-,-,-,-,skipped,no-rsshub-base
+Andrej Karpathy,x,rsshub,/twitter/user/karpathy,-,-,-,-,-,skipped,no-rsshub-base
+Anthropic,x,rsshub,/twitter/user/AnthropicAI,-,-,-,-,-,skipped,no-rsshub-base
+ChatGPTapp,x,rsshub,/twitter/user/ChatGPTapp,-,-,-,-,-,skipped,no-rsshub-base
+Claude,x,rsshub,/twitter/user/claudeai,-,-,-,-,-,skipped,no-rsshub-base
+DeepSeek,x,rsshub,/twitter/user/deepseek_ai,-,-,-,-,-,skipped,no-rsshub-base
+Google AI,x,rsshub,/twitter/user/GoogleAI,-,-,-,-,-,skipped,no-rsshub-base
+Google DeepMind,x,rsshub,/twitter/user/GoogleDeepMind,-,-,-,-,-,skipped,no-rsshub-base
+Google DeepMind Blog,blog,rss,https://deepmind.google/blog/rss.xml,200,text/xml,yes,100,2026-06-10,ok,
+Hugging Face,x,rsshub,/twitter/user/huggingface,-,-,-,-,-,skipped,no-rsshub-base
+Hugging Face Blog,blog,rss,https://huggingface.co/blog/feed.xml,200,application/rss+xml; charset=utf-8,yes,797,2026-06-11,ok,
+Jina AI,x,rsshub,/twitter/user/JinaAI_,-,-,-,-,-,skipped,no-rsshub-base
+LangChain,x,rsshub,/twitter/user/LangChainAI,-,-,-,-,-,skipped,no-rsshub-base
+Last Week in AI,rss,rss,https://lastweekin.ai/feed/,200,application/xml; charset=utf-8,yes,20,2026-05-27,ok,
+Latent Space,rss,rss,https://www.latent.space/feed,200,application/xml; charset=utf-8,yes,20,2026-06-11,ok,
+LlamaIndex,x,rsshub,/twitter/user/llama_index,-,-,-,-,-,skipped,no-rsshub-base
+LMSYS Arena,x,rsshub,/twitter/user/lmarena_ai,-,-,-,-,-,skipped,no-rsshub-base
+MiniMax,x,rsshub,/twitter/user/MiniMax_AI,-,-,-,-,-,skipped,no-rsshub-base
+OpenAI,x,rsshub,/twitter/user/OpenAI,-,-,-,-,-,skipped,no-rsshub-base
+OpenAI Blog,blog,rss,https://openai.com/news/rss.xml,200,text/xml; charset=utf-8,yes,1003,2026-06-11,ok,
+OpenAI Developers,x,rsshub,/twitter/user/OpenAIDevs,-,-,-,-,-,skipped,no-rsshub-base
+OpenRouter,x,rsshub,/twitter/user/OpenRouterAI,-,-,-,-,-,skipped,no-rsshub-base
+Qwen,x,rsshub,/twitter/user/Alibaba_Qwen,-,-,-,-,-,skipped,no-rsshub-base
+Sam Altman,x,rsshub,/twitter/user/sama,-,-,-,-,-,skipped,no-rsshub-base
+Tencent Hunyuan,x,rsshub,/twitter/user/TencentHunyuan,-,-,-,-,-,skipped,no-rsshub-base
+xAI,x,rsshub,/twitter/user/xai,-,-,-,-,-,skipped,no-rsshub-base
+Xiaomi MiMo,x,rsshub,/twitter/user/Xiaomi_MiMo,-,-,-,-,-,skipped,no-rsshub-base
