@@ -186,8 +186,14 @@ export class RssConnector implements SourceConnector {
     if (!target) {
       throw new Error(`[rss] source ${source.id} has no connectorRef/url to fetch`);
     }
+    // Browser-like UA + Accept: several WordPress feeds (MarkTechPost, AI News) hard-403
+    // bare bot UAs; a realistic header set is required to read their public feeds.
     const res = await safeFetch(target, {
-      headers: { "user-agent": "AIWatch/0.1 (+https://aiwatch.local)" },
+      headers: {
+        "user-agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+        accept: "application/rss+xml, application/atom+xml, application/xml;q=0.9, */*;q=0.8",
+      },
     });
     if (!res.ok) {
       throw new Error(`[rss] fetch failed for ${target}: ${res.status} ${res.statusText}`);
