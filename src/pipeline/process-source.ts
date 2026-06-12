@@ -166,7 +166,7 @@ export function buildDeepPrompt(raw: RawPost, light: LightJudge): string {
   ].join("\n");
 }
 
-function makeDefaultJudge(db: DB): JudgeFn {
+export function makeDefaultJudge(db: DB): JudgeFn {
   return async (raw: RawPost): Promise<ColdJudge> => {
     const light = await generateForTask(
       db,
@@ -293,102 +293,24 @@ export async function processSource(
       continue;
     }
 
-    try {
-      const judgment = await judge(raw);
-      await markPostPipelineState(db, post.id, "scored", judgment.rawLight);
-
-      const dimensions = {
-        aiRelevance: judgment.aiRelevance,
-        impact: judgment.impact,
-        novelty: judgment.novelty,
-        audienceUsefulness: judgment.audienceUsefulness,
-        evidenceClarity: judgment.evidenceClarity,
-      };
-      const { baseScore, breakdown } = computeBaseScore({
-        sourceLevel: source.level,
-        dimensions,
-        externalHeat: 0,
-      });
-      const v2 = composeScoresV2({
-        zeroGatePassed: true,
-        dimensions,
-        sourceLevel: source.level,
-        sourcePostCount: 1,
-        expertActions: [],
-        validComments: [],
-        contentType: judgment.contentType,
-      });
-
-      const route = llmRouting[judgment.tier === "T2" ? "deep_extract" : "light_judge"];
-      const provider = resolveProvider(judgment.tier === "T2" ? "deep_extract" : "light_judge");
-      if (!provider) {
-        await markJudgeFailed(db, post.id, "no_key");
-        summary.failed++;
-        summary.judgeFailedNoKey++;
-        continue;
-      }
-
-      const eventInput = {
-        source: { id: source.id, level: source.level },
-        post: { id: post.id, publishedAt: raw.publishedAt ?? null, media: raw.media ?? null },
-        judgment,
-        routing: {
-          provider: provider.name,
-          modelId: provider.name === "stub" ? "stub" : route.model,
-          promptVersion:
-            judgment.tier === "T2" ? DEEP_EXTRACT_PROMPT_VERSION : LIGHT_JUDGE_PROMPT_VERSION,
-          routingConfigVersion,
-        },
-        scoring: {
-          configVersion: scoringConfig.version,
-          baseScore,
-          qualityScore: baseScore,
-          rankScore: baseScore,
-          displayScore: Math.round(baseScore),
-          breakdown,
-        },
-        scoringV2: {
-          eventQualityScore: v2.qualityScore,
-          confidenceScore: v2.confidenceScore,
-          selectionScore: v2.selectionScore,
-          selectionMaxLevel: v2.maxLevel,
-        },
-      };
-
-      const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const existingEventId =
-        (norm.canonicalUrl ? await findEventIdByCanonicalUrl(norm.canonicalUrl, db) : null) ??
-        await findEventIdBySemanticFold(
-          { foldKey: judgment.fold.foldKey, simhash: judgment.fold.simhash, since },
-          db,
-        );
-
-      if (existingEventId) {
-        await foldPostIntoEvent(existingEventId, eventInput, db);
-        await markPostPipelineState(db, post.id, "folded", judgment.rawLight);
-        summary.merged++;
-      } else {
-        await createEventFromPost(eventInput, db);
-        summary.newEvents++;
-      }
-    } catch (error) {
+    const outcome = await judgeAndStorePost(
+      db,
+      judge,
+      { id: source.id, level: source.level },
+      post.id,
+      raw,
+      norm.canonicalUrl,
+    );
+    if (outcome.kind === "merged") {
+      summary.merged++;
+    } else if (outcome.kind === "new_event") {
+      summary.newEvents++;
+    } else {
       summary.failed++;
-      if (error instanceof NoProviderConfiguredError) {
-        await markJudgeFailed(db, post.id, "no_key");
-        summary.judgeFailedNoKey++;
-      } else if (error instanceof BudgetExceededError) {
-        await markJudgeFailed(db, post.id, "budget_exceeded");
-        summary.judgeFailedBudget++;
-      } else if (error instanceof LlmSchemaError) {
-        await markJudgeFailed(db, post.id, "schema_invalid");
-        summary.judgeFailedSchema++;
-      } else if (error instanceof LlmProviderError) {
-        await markJudgeFailed(db, post.id, "provider_error");
-        summary.judgeFailedProvider++;
-      } else {
-        await markJudgeFailed(db, post.id, "unknown");
-      }
-      log.error(`[pipeline] judge/score failed for post ${post.id}:`, error);
+      if (outcome.reason === "no_key") summary.judgeFailedNoKey++;
+      else if (outcome.reason === "budget_exceeded") summary.judgeFailedBudget++;
+      else if (outcome.reason === "schema_invalid") summary.judgeFailedSchema++;
+      else if (outcome.reason === "provider_error") summary.judgeFailedProvider++;
     }
   }
 
@@ -397,6 +319,116 @@ export async function processSource(
   }
 
   return summary;
+}
+
+export type JudgeOutcome =
+  | { kind: "merged" }
+  | { kind: "new_event" }
+  | {
+      kind: "failed";
+      reason: "no_key" | "budget_exceeded" | "schema_invalid" | "provider_error" | "unknown";
+    };
+
+/** Judge one stored post and fold/create its event. Shared by the crawl pipeline and
+ *  scripts/rejudge-failed-posts.ts; owns the post's pipeline-state and judge_error marks. */
+export async function judgeAndStorePost(
+  db: DB,
+  judge: JudgeFn,
+  source: Pick<DueSource, "id" | "level">,
+  postId: string,
+  raw: RawPost,
+  canonicalUrl: string | null,
+): Promise<JudgeOutcome> {
+  try {
+    const judgment = await judge(raw);
+    await markPostPipelineState(db, postId, "scored", judgment.rawLight);
+
+    const dimensions = {
+      aiRelevance: judgment.aiRelevance,
+      impact: judgment.impact,
+      novelty: judgment.novelty,
+      audienceUsefulness: judgment.audienceUsefulness,
+      evidenceClarity: judgment.evidenceClarity,
+    };
+    const { baseScore, breakdown } = computeBaseScore({
+      sourceLevel: source.level,
+      dimensions,
+      externalHeat: 0,
+    });
+    const v2 = composeScoresV2({
+      zeroGatePassed: true,
+      dimensions,
+      sourceLevel: source.level,
+      sourcePostCount: 1,
+      expertActions: [],
+      validComments: [],
+      contentType: judgment.contentType,
+    });
+
+    const route = llmRouting[judgment.tier === "T2" ? "deep_extract" : "light_judge"];
+    const provider = resolveProvider(judgment.tier === "T2" ? "deep_extract" : "light_judge");
+    if (!provider) {
+      await markJudgeFailed(db, postId, "no_key");
+      return { kind: "failed", reason: "no_key" };
+    }
+
+    const eventInput = {
+      source: { id: source.id, level: source.level },
+      post: { id: postId, publishedAt: raw.publishedAt ?? null, media: raw.media ?? null },
+      judgment,
+      routing: {
+        provider: provider.name,
+        modelId: provider.name === "stub" ? "stub" : route.model,
+        promptVersion:
+          judgment.tier === "T2" ? DEEP_EXTRACT_PROMPT_VERSION : LIGHT_JUDGE_PROMPT_VERSION,
+        routingConfigVersion,
+      },
+      scoring: {
+        configVersion: scoringConfig.version,
+        baseScore,
+        qualityScore: baseScore,
+        rankScore: baseScore,
+        displayScore: Math.round(baseScore),
+        breakdown,
+      },
+      scoringV2: {
+        eventQualityScore: v2.qualityScore,
+        confidenceScore: v2.confidenceScore,
+        selectionScore: v2.selectionScore,
+        selectionMaxLevel: v2.maxLevel,
+      },
+    };
+
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const existingEventId =
+      (canonicalUrl ? await findEventIdByCanonicalUrl(canonicalUrl, db) : null) ??
+      await findEventIdBySemanticFold(
+        { foldKey: judgment.fold.foldKey, simhash: judgment.fold.simhash, since },
+        db,
+      );
+
+    if (existingEventId) {
+      await foldPostIntoEvent(existingEventId, eventInput, db);
+      await markPostPipelineState(db, postId, "folded", judgment.rawLight);
+      return { kind: "merged" };
+    }
+    await createEventFromPost(eventInput, db);
+    return { kind: "new_event" };
+  } catch (error) {
+    const reason =
+      error instanceof NoProviderConfiguredError
+        ? ("no_key" as const)
+        : error instanceof BudgetExceededError
+          ? ("budget_exceeded" as const)
+          : error instanceof LlmSchemaError
+            ? ("schema_invalid" as const)
+            : error instanceof LlmProviderError
+              ? ("provider_error" as const)
+              : ("unknown" as const);
+    await markJudgeFailed(db, postId, reason);
+    log.error(`[pipeline] judge/score failed for post ${postId}:`, error);
+    return { kind: "failed", reason };
+  }
 }
 
 function cursorForRaw(raw: RawPost): string | null {
@@ -409,9 +441,11 @@ async function markPostPipelineState(
   status: string,
   light: LightJudge,
 ): Promise<void> {
+  // Clearing judge_error here is what lets a rejudge run (scripts/rejudge-failed-posts.ts)
+  // turn a previously failed post back into a healthy one.
   await db
     .update(posts)
-    .set({ pipelineStatus: status, lightResultJson: light })
+    .set({ pipelineStatus: status, lightResultJson: light, judgeError: null, judgeFailedAt: null })
     .where(eq(posts.id, postId));
 }
 

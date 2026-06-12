@@ -1,4 +1,4 @@
-export const LIGHT_JUDGE_PROMPT_VERSION = "light-judge-v4";
+export const LIGHT_JUDGE_PROMPT_VERSION = "light-judge-v5";
 export const DEEP_EXTRACT_PROMPT_VERSION = "deep-extract-v4";
 
 export const LIGHT_JUDGE_SYSTEM = `
@@ -39,8 +39,9 @@ release | research | howto | opinion | news
 - 严格扣分：标题党、课程导流、工具软文、商业财经泛谈、泛技术周刊、前端/设计/产品体验泛谈、概念空转、没有事实增量的内容必须明显降低 score。
 - 如果只是综合大厂工程、泛商业评论、泛互联网资讯，且没有明确 AI 模型/智能体/框架/论文/产品发布信息，domain 必须为 trash。
 
-# one_line_summary（40-60 字，所有非 trash 项都要生成）
+# one_line_summary（40-60 字，所有项都要生成，不能为空）
 格式：[主体] 做了/发布了/指出了 [核心事物]，带来 [影响/改变]。
+trash 项也必须输出一句话，说明内容是什么以及为何与 AI-Dev 无关。
 禁止：本文 / 作者表示 / 这条推文 / 大家快来看 等废话。
 
 # 折叠要素（用于事件去重，必须填）

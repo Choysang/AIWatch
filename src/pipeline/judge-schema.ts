@@ -99,20 +99,43 @@ export interface LightJudge {
   };
 }
 
-const lightJudgeObjectSchema = z.object({
-  domain: domainSchema,
-  score: dimension,
-  ai_relevance: dimension,
-  impact: dimension,
-  novelty: dimension,
-  audience_usefulness: dimension,
-  evidence_clarity: dimension,
-  content_type: contentTypeSchema,
-  one_line_summary: z.string().min(1),
-  fold: z.object({
-    primary_entity: z.string().min(1),
-  }),
-});
+/** Deterministic clamp for trash-only empty summaries (see below). */
+export const TRASH_SUMMARY_FALLBACK = "（与 AI-Dev 无关，已按 trash 归档）";
+
+const lightJudgeObjectSchema = z
+  .object({
+    domain: domainSchema,
+    score: dimension,
+    ai_relevance: dimension,
+    impact: dimension,
+    novelty: dimension,
+    audience_usefulness: dimension,
+    evidence_clarity: dimension,
+    content_type: contentTypeSchema,
+    // Emptiness is validated per-domain below: prompt v4 told the model trash items need
+    // no summary, so a bare min(1) here judge_failed every trash verdict (schema_invalid).
+    one_line_summary: z.string(),
+    fold: z.object({
+      primary_entity: z.string().min(1),
+    }),
+  })
+  .superRefine((value, ctx) => {
+    if (value.domain !== "trash" && value.one_line_summary.trim().length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.too_small,
+        minimum: 1,
+        type: "string",
+        inclusive: true,
+        path: ["one_line_summary"],
+        message: "one_line_summary is required for non-trash domains",
+      });
+    }
+  })
+  .transform((value) =>
+    value.domain === "trash" && value.one_line_summary.trim().length === 0
+      ? { ...value, one_line_summary: TRASH_SUMMARY_FALLBACK }
+      : value,
+  );
 export const lightJudgeSchema = lightJudgeObjectSchema as z.ZodType<LightJudge, z.ZodTypeDef, unknown>;
 
 export const deepExtractSchema = z.object({

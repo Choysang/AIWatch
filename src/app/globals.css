@@ -1783,6 +1783,62 @@ canvas {
 .login-card button:hover {
   background: var(--accent);
 }
+/* Credential-mode tabs (验证码 / 密码). Scoped overrides beat `.login-card button`. */
+.login-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 1.1rem;
+  border-bottom: 1px solid var(--line);
+}
+.login-card .login-tab {
+  margin: 0;
+  flex: 1;
+  width: auto;
+  padding: 0.45rem 0.6rem;
+  background: none;
+  color: var(--ink-soft);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+}
+.login-card .login-tab:hover {
+  background: none;
+  color: var(--ink);
+}
+.login-card .login-tab-active {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+/* Text-weight actions inside the card (resend code, sign-up toggle). */
+.login-card .link-button {
+  width: auto;
+  padding: 0;
+  background: none;
+  color: var(--accent);
+  font-weight: 400;
+}
+.login-card .link-button:hover {
+  background: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.login-hint {
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+  margin: 0.4rem 0 0;
+}
+/* OAuth buttons: secondary (outlined) so the credential submit stays the primary CTA. */
+.login-card .login-oauth-button {
+  background: var(--paper-raised);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  margin-top: 0.7rem;
+}
+.login-card .login-oauth-button:hover {
+  background: none;
+  color: var(--accent);
+  border-color: var(--accent);
+}
 .error-text {
   color: var(--accent);
   font-size: 0.85rem;
