@@ -12,6 +12,7 @@ import {
   generateMonthlyReportTask,
   generateWeeklyReportTask,
 } from "./tasks/generate-report";
+import { alertSourceHealthTask } from "./tasks/alert-source-health";
 import { digestPendingContributionsTask } from "./tasks/digest-pending-contributions";
 import { recomputeScoresV2Task } from "./tasks/recompute-scores-v2";
 import { recomputeRankScoresTask } from "./tasks/recompute-rank-scores";
@@ -38,7 +39,8 @@ async function main(): Promise<void> {
     // likes/stars gradually re-rank events without re-running the LLM; assemble reports
     // at 06:00 daily, Monday 09:00 weekly, and 1st 09:00 monthly; flag low-contribution
     // sources for human review daily at 08:30; digest newly submitted contributions
-    // for owner/admin hourly at :20 (信源推荐收集).
+    // for owner/admin hourly at :20 (信源推荐收集); alert the operator hourly at :40 when
+    // the X source pool fails en masse (TWITTER_AUTH_TOKEN-expired signature).
     crontab: [
       "* * * * * enqueue-due-sources",
       "*/10 * * * * recompute-scores-v2",
@@ -49,6 +51,7 @@ async function main(): Promise<void> {
       "0 9 1 * * generate-monthly-report",
       "30 8 * * * suggest-source-review",
       "20 * * * * digest-pending-contributions",
+      "40 * * * * alert-source-health",
     ].join("\n"),
     taskList: {
       "crawl-source": crawlSource,
@@ -61,6 +64,7 @@ async function main(): Promise<void> {
       "suggest-source-review": suggestSourceReviewTask,
       "recompute-rank-scores": recomputeRankScoresTask,
       "digest-pending-contributions": digestPendingContributionsTask,
+      "alert-source-health": alertSourceHealthTask,
     },
   });
 
