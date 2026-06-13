@@ -2934,6 +2934,12 @@ html[data-reader-theme="light"] .particle-field {
 
 /* make the search + filters an obvious, self-contained control deck */
 .reader-home .search {
+  /* backdrop-filter turns this box into its own stacking context, so the filter
+     popover's z-index only competes inside it. Lift the whole deck above the
+     current-hotspots panel (also a backdrop-filter context, later in the DOM)
+     or the open filter panel gets covered. */
+  position: relative;
+  z-index: 10;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--rh-line);
   border-radius: 16px;

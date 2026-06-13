@@ -75,30 +75,22 @@ export const cardColumns = {
   viewCount: events.viewCount,
 } as const;
 
-// Civil-day bucket in APP_TZ over the same effective-time chain the reader timeline
-// groups by (published → promoted → created; see timeline-tree.ts effectiveTime and
-// format.ts dayKey). buildTimelineTree assumes a newest-first, day-contiguous stream:
-// sorting day-first keeps each day bucket whole while still letting quality (tier,
-// corroboration) rank cards *within* a day. Sorting tier across the whole window
-// instead used to interleave days and let old T2 events crowd today's items out of
-// the LIMIT.
-const APP_TZ = process.env.APP_TZ ?? "Asia/Shanghai";
-const effectiveDay = sql`(coalesce(${events.publishedAt}, ${events.promotedAt}, ${events.createdAt}) at time zone ${APP_TZ})::date`;
+// Strict newest-first over the same effective-time chain the reader timeline groups by
+// (published → promoted → created; see timeline-tree.ts effectiveTime). Ordering and
+// grouping MUST share one chain: buildTimelineTree does a single contiguous pass, so any
+// divergence (an earlier tier-first sort, or selected-mode promotion-time sort) split
+// day buckets and let old events crowd today's items out of the LIMIT. Pure time order
+// matches the HH:mm timeline rail top to bottom; quality discovery lives in 精选 mode.
+const effectiveTime = sql`coalesce(${events.publishedAt}, ${events.promotedAt}, ${events.createdAt})`;
 
-/** Most recent events first (All AI Dynamics default sort): day desc, quality within day. */
+/** Most recent events first (All AI Dynamics default sort): strict effective-time order. */
 export async function listRecentEvents(limit = 30, db: DB = defaultDb): Promise<EventCard[]> {
   const rows = await db
     .select(cardColumns)
     .from(events)
     .leftJoin(sources, eq(sources.id, events.mainSourceId))
     .leftJoin(posts, eq(posts.id, events.mainPostId))
-    .orderBy(
-      sql`${effectiveDay} desc`,
-      sql`case ${events.pipelineTier} when 'T2' then 2 when 'T1' then 1 else 0 end desc`,
-      desc(events.sourceCount),
-      desc(events.publishedAt),
-      desc(events.createdAt),
-    )
+    .orderBy(sql`${effectiveTime} desc`, desc(events.id))
     .limit(limit);
   return rows as EventCard[];
 }
@@ -124,8 +116,8 @@ export interface FeedFilter {
 /**
  * Filtered reader feed (search + filter UI). Mirrors `listPublicItems` filter semantics:
  * selected mode windows by promotion time and excludes unselected events; all mode
- * windows by effective publish time. Ordering is day-first (timeline contiguity),
- * quality within day. Search is server-side (ILIKE + tag overlap).
+ * windows by effective publish time. Both modes ORDER by the effective-time chain the
+ * timeline groups by (strict newest-first). Search is server-side (ILIKE + tag overlap).
  */
 export async function searchEvents(
   filter: FeedFilter,
@@ -180,13 +172,7 @@ export async function searchEvents(
     .leftJoin(sources, eq(sources.id, events.mainSourceId))
     .leftJoin(posts, eq(posts.id, events.mainPostId))
     .where(conds.length ? and(...conds) : undefined)
-    .orderBy(
-      sql`${effectiveDay} desc`,
-      sql`case ${events.pipelineTier} when 'T2' then 2 when 'T1' then 1 else 0 end desc`,
-      desc(events.sourceCount),
-      sql`${sortKey} desc nulls last`,
-      desc(events.id),
-    )
+    .orderBy(sql`${effectiveTime} desc`, desc(events.id))
     .limit(limit);
   return rows as EventCard[];
 }
