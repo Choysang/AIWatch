@@ -146,6 +146,23 @@ describe("reader nav sidebar", () => {
     expect(cssSource).toContain(".reader-nav-sidebar.is-collapsed .reader-theme-option:hover .reader-nav-tooltip");
   });
 
+  test("renders an off-canvas mobile drawer with a toggle button and dismiss scrim", () => {
+    expect(navSource).toContain("const [mobileOpen, setMobileOpen] = useState(false);");
+    expect(navSource).toContain('className="reader-nav-fab"');
+    expect(navSource).toContain("onClick={() => setMobileOpen(true)}");
+    expect(navSource).toContain('className={`reader-nav-scrim ${mobileOpen ? "is-open" : ""}`}');
+    expect(navSource).toContain("onClick={() => setMobileOpen(false)}");
+    expect(navSource).toContain("${mobileOpen ? \"is-mobile-open\" : \"\"}");
+    // Drawer closes on navigation (path change).
+    expect(navSource).toContain("setMobileOpen(false);\n  }, [pathname]);");
+    // Rail-collapse is suppressed on true mobile so the drawer shows full labels.
+    expect(navSource).toContain("window.innerWidth > 760 && window.innerWidth < 960");
+    // The drawer slides fully off-canvas by default (no content overlap / hydration flash).
+    expect(cssSource).toContain(".reader-nav-sidebar.is-mobile-open {\n    transform: translateX(0);");
+    expect(cssSource).toContain(".reader-nav-fab {");
+    expect(cssSource).toContain(".reader-nav-scrim {");
+  });
+
   test("keeps collapsed previews and nested nav controls on the light theme surface", () => {
     expect(cssSource).toContain(
       'html[data-reader-theme="light"] .reader-nav-report-subitems a:hover',

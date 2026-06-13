@@ -3233,6 +3233,40 @@ html[data-reader-theme="light"] .reader-home {
   margin-right: calc(var(--reader-page-right-gap) + var(--reader-sidebar-reserve, 0px));
   transition: width 180ms ease, margin-right 180ms ease;
 }
+/* Mobile drawer affordances — hidden on desktop, revealed by the ≤760px media query. */
+.reader-nav-fab {
+  display: none;
+  position: fixed;
+  left: 0.85rem;
+  bottom: 0.85rem;
+  z-index: 38;
+  width: 2.85rem;
+  height: 2.85rem;
+  place-items: center;
+  border: 1px solid var(--rh-line);
+  border-radius: 999px;
+  background: rgba(13, 16, 24, 0.94);
+  color: var(--rh-text);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.reader-nav-fab svg {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+.reader-nav-scrim {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  background: rgba(4, 6, 12, 0.55);
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+.reader-nav-scrim.is-open {
+  opacity: 1;
+}
 .reader-nav-sidebar {
   position: fixed;
   top: 0.75rem;
@@ -4030,18 +4064,29 @@ html[data-reader-theme="light"] .reader-sidebar-actions a:hover {
     width: calc(100% - 1rem);
     margin-inline: auto;
   }
+  /* Off-canvas drawer: hidden by default (no content overlap, no hydration flash), slid in
+     only when .is-mobile-open. Desktop's is-collapsed rail is irrelevant here, so both the
+     default and collapsed states sit off-screen until the drawer opens. */
   .reader-nav-sidebar {
     top: 0.5rem;
     left: 0.5rem;
     bottom: 0.5rem;
-    width: min(248px, calc(100vw - 1rem));
-    transition:
-      transform 180ms ease,
-      width 180ms ease;
+    width: min(264px, calc(100vw - 1.5rem));
+    transform: translateX(-115%);
+    transition: transform 200ms ease;
   }
   .reader-nav-sidebar.is-collapsed {
-    width: min(248px, calc(100vw - 1rem));
-    transform: translateX(calc(-100% + 4rem));
+    width: min(264px, calc(100vw - 1.5rem));
+    transform: translateX(-115%);
+  }
+  .reader-nav-sidebar.is-mobile-open {
+    transform: translateX(0);
+  }
+  .reader-nav-fab {
+    display: grid;
+  }
+  .reader-nav-scrim.is-open {
+    display: block;
   }
 
   .masthead {

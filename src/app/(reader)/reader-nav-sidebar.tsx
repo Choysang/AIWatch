@@ -237,9 +237,15 @@ export function ReaderNavSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [reportExpanded, setReportExpanded] = useState(false);
   const [meExpanded, setMeExpanded] = useState(false);
+  // Mobile (≤760px) renders the sidebar as an off-canvas drawer: hidden by default so it
+  // never overlaps content, opened by the floating button below, dismissed by the scrim or
+  // by navigating. Desktop ignores this and uses `collapsed` (full ↔ rail).
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    setCollapsed(window.innerWidth < 960);
+    // Rail-collapse only in the tablet band (760–960). ≤760 uses the off-canvas drawer,
+    // which shows full labels, so it must NOT be collapsed; >960 shows the full sidebar.
+    setCollapsed(window.innerWidth > 760 && window.innerWidth < 960);
     router.prefetch("/");
     router.prefetch("/reports");
     router.prefetch("/me/likes");
@@ -256,8 +262,35 @@ export function ReaderNavSidebar() {
     setMeExpanded(pathname?.startsWith("/me") ?? false);
   }, [pathname]);
 
+  // Close the mobile drawer on navigation (a tapped nav link changes the path).
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
   return (
-    <aside className={`reader-nav-sidebar ${collapsed ? "is-collapsed" : ""}`} aria-label="AIWatch 主侧栏">
+    <>
+      <button
+        type="button"
+        className="reader-nav-fab"
+        aria-label="打开导航菜单"
+        aria-expanded={mobileOpen}
+        onClick={() => setMobileOpen(true)}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden="true">
+          <path d="M4 7h16" />
+          <path d="M4 12h16" />
+          <path d="M4 17h16" />
+        </svg>
+      </button>
+      <div
+        className={`reader-nav-scrim ${mobileOpen ? "is-open" : ""}`}
+        onClick={() => setMobileOpen(false)}
+        aria-hidden="true"
+      />
+      <aside
+        className={`reader-nav-sidebar ${collapsed ? "is-collapsed" : ""} ${mobileOpen ? "is-mobile-open" : ""}`}
+        aria-label="AIWatch 主侧栏"
+      >
       <div className="reader-nav-top">
         <button
           type="button"
@@ -344,6 +377,7 @@ export function ReaderNavSidebar() {
         </Link>
         <ReaderNavAccount />
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
