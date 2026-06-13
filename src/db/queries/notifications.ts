@@ -13,7 +13,11 @@ import { newId } from "@/core/ids";
 import { db as defaultDb, type DB, type Tx } from "@/db/client";
 import { notifications } from "@/db/schema";
 
-export type NotificationKind = "comment_reply" | "comment_like" | "source_approved";
+export type NotificationKind =
+  | "comment_reply"
+  | "comment_like"
+  | "source_approved"
+  | "contribution_digest";
 
 export interface NotificationRow {
   id: string;

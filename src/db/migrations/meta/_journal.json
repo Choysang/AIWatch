@@ -183,6 +183,13 @@
       "when": 1781267583579,
       "tag": "0025_sloppy_barracuda",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1781309474747,
+      "tag": "0026_contribution_digest",
+      "breakpoints": true
     }
   ]
 }

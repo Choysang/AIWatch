@@ -56,6 +56,8 @@ export const notificationKindEnum = pgEnum("notification_kind", [
   "comment_reply",
   "comment_like",
   "source_approved",
+  // Hourly owner/admin digest of newly submitted contributions (信源推荐收集, 2026-06-13).
+  "contribution_digest",
 ]);
 export const eventRelationEnum = pgEnum("event_relation", ["same_event", "related"]);
 export const triggerReasonEnum = pgEnum("trigger_reason", [

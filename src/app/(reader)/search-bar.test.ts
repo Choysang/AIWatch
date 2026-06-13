@@ -86,4 +86,20 @@ describe("search bar responsiveness", () => {
     expect(cssSource).toContain("top: calc(100% + 0.55rem);");
     expect(cssSource).toContain("right: 0;");
   });
+
+  test("filter panel surfaces the recommend-source entry (信源推荐收集 slice A)", () => {
+    expect(searchSource).toContain('className="search-filter-recommend"');
+    expect(searchSource).toContain('href="/recommend-source"');
+    expect(searchSource).toContain("m.recommendSourceHint");
+    expect(searchSource).toContain("m.recommendSourceLink");
+    expect(cssSource).toContain(".search-filter-recommend {");
+  });
+
+  test("search deck stacks above the hotspots panel so the open filter box is never covered", () => {
+    const deck = cssSource.indexOf(".reader-home .search {");
+    expect(deck).toBeGreaterThan(-1);
+    const deckBlock = cssSource.slice(deck, cssSource.indexOf("}", deck));
+    expect(deckBlock).toContain("position: relative;");
+    expect(deckBlock).toContain("z-index: 10;");
+  });
 });

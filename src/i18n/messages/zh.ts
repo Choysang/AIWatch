@@ -115,6 +115,8 @@ export const zh = {
     filterPanelActive: "已应用筛选",
     applyFilters: "应用筛选",
     clearPanel: "清除全部",
+    recommendSourceHint: "没有你想看的内容？",
+    recommendSourceLink: "推荐信源",
     scoreLabel: "评分",
     scoreUnlimited: "不限",
     scoreMinLabel: "最低分",

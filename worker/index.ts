@@ -12,6 +12,7 @@ import {
   generateMonthlyReportTask,
   generateWeeklyReportTask,
 } from "./tasks/generate-report";
+import { digestPendingContributionsTask } from "./tasks/digest-pending-contributions";
 import { recomputeScoresV2Task } from "./tasks/recompute-scores-v2";
 import { recomputeRankScoresTask } from "./tasks/recompute-rank-scores";
 import { suggestSourceReviewTask } from "./tasks/suggest-source-review";
@@ -36,7 +37,8 @@ async function main(): Promise<void> {
     // 15 minutes so band transitions + accumulated
     // likes/stars gradually re-rank events without re-running the LLM; assemble reports
     // at 06:00 daily, Monday 09:00 weekly, and 1st 09:00 monthly; flag low-contribution
-    // sources for human review daily at 08:30.
+    // sources for human review daily at 08:30; digest newly submitted contributions
+    // for owner/admin hourly at :20 (信源推荐收集).
     crontab: [
       "* * * * * enqueue-due-sources",
       "*/10 * * * * recompute-scores-v2",
@@ -46,6 +48,7 @@ async function main(): Promise<void> {
       "0 9 * * 1 generate-weekly-report",
       "0 9 1 * * generate-monthly-report",
       "30 8 * * * suggest-source-review",
+      "20 * * * * digest-pending-contributions",
     ].join("\n"),
     taskList: {
       "crawl-source": crawlSource,
@@ -57,6 +60,7 @@ async function main(): Promise<void> {
       "generate-monthly-report": generateMonthlyReportTask,
       "suggest-source-review": suggestSourceReviewTask,
       "recompute-rank-scores": recomputeRankScoresTask,
+      "digest-pending-contributions": digestPendingContributionsTask,
     },
   });
 

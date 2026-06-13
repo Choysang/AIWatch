@@ -4,6 +4,7 @@
 
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
 import { messages } from "@/i18n";
@@ -524,6 +525,11 @@ export function SearchBar({
                     {m.applyFilters}
                   </button>
                 </div>
+
+                <p className="search-filter-recommend">
+                  {m.recommendSourceHint}
+                  <Link href="/recommend-source">{m.recommendSourceLink} →</Link>
+                </p>
               </div>
             )}
           </div>
