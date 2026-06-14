@@ -376,6 +376,12 @@ export const zh = {
     emptyName: "名称不能为空。",
     exportOpml: "导出信源 OPML",
     exportHint: "把精选 RSS 信源导入你自己的阅读器",
+    importOpml: "导入 OPML",
+    importHint: "上传 OPML 文件，批量推荐其中的 RSS 信源（主理人审核通过后接入）",
+    importing: "导入中…",
+    importSubmitted: (n: number) => `已提交 ${n} 个信源建议，待主理人审核。`,
+    importNoFeeds: "未在文件中找到可导入的 RSS 信源。",
+    importError: "导入失败，请稍后再试。",
   },
   admin: {
     title: "管理控制台",

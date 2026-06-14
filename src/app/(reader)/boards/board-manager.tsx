@@ -7,7 +7,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { messages } from "@/i18n";
 
 export interface BoardView {
@@ -50,6 +50,34 @@ export function BoardManager({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
+
+  const onImportFile = async (file: File) => {
+    setImporting(true);
+    setImportMsg(null);
+    try {
+      const text = await file.text();
+      const res = await fetch("/api/boards/opml-import", {
+        method: "POST",
+        headers: { "content-type": "text/x-opml" },
+        body: text,
+      });
+      if (res.status === 201) {
+        const { submitted } = (await res.json()) as { submitted: number };
+        setImportMsg(m.importSubmitted(submitted));
+      } else if (res.status === 422) {
+        setImportMsg(m.importNoFeeds);
+      } else {
+        setImportMsg(m.importError);
+      }
+    } catch {
+      setImportMsg(m.importError);
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const startCreate = () => {
     setError(null);
@@ -141,13 +169,36 @@ export function BoardManager({
   return (
     <section className="boards">
       <div className="boards-toolbar">
-        <a className="boards-export" href="/api/boards/opml" title={m.exportHint}>
-          ↓ {m.exportOpml}
-        </a>
+        <div className="boards-toolbar-left">
+          <a className="boards-export" href="/api/boards/opml" title={m.exportHint}>
+            ↓ {m.exportOpml}
+          </a>
+          <button
+            type="button"
+            className="boards-export"
+            title={m.importHint}
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+          >
+            ↑ {importing ? m.importing : m.importOpml}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".opml,.xml,text/xml,application/xml"
+            hidden
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void onImportFile(file);
+              e.target.value = "";
+            }}
+          />
+        </div>
         <button type="button" className="boards-create" onClick={startCreate} disabled={pending || draft !== null}>
           + {m.create}
         </button>
       </div>
+      {importMsg && <output className="boards-import-msg">{importMsg}</output>}
 
       {draft && (
         <div className="board-editor card">

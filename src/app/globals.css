@@ -1486,6 +1486,12 @@ canvas {
   flex-wrap: wrap;
   margin-bottom: 1rem;
 }
+.boards-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
 .boards-export {
   display: inline-flex;
   align-items: center;
@@ -1498,12 +1504,27 @@ canvas {
   color: var(--ink-soft);
   font-size: 0.9rem;
   font-weight: 600;
+  font-family: inherit;
   text-decoration: none;
+  cursor: pointer;
   transition: border-color 150ms ease, color 150ms ease;
 }
-.boards-export:hover {
+.boards-export:hover:not(:disabled) {
   border-color: var(--accent);
   color: var(--ink);
+}
+.boards-export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.boards-import-msg {
+  display: block;
+  margin: -0.4rem 0 1rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 0.5rem;
+  background: var(--accent-weak);
+  color: var(--ink);
+  font-size: 0.88rem;
 }
 .boards-create {
   display: inline-flex;
