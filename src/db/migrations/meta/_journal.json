@@ -190,6 +190,13 @@
       "when": 1781309474747,
       "tag": "0026_contribution_digest",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1781481600000,
+      "tag": "0027_topic_boards",
+      "breakpoints": true
     }
   ]
 }

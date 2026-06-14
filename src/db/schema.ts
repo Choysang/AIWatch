@@ -262,6 +262,10 @@ export const events = pgTable(
     // Trigram GIN over the denormalized search blob: lets leading-wildcard ILIKE (incl. CJK
     // substrings) use an index. Requires the pg_trgm extension (created in migration 0020).
     index("events_search_trgm_idx").using("gin", sql`${t.searchText} gin_trgm_ops`),
+    // text[] GIN (array_ops): serves topic_boards' `tags && board.tags` overlap (v0.5 A1) and
+    // any future tag facet. Without it the overlap predicate sequential-scans. Created
+    // alongside topic_boards in migration 0027.
+    index("events_tags_gin_idx").using("gin", t.tags),
   ],
 );
 
@@ -614,6 +618,32 @@ export const userPreferences = pgTable("user_preferences", {
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
 
+// --- topic_boards (v0.5 A1: 读者自定义「关注主题」DIY 核心) ---
+// 读者建/改/删自己的主题板；板 = 一组 tags[]，feed.searchEvents({tags}) 以数组重叠
+// (events.tags && board.tags) 确定性匹配事件（哲学不变，无 embedding）。身份沿用
+// event_reactions 的 XOR 形态：user_id（登录读者，持久跨端）XOR fingerprint（匿名 rid
+// cookie，设备本地）。严格 XOR、每身份板名唯一由迁移 0027 的 CHECK + 部分唯一索引强制
+// （drizzle 无法表达 num_nonnulls / COALESCE 唯一性，沿用 event_reactions 注释惯例）。
+// tags 为空数组 = 不过滤（等于「全部动态」快照）。
+export const topicBoards = pgTable(
+  "topic_boards",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").references(() => authUser.id, { onDelete: "cascade" }),
+    fingerprint: text("fingerprint"),
+    name: text("name").notNull(),
+    emoji: text("emoji"),
+    tags: text("tags").array().notNull().default(sql`'{}'::text[]`),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("topic_boards_user_idx").on(t.userId, t.sortOrder),
+    index("topic_boards_fingerprint_idx").on(t.fingerprint, t.sortOrder),
+  ],
+);
+
 export const schema = {
   sources,
   posts,
@@ -632,4 +662,5 @@ export const schema = {
   feedback,
   ownerAnnotations,
   userPreferences,
+  topicBoards,
 };
