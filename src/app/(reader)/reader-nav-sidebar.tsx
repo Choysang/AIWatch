@@ -36,7 +36,7 @@ function applyReaderTheme(mode: ReaderThemeMode) {
   document.documentElement.dataset.readerTheme = effectiveReaderTheme(mode);
 }
 
-function ReaderNavIcon({ name }: { name: "content" | "reports" | "me" | "about" }) {
+function ReaderNavIcon({ name }: { name: "content" | "boards" | "reports" | "me" | "about" }) {
   return (
     <svg
       className="reader-nav-svg"
@@ -54,6 +54,12 @@ function ReaderNavIcon({ name }: { name: "content" | "reports" | "me" | "about" 
           <path d="M6 6H4.5v14H14v-2" />
           <path d="M11 9h3.5" />
           <path d="M11 12h3.5" />
+        </>
+      )}
+      {name === "boards" && (
+        <>
+          <rect x="3.5" y="4.5" width="6.6" height="15" rx="1.4" />
+          <rect x="13.9" y="4.5" width="6.6" height="9" rx="1.4" />
         </>
       )}
       {name === "reports" && (
@@ -248,6 +254,7 @@ export function ReaderNavSidebar() {
     setCollapsed(window.innerWidth > 760 && window.innerWidth < 960);
     router.prefetch("/");
     router.prefetch("/reports");
+    router.prefetch("/boards");
     router.prefetch("/me/likes");
     router.prefetch("/me/stars");
     router.prefetch("/me/comments");
@@ -340,6 +347,17 @@ export function ReaderNavSidebar() {
           <Link href="/reports/weekly">周报</Link>
           <Link href="/reports/monthly">月报</Link>
         </div>
+
+        <Link href="/boards" className="reader-nav-item" aria-label={messages.nav.boards}>
+          <span className="reader-nav-icon" aria-hidden="true">
+            <ReaderNavIcon name="boards" />
+            <span className="reader-nav-tooltip">{messages.nav.boards}</span>
+          </span>
+          <span className="reader-nav-text">
+            <strong>{messages.nav.boards}</strong>
+            <small>关注主题 · 个人定制</small>
+          </span>
+        </Link>
 
         <Link
           href="/me/likes"

@@ -7,6 +7,7 @@ const componentPath = join(appDir, "subpage-nav.tsx");
 
 const subpageFiles = [
   "(reader)/about/page.tsx",
+  "(reader)/boards/page.tsx",
   "(reader)/changelog/page.tsx",
   "(reader)/events/[id]/page.tsx",
   "(reader)/feedback/page.tsx",
