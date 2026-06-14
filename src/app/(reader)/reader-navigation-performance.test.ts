@@ -2,7 +2,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 
-const reportsPage = readFileSync(join(import.meta.dir, "reports", "page.tsx"), "utf8");
+// The daily list page now delegates to the shared day/week/month skeleton, so its report
+// query caching (revalidate 300, for snappy sidebar navigation) lives in kind-report-page.tsx.
+const kindReportPage = readFileSync(join(import.meta.dir, "reports", "kind-report-page.tsx"), "utf8");
 const reportByDatePage = readFileSync(
   join(import.meta.dir, "reports", "[date]", "page.tsx"),
   "utf8",
@@ -11,10 +13,10 @@ const loadingPath = join(import.meta.dir, "loading.tsx");
 
 describe("reader navigation performance", () => {
   test("caches report queries used by sidebar navigation", () => {
-    expect(reportsPage).toContain('import { unstable_cache } from "next/cache";');
-    expect(reportsPage).toContain("getCachedLatestDaily");
-    expect(reportsPage).toContain("listCachedDailies");
-    expect(reportsPage).toContain("revalidate: 300");
+    expect(kindReportPage).toContain('import { unstable_cache } from "next/cache";');
+    expect(kindReportPage).toContain("getCachedLatest");
+    expect(kindReportPage).toContain("listCached");
+    expect(kindReportPage).toContain("revalidate: 300");
     expect(reportByDatePage).toContain('import { unstable_cache } from "next/cache";');
     expect(reportByDatePage).toContain("getCachedDailyByDate");
     expect(reportByDatePage).toContain("revalidate: 300");

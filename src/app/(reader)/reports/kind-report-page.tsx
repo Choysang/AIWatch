@@ -12,6 +12,7 @@ import {
 } from "@/db/queries/public-reports";
 import { messages } from "@/i18n";
 import type { ReportKind } from "@/reports/types";
+import { ReportKindTabs } from "./report-kind-tabs";
 import { ReportView } from "./report-view";
 
 const ARCHIVE_TAKE: Record<ReportKind, number> = { daily: 14, weekly: 12, monthly: 12 };
@@ -58,6 +59,8 @@ export async function KindReportPage({
         <SubpageNav />
       </header>
 
+      <ReportKindTabs active={kind} />
+
       {latest ? <ReportView report={latest} /> : <div className="empty">{m.empty}</div>}
 
       {archive.length > 1 && (
@@ -95,6 +98,8 @@ export async function KindReportByDate({ kind, date }: { kind: ReportKind; date:
         </div>
         <SubpageNav />
       </header>
+
+      <ReportKindTabs active={kind} />
 
       {report ? <ReportView report={report} /> : <div className="empty">{m.notFound}</div>}
     </main>

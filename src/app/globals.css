@@ -1439,6 +1439,41 @@ canvas {
 .report-reading-list p {
   margin: 0;
 }
+/* 日/周/月报顶部粒度切换（读者「速览」筛选）。每个报告页 masthead 之下的一排药丸标签，
+   当前粒度填充强调色，让 周报/月报 在任意报告页、任意设备上都直接可达。 */
+.report-kind-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 2.2rem;
+}
+.report-kind-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.1rem;
+  padding: 0.34rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+}
+.report-kind-tab:hover,
+.report-kind-tab:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent-weak);
+  color: var(--ink);
+  outline: none;
+}
+.report-kind-tab.is-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--paper-raised);
+}
+
 .report-archive {
   margin-top: 2.5rem;
   border-top: 1px solid var(--line);

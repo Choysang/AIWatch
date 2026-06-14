@@ -1,70 +1,17 @@
-// Reader "AI 日报" page — the latest published daily report plus an archive of recent
-// dates. (reader) is a route group, so this renders at "/reports". Dynamic: reads the DB
-// per request and degrades to a setup hint when the DB isn't reachable or none exist yet.
+// Reader "AI 日报" page (/reports). Delegates to the shared day/week/month skeleton so the
+// kind switcher (日报/周报/月报) and archive render identically across granularities — this
+// page used to be a near-duplicate of KindReportPage with no path to weekly/monthly.
 
-import Link from "next/link";
-import { unstable_cache } from "next/cache";
-import { SubpageNav } from "@/app/subpage-nav";
-import { getLatestDaily, listDailies, type PublicReportListItem } from "@/db/queries/public-reports";
-import type { PublicReport } from "@/db/queries/public-reports";
 import { messages } from "@/i18n";
-import { ReportView } from "./report-view";
+import { KindReportPage } from "./kind-report-page";
 
 export const dynamic = "force-dynamic";
-
-const getCachedLatestDaily = unstable_cache(() => getLatestDaily(), ["reader-latest-daily"], {
-  revalidate: 300,
-});
-
-const listCachedDailies = unstable_cache(() => listDailies(14), ["reader-dailies-14"], {
-  revalidate: 300,
-});
 
 export const metadata = {
   title: `${messages.report.heading} · ${messages.appName}`,
   description: messages.report.subheading,
 };
 
-async function load(): Promise<{ latest: PublicReport | null; archive: PublicReportListItem[] }> {
-  try {
-    const [latest, archive] = await Promise.all([getCachedLatestDaily(), listCachedDailies()]);
-    return { latest, archive };
-  } catch {
-    return { latest: null, archive: [] };
-  }
-}
-
-export default async function ReportsPage() {
-  const { latest, archive } = await load();
-  const m = messages.report;
-
-  return (
-    <main className="page">
-      <header className="masthead">
-        <div>
-          <h1 style={{ fontFamily: "var(--font-serif)" }}>{m.heading}</h1>
-        </div>
-        <SubpageNav />
-      </header>
-
-      {latest ? (
-        <ReportView report={latest} />
-      ) : (
-        <div className="empty">{m.empty}</div>
-      )}
-
-      {archive.length > 1 && (
-        <nav className="report-archive">
-          <h3 className="report-section-title">{m.archive}</h3>
-          <ul>
-            {archive.map((r) => (
-              <li key={r.date}>
-                <Link href={`/reports/${r.date}`}>{r.date}</Link>：{r.summary}
-              </li>
-            ))}
-          </ul>
-        </nav>
-      )}
-    </main>
-  );
+export default function ReportsPage() {
+  return <KindReportPage kind="daily" archiveBase="/reports" />;
 }

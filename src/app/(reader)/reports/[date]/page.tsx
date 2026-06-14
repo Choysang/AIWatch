@@ -7,6 +7,7 @@ import { SubpageNav } from "@/app/subpage-nav";
 import { isCalendarDate } from "@/core/time";
 import { getDailyByDate } from "@/db/queries/public-reports";
 import { messages } from "@/i18n";
+import { ReportKindTabs } from "../report-kind-tabs";
 import { ReportView } from "../report-view";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +52,8 @@ export default async function ReportByDatePage({
         </div>
         <SubpageNav />
       </header>
+
+      <ReportKindTabs active="daily" />
 
       {report ? <ReportView report={report} /> : <div className="empty">{m.notFound}</div>}
     </main>

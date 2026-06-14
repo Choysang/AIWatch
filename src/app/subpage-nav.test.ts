@@ -13,7 +13,7 @@ const subpageFiles = [
   "(reader)/me/page-content.tsx",
   "(reader)/notifications/page.tsx",
   "(reader)/recommend-source/page.tsx",
-  "(reader)/reports/page.tsx",
+  "(reader)/reports/kind-report-page.tsx",
   "(reader)/reports/[date]/page.tsx",
   "aiwatch-skill/page.tsx",
   "login/page.tsx",
