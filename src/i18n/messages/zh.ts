@@ -374,6 +374,8 @@ export const zh = {
     nameConflict: "已有同名主题板。",
     limitReached: "主题板数量已达上限。",
     emptyName: "名称不能为空。",
+    exportOpml: "导出信源 OPML",
+    exportHint: "把精选 RSS 信源导入你自己的阅读器",
   },
   admin: {
     title: "管理控制台",

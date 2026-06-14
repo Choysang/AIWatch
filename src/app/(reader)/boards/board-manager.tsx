@@ -141,6 +141,9 @@ export function BoardManager({
   return (
     <section className="boards">
       <div className="boards-toolbar">
+        <a className="boards-export" href="/api/boards/opml" title={m.exportHint}>
+          ↓ {m.exportOpml}
+        </a>
         <button type="button" className="boards-create" onClick={startCreate} disabled={pending || draft !== null}>
           + {m.create}
         </button>

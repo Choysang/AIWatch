@@ -530,6 +530,10 @@ export function SearchBar({
                   {m.recommendSourceHint}
                   <Link href="/recommend-source">{m.recommendSourceLink} →</Link>
                 </p>
+                <p className="search-filter-recommend">
+                  {messages.boards.exportHint}
+                  <a href="/api/boards/opml">{messages.boards.exportOpml} ↓</a>
+                </p>
               </div>
             )}
           </div>

@@ -2,7 +2,7 @@
 // circuit breaker, and list health for the admin console. Raw SQL is confined here
 // (decision 4); business code never embeds SQL.
 
-import { and, asc, eq, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, lte, ne, or, sql } from "drizzle-orm";
 import type { ConnectorSource, ConnectorType } from "@/connectors/types";
 import { newId } from "@/core/ids";
 import { db as defaultDb, type DB, type Tx } from "@/db/client";
@@ -285,6 +285,58 @@ export async function listSourceOptions(db: DB = defaultDb): Promise<SourceOptio
     .from(sources)
     .where(and(isNull(sources.archivedAt), eq(sources.enabled, true)))
     .orderBy(asc(sources.platform), asc(sources.name));
+}
+
+/** Curated sources that expose a public, subscribable feed URL (RSS-family connectors).
+ *  Backs OPML export (A4.1): rsshub / API / manual connectors have no public xmlUrl and are
+ *  intentionally excluded, so the export is an honest "subscribable RSS sources" list.
+ *  feedUrl = connectorRef (the feed) falling back to url; category = first curated category. */
+export interface ExportableSource {
+  id: string;
+  name: string;
+  htmlUrl: string | null;
+  feedUrl: string;
+  platform: string;
+  category: string | null;
+}
+
+const EXPORTABLE_CONNECTORS = ["rss", "youtube_rss"] as const;
+
+export async function listExportableSources(db: DB = defaultDb): Promise<ExportableSource[]> {
+  const rows = await db
+    .select({
+      id: sources.id,
+      name: sources.name,
+      url: sources.url,
+      connectorRef: sources.connectorRef,
+      platform: sources.platform,
+      categories: sources.categories,
+    })
+    .from(sources)
+    .where(
+      and(
+        isNull(sources.archivedAt),
+        eq(sources.enabled, true),
+        inArray(sources.connectorType, [...EXPORTABLE_CONNECTORS]),
+        or(isNotNull(sources.connectorRef), isNotNull(sources.url)),
+      ),
+    )
+    .orderBy(asc(sources.name));
+
+  const out: ExportableSource[] = [];
+  for (const r of rows) {
+    const feedUrl = r.connectorRef ?? r.url;
+    if (!feedUrl) continue;
+    out.push({
+      id: r.id,
+      name: r.name,
+      htmlUrl: r.url,
+      feedUrl,
+      platform: r.platform,
+      category: r.categories[0] ?? null,
+    });
+  }
+  return out;
 }
 
 export async function listSourceHealth(db: DB = defaultDb): Promise<SourceHealthRow[]> {
