@@ -10,7 +10,7 @@ import {
   type AiSourceCategory,
 } from "@/sources/ai-source-categories";
 
-export type PublicMode = "selected" | "all";
+export type PublicMode = "selected" | "all" | "personalized";
 export type SemanticWindow = "today" | "week" | "month" | "all";
 
 /**
@@ -243,8 +243,13 @@ export function parseDateRange(
 }
 
 export function parsePublicQuery(params: URLSearchParams): PublicQuery {
+  const modeParam = params.get("mode");
   const mode: PublicMode =
-    params.get("mode") === "latest" || params.get("mode") === "all" ? "all" : "selected";
+    modeParam === "personalized"
+      ? "personalized"
+      : modeParam === "latest" || modeParam === "all"
+        ? "all"
+        : "selected";
   const sinceRaw = params.get("since");
   const since: SemanticWindow =
     sinceRaw === "today" || sinceRaw === "week" || sinceRaw === "month" || sinceRaw === "all"

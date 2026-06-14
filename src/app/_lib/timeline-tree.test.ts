@@ -17,6 +17,7 @@ function mk(
 ): EventCard {
   return {
     id,
+    mainSourceId: null,
     title: `t-${id}`,
     summary: null,
     recommendationReason: null,

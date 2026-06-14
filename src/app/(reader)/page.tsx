@@ -8,9 +8,10 @@
 
 import { cookies } from "next/headers";
 import { type CSSProperties } from "react";
+import { resolveReaderIdentityServer } from "@/app/_lib/reader-identity";
 import { getSession } from "@/app/_lib/session";
 import { READER_ID_COOKIE, verifyReaderId } from "@/auth/reader-id";
-import { searchEvents, type EventCard as EventCardData, type FeedFilter } from "@/db/queries/feed";
+import { searchEvents, searchPersonalized, type EventCard as EventCardData, type FeedFilter } from "@/db/queries/feed";
 import { getOwnerAnnotations, type AnnotationVerdict } from "@/db/queries/owner-annotations";
 import { getViewerReactions, type ViewerReactionState } from "@/db/queries/reactions";
 import { getTopCommentsForEvents } from "@/db/queries/comments";
@@ -149,6 +150,30 @@ async function loadHomeData(
   }
 }
 
+// 推荐 mode (v0.5 A3): personalized re-rank for the current reader. Identity comes from the
+// rid cookie / session (resolveReaderIdentityServer). No identity yet (first visit) or any
+// failure degrades to the recent feed — never an empty page.
+async function loadPersonalizedData(
+  query: PublicQuery,
+  limit: number,
+): Promise<{ events: EventCardData[]; hotspots: CurrentHotspot[] }> {
+  try {
+    const identity = await resolveReaderIdentityServer();
+    if (!identity) return loadHomeData({ ...query, mode: "all" }, limit);
+    const events = await searchPersonalized(identity, toFeedFilter(query), limit);
+    try {
+      const hotspots = await listCurrentHotspots(events.map((event) => event.id));
+      return { events, hotspots };
+    } catch (error) {
+      log.warn("[reader] loadHotspots (personalized) failed", handledErrorDetails(error));
+      return { events, hotspots: [] };
+    }
+  } catch (error) {
+    log.warn("[reader] loadPersonalizedData failed", handledErrorDetails(error));
+    return loadHomeData({ ...query, mode: "all" }, limit);
+  }
+}
+
 async function loadViewerReactions(
   eventIds: string[],
 ): Promise<Map<string, ViewerReactionState>> {
@@ -267,7 +292,10 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     applySavedSourceDefaults(sp, parsedQuery),
     loadSourceOptions(),
   ]);
-  let { events, hotspots } = await loadHomeData(query, limit);
+  let { events, hotspots } =
+    query.mode === "personalized"
+      ? await loadPersonalizedData(query, limit)
+      : await loadHomeData(query, limit);
   let usedLatestFallback = false;
   if (
     query.mode === "selected" &&

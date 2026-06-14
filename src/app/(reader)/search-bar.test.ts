@@ -21,15 +21,18 @@ describe("search bar responsiveness", () => {
 
   test("omits explicit all filter chips because empty selection means all", () => {
     expect(searchSource).toContain('const WINDOWS = ["today", "week", "month", "all"] as const;');
-    expect(searchSource).toContain('const SEARCH_MODES = ["latest", "selected"] as const;');
-    expect(searchSource).toContain(
-      'params.get("mode") === "latest" || params.get("mode") === "all" ? "latest" : "selected";',
-    );
+    expect(searchSource).toContain('const SEARCH_MODES = ["latest", "selected", "personalized"] as const;');
+    expect(searchSource).toContain('modeParam === "latest" || modeParam === "all"');
     expect(searchSource).toContain('if (value === "latest") next.set("mode", "latest");');
     expect(searchSource).toContain('else next.delete("mode");');
     expect(searchSource).toContain("const toggleEventCategory");
     expect(searchSource).not.toContain("clearEventCategory");
     expect(searchSource).not.toContain("{m.eventCategoryAll}");
+  });
+
+  test("offers a 推荐 (personalized) mode wired to mode=personalized (v0.5 A3)", () => {
+    expect(searchSource).toContain('modeParam === "personalized"');
+    expect(searchSource).toContain('else if (value === "personalized") next.set("mode", "personalized");');
   });
 
   test("keeps mode tabs above a left-aligned filter/search row", () => {

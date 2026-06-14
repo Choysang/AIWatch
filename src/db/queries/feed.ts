@@ -3,13 +3,17 @@
 
 import { and, arrayOverlaps, desc, eq, gte, inArray, ne, sql, type SQL } from "drizzle-orm";
 import { db as defaultDb, type DB } from "@/db/client";
+import { loadReaderSignals } from "@/db/queries/reader-affinity";
+import type { ReaderIdentity } from "@/db/queries/topic-boards";
 import { events, posts, sources } from "@/db/schema";
 import type { ContentType, PublicMode, SemanticWindow, SourceCategory, SourceType } from "@/public/query";
 import { windowStart } from "@/public/query";
+import { buildReaderAffinityProfile, computeReaderBoost } from "@/scoring/reader-affinity";
 import type { PromotedLevel } from "@/scoring/types";
 
 export interface EventCard {
   id: string;
+  mainSourceId: string | null;
   title: string;
   summary: string | null;
   recommendationReason: string | null;
@@ -44,6 +48,7 @@ export interface EventCard {
 // Shared card projection so every reader feed query returns the same shape.
 export const cardColumns = {
   id: events.id,
+  mainSourceId: events.mainSourceId,
   title: events.title,
   summary: events.summary,
   recommendationReason: events.recommendationReason,
@@ -175,4 +180,62 @@ export async function searchEvents(
     .orderBy(sql`${effectiveTime} desc`, desc(events.id))
     .limit(limit);
   return rows as EventCard[];
+}
+
+// 推荐 mode (v0.5 A3): personalized re-rank over a bounded recent candidate pool. The
+// reader profile is built per request (not persisted — millions of rid identities). The
+// default 最新 feed stays strict-time; this is a separate opt-in view.
+const PERSONALIZED_POOL = 150;
+
+/** Quality baseline a personal boost is added to (mirrors the home card emphasis fallback). */
+function baseScore(card: EventCard): number {
+  if (typeof card.qualityScore === "number") return card.qualityScore;
+  const byLevel: Record<EventCard["selectedLevel"], number> = { S: 90, A: 75, B: 60, none: 45 };
+  return byLevel[card.selectedLevel];
+}
+
+function effectiveTimeMs(card: EventCard): number {
+  return (card.publishedAt ?? card.promotedAt ?? card.createdAt).getTime();
+}
+
+/**
+ * Personalized feed: take the recent candidate pool (newest-first, the reader's filters
+ * applied), then re-rank by base quality + per-reader affinity boost. Downed events are
+ * dropped (P6). Cold start (no signals) returns the recent pool unchanged (P7), so a new
+ * reader's 推荐 still shows fresh content.
+ */
+export async function searchPersonalized(
+  identity: ReaderIdentity,
+  filter: FeedFilter,
+  limit = 30,
+  now: Date = new Date(),
+  db: DB = defaultDb,
+): Promise<EventCard[]> {
+  const poolSize = Math.max(limit, PERSONALIZED_POOL);
+  const candidates = await searchEvents({ ...filter, mode: "all" }, poolSize, now, db);
+
+  const { signals, downedEventIds } = await loadReaderSignals(identity, db);
+  const profile = buildReaderAffinityProfile(signals);
+  if (profile.isEmpty) return candidates.slice(0, limit);
+
+  const downed = new Set(downedEventIds);
+  return candidates
+    .filter((card) => !downed.has(card.id))
+    .map((card) => ({
+      card,
+      score:
+        baseScore(card) +
+        computeReaderBoost(
+          {
+            tags: card.tags,
+            sourceId: card.mainSourceId,
+            category: card.category,
+            contentType: card.contentType,
+          },
+          profile,
+        ),
+    }))
+    .sort((a, b) => b.score - a.score || effectiveTimeMs(b.card) - effectiveTimeMs(a.card))
+    .slice(0, limit)
+    .map((entry) => entry.card);
 }

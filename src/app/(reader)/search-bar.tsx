@@ -20,7 +20,7 @@ type ChipValue = string | undefined;
 type DraftField = { routeValue: string; value: string };
 
 const WINDOWS = ["today", "week", "month", "all"] as const;
-const SEARCH_MODES = ["latest", "selected"] as const;
+const SEARCH_MODES = ["latest", "selected", "personalized"] as const;
 type SearchMode = (typeof SEARCH_MODES)[number];
 type TimeChoice = (typeof WINDOWS)[number] | "custom";
 
@@ -148,8 +148,13 @@ export function SearchBar({
   const toVal = draftValue(toDraft, toParam);
   const minScoreVal = draftValue(minScoreDraft, minScoreParam);
   const timeChoice = draftValue(timeDraft, routeTimeChoice) as TimeChoice;
+  const modeParam = params.get("mode");
   const mode: SearchMode =
-    params.get("mode") === "latest" || params.get("mode") === "all" ? "latest" : "selected";
+    modeParam === "personalized"
+      ? "personalized"
+      : modeParam === "latest" || modeParam === "all"
+        ? "latest"
+        : "selected";
   const selectedSourceCategories = parseSourceCategoryParam(params.get("sourceCategories"));
   const selectedEventCategory = params.get("category") as EventCategory | null;
   const nativeSubmitParams = Array.from(params.entries()).filter(([key]) => key !== "q");
@@ -180,6 +185,7 @@ export function SearchBar({
   const setMode = (value: SearchMode) =>
     navigate((next) => {
       if (value === "latest") next.set("mode", "latest");
+      else if (value === "personalized") next.set("mode", "personalized");
       else next.delete("mode");
     });
 

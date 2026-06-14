@@ -97,6 +97,7 @@ export const zh = {
       latest: "最新",
       all: "全部动态",
       selected: "精选",
+      personalized: "推荐",
     },
     windowLabel: "时间",
     window: {
