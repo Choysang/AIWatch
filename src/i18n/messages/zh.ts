@@ -196,6 +196,17 @@ export const zh = {
     openOriginal: "打开原文",
     originalText: "查看原帖全文",
     originalTextNote: "原帖内容未经翻译，以信源原文为准。",
+    // B1 (v0.5): 内容分层切换 AI 摘要 / 原文 / 全文。
+    layer: {
+      label: "内容层",
+      ai: "AI 摘要",
+      original: "原文",
+      fulltext: "全文",
+      aiEmpty: "暂无 AI 摘要。",
+      loading: "正在抽取全文…",
+      unavailable: "无法抽取全文，可看原文或打开原始链接。",
+      error: "全文抽取失败，请稍后再试，或看原文。",
+    },
   },
   loadMore: {
     action: "加载更多",

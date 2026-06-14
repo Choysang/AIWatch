@@ -967,6 +967,46 @@ canvas {
   overflow-y: auto;
 }
 
+/* --- content-layer switcher AI 摘要 / 原文 / 全文 (v0.5 B1) --- */
+.content-layers {
+  margin: 0 0 1rem;
+}
+.content-layer-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.9rem;
+}
+.content-layer-tab {
+  min-height: 1.9rem;
+  padding: 0.28rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+}
+.content-layer-tab:hover {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+.content-layer-tab.is-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--paper-raised);
+}
+.content-layer-note {
+  margin: 0;
+  padding: 0.4rem 0;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
 /* 打开原文 / 复制原文链接 操作行 */
 .original-actions {
   display: flex;

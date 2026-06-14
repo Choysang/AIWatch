@@ -17,6 +17,7 @@ import { getViewerReactions, type ViewerReactionState } from "@/db/queries/react
 import { messages } from "@/i18n";
 import { formatDateTime } from "@/app/_lib/format";
 import { CommentsSection } from "../../comments-section";
+import { ContentLayers } from "../../content-layers";
 import { CopyLinkButton } from "../../copy-link-button";
 import { TrackableOriginalLink } from "../../event-view-tracker";
 import { ReactionButtons } from "../../reaction-buttons";
@@ -171,24 +172,14 @@ export default async function EventDetailPage({
           </figure>
         )}
 
-        {event.summary && <p className="summary">{event.summary}</p>}
-
-        {event.recommendationReason && (
-          <p className="reason">
-            <span className="label">{card.recommendationReason}</span>
-            {event.recommendationReason}
-          </p>
-        )}
-
-        {/* 原帖全文（未翻译，默认折叠）：照顾打不开 x.com 的读者。
-            点10：原始内容是 HTML（RSS/RSSHub），渲染前转可读纯文本，配合 pre-wrap 还原换行。 */}
-        {event.rawContent && (
-          <details className="original-text">
-            <summary>{m.detail.originalText}</summary>
-            <p className="original-text-note">{m.detail.originalTextNote}</p>
-            <div className="original-text-body">{htmlToReadableText(event.rawContent)}</div>
-          </details>
-        )}
+        {/* B1 (v0.5): 内容分层切换 AI 摘要 / 原文 / 全文。默认 AI（保持原行为）；原文是已转
+            纯文本的原帖内容；全文按需经 readability 抽取。原帖 HTML 在服务端转可读纯文本。 */}
+        <ContentLayers
+          eventId={event.id}
+          summary={event.summary}
+          recommendationReason={event.recommendationReason}
+          originalText={event.rawContent ? htmlToReadableText(event.rawContent) : null}
+        />
 
         {event.url && (
           <div className="original-actions">
