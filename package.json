@@ -35,10 +35,12 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@mozilla/readability": "^0.6.0",
     "better-auth": "^1.1.0",
     "drizzle-orm": "^0.38.0",
     "fast-xml-parser": "^4.5.0",
     "graphile-worker": "^0.16.6",
+    "linkedom": "^0.18.12",
     "next": "^15.1.0",
     "pg": "^8.13.0",
     "react": "^19.0.0",

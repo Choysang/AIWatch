@@ -162,6 +162,12 @@ export const posts = pgTable(
     // and is reported on the admin dashboard.
     judgeError: text("judge_error"),
     judgeFailedAt: ts("judge_failed_at"),
+    // B1 (v0.5): on-demand readability full-text extraction cache. full_text_status is
+    // 'ok' | 'empty' | 'error' (null = never attempted). Filled when a reader first opens
+    // 全文 for this post's event; see src/content/extract.ts + article-fulltext.ts.
+    fullText: text("full_text"),
+    fullTextStatus: text("full_text_status"),
+    fullTextFetchedAt: ts("full_text_fetched_at"),
     createdAt: ts("created_at").notNull().defaultNow(),
   },
   (t) => [
