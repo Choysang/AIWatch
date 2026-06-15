@@ -1007,6 +1007,65 @@ canvas {
   font-style: italic;
 }
 
+/* --- model routing admin (v0.5 C1) --- */
+.routing-editor select,
+.routing-editor input {
+  min-height: 2rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-family: inherit;
+  max-width: 100%;
+}
+.routing-editor input {
+  min-width: 11rem;
+}
+.routing-badge {
+  margin-left: 0.45rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--accent-weak);
+  color: var(--ink);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.routing-actions {
+  display: flex;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+.routing-actions button {
+  padding: 0.28rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  background: var(--accent);
+  color: var(--paper-raised);
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.routing-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.routing-actions .routing-reset {
+  background: transparent;
+  color: var(--ink-soft);
+}
+.routing-actions .routing-reset:hover:not(:disabled) {
+  border-color: var(--danger, #c0392b);
+  color: var(--danger, #c0392b);
+}
+.routing-note {
+  margin-top: 1rem;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
 /* 打开原文 / 复制原文链接 操作行 */
 .original-actions {
   display: flex;

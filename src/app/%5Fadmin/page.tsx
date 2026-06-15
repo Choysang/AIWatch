@@ -120,7 +120,8 @@ export default async function AdminPage() {
         <h1 style={{ fontSize: "1.8rem" }}>{messages.admin.title}</h1>
         <nav>
           <span className="tagline">
-            信源、精选、报告与审核 · <Link href="/_admin/annotations">主理人标注台</Link>
+            信源、精选、报告与审核 · <Link href="/_admin/annotations">主理人标注台</Link> ·{" "}
+            <Link href="/_admin/routing">{messages.admin.routing.title}</Link>
           </span>
         </nav>
       </header>

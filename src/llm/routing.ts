@@ -43,7 +43,7 @@ export interface RouteConfig {
 // provider+model (default deepseek-chat); they differ only by prompt, not by provider tier.
 export const routingConfigVersion = "routing-v4";
 
-const PROVIDERS: LlmProviderName[] = [
+export const PROVIDERS: LlmProviderName[] = [
   "openai",
   "anthropic",
   "google",
@@ -51,6 +51,17 @@ const PROVIDERS: LlmProviderName[] = [
   "qwen",
   "openai_compatible",
   "stub",
+];
+
+// Canonical task order for the routing admin UI (v0.5 C1). Keep in sync with LlmTask.
+export const LLM_TASKS: readonly LlmTask[] = [
+  "prefilter",
+  "light_judge",
+  "deep_extract",
+  "cold_judge",
+  "comment_classification",
+  "merge_detection",
+  "s_level_review",
 ];
 
 function configuredProvider(envName: string, fallback: LlmProviderName): LlmProviderName {
