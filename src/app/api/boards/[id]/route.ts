@@ -21,6 +21,7 @@ export const dynamic = "force-dynamic";
 const patchSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   tags: z.array(z.string().max(200)).max(100).optional(),
+  sourceIds: z.array(z.string().max(64)).max(200).optional(),
   // nullish: omitted leaves the emoji unchanged; explicit null clears it.
   emoji: z.string().max(40).nullish(),
   sortOrder: z.number().int().optional(),
@@ -61,6 +62,7 @@ export async function PATCH(
     const board = await updateBoard(identity, id, {
       name: parsed.name,
       tags: parsed.tags,
+      sourceIds: parsed.sourceIds,
       emoji: parsed.emoji,
       sortOrder: parsed.sortOrder,
     });

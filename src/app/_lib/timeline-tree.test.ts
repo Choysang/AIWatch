@@ -135,7 +135,8 @@ describe("buildTimelineTree", () => {
     expect(year.months[0]!.weeks[0]!.days[0]!.count).toBe(1);
   });
 
-  test("onLatestPath 只标记最新事件所在的路径", () => {
+  test("defaultExpanded 展开最近三天（含前两天），更早默认折叠", () => {
+    // 最新日 = 6/3，窗口 = 6/1..6/3。6/3 与 6/2 在窗口内默认展开，5/28 默认折叠。
     const events = [
       mk("e1", { publishedAt: at("2026-06-03T04:00:00Z") }),
       mk("e2", { publishedAt: at("2026-06-02T04:00:00Z") }),
@@ -143,13 +144,36 @@ describe("buildTimelineTree", () => {
     ];
     const tree = buildTimelineTree(events);
     const year = tree[0]!;
-    expect(year.onLatestPath).toBe(true);
-    expect(year.months[0]!.onLatestPath).toBe(true); // 6月
-    expect(year.months[1]!.onLatestPath).toBe(false); // 5月
+    expect(year.defaultExpanded).toBe(true);
+    expect(year.months[0]!.defaultExpanded).toBe(true); // 6月（窗口内）
+    expect(year.months[1]!.defaultExpanded).toBe(false); // 5月（更早，折叠）
     const week = year.months[0]!.weeks[0]!;
-    expect(week.onLatestPath).toBe(true);
-    expect(week.days[0]!.onLatestPath).toBe(true); // 6月3日
-    expect(week.days[1]!.onLatestPath).toBe(false); // 6月2日
+    expect(week.defaultExpanded).toBe(true);
+    expect(week.days[0]!.defaultExpanded).toBe(true); // 6月3日
+    expect(week.days[1]!.defaultExpanded).toBe(true); // 6月2日（窗口内，也展开）
+    expect(year.months[1]!.weeks[0]!.days[0]!.defaultExpanded).toBe(false); // 5月28日
+  });
+
+  test("非时间序输入（推荐流）仍按日聚合，日内保留输入顺序", () => {
+    // 模拟推荐：按相关度排序，同一天的卡片不相邻。全部落在 ISO 周一 6/8 的同一周。
+    const events = [
+      mk("hot-10", { publishedAt: at("2026-06-10T02:00:00Z") }),
+      mk("hot-08", { publishedAt: at("2026-06-08T02:00:00Z") }),
+      mk("low-10", { publishedAt: at("2026-06-10T09:00:00Z") }),
+      mk("mid-09", { publishedAt: at("2026-06-09T02:00:00Z") }),
+    ];
+    const tree = buildTimelineTree(events);
+    const week = tree[0]!.months[0]!.weeks[0]!;
+    // 日期倒序：10 / 9 / 8
+    expect(week.days.map((d) => d.key)).toEqual([
+      "2026-06-10",
+      "2026-06-09",
+      "2026-06-08",
+    ]);
+    // 10 号两张卡聚到一起，保留输入（相关度）顺序
+    expect(week.days[0]!.items.map((e) => e.id)).toEqual(["hot-10", "low-10"]);
+    // 最近三天（10/9/8）全部默认展开
+    expect(week.days.every((d) => d.defaultExpanded)).toBe(true);
   });
 
   test("空输入返回空数组", () => {

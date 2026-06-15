@@ -13,9 +13,10 @@ const i18nSrc = readFileSync(join(dir, "..", "..", "..", "i18n", "messages", "zh
 const cssSrc = readFileSync(join(dir, "..", "..", "globals.css"), "utf8");
 
 describe("topic board reader UI", () => {
-  test("opening a board links to the home feed filtered by its tags", () => {
-    expect(managerSrc).toContain("/?tags=");
-    expect(managerSrc).toContain('encodeURIComponent(tags.join(","))');
+  test("opening a board links to the home feed filtered by its interest (tags OR sources)", () => {
+    expect(managerSrc).toContain('params.set("itags"');
+    expect(managerSrc).toContain('params.set("isources"');
+    expect(managerSrc).toContain("boardHref(b.tags, b.sourceIds)");
   });
 
   test("board manager mutates through the boards API", () => {
@@ -32,10 +33,18 @@ describe("topic board reader UI", () => {
     expect(managerSrc).toContain("addTag");
   });
 
+  test("board manager offers a source picker that posts sourceIds", () => {
+    expect(managerSrc).toContain("sourceOptions");
+    expect(managerSrc).toContain("toggleSource");
+    expect(managerSrc).toContain("sourceIds: draft.sourceIds");
+    expect(i18nSrc).toContain("sourcesLabel:");
+  });
+
   test("the page resolves identity server-side and renders the manager with SubpageNav", () => {
     expect(pageSrc).toContain("resolveReaderIdentityServer");
     expect(pageSrc).toContain("listBoards");
     expect(pageSrc).toContain("listPopularTags");
+    expect(pageSrc).toContain("listSourceOptions");
     expect(pageSrc).toContain("<BoardManager");
     expect(pageSrc).toContain("SubpageNav");
   });

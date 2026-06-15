@@ -640,6 +640,8 @@ export const topicBoards = pgTable(
     name: text("name").notNull(),
     emoji: text("emoji"),
     tags: text("tags").array().notNull().default(sql`'{}'::text[]`),
+    // A (v0.5): optional source scope. A board matches tags OR these sources (see feed interests).
+    sourceIds: text("source_ids").array().notNull().default(sql`'{}'::text[]`),
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: ts("created_at").notNull().defaultNow(),
     updatedAt: ts("updated_at").notNull().defaultNow(),

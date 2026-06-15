@@ -1006,6 +1006,15 @@ canvas {
   color: var(--ink-soft);
   font-style: italic;
 }
+.content-layer-note.content-layer-ok {
+  color: var(--accent);
+  font-style: normal;
+}
+.original-text-body-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
 
 /* --- model routing admin (v0.5 C1) --- */
 .routing-editor select,
@@ -1707,6 +1716,14 @@ canvas {
   flex-wrap: wrap;
   gap: 0.4rem;
 }
+.board-source-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  max-height: 11rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
 .board-tag-input-row {
   display: flex;
   gap: 0.5rem;
@@ -1799,6 +1816,20 @@ canvas {
   margin: 0;
   font-size: 0.82rem;
   color: var(--ink-soft);
+}
+.board-sources-line {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+.board-active-note {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+}
+.board-active-note a {
+  color: var(--accent);
+  white-space: nowrap;
 }
 .board-card-actions {
   display: flex;

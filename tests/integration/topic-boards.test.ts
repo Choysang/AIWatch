@@ -128,6 +128,22 @@ describe("topic boards", () => {
     expect(c.tags).toHaveLength(boards.MAX_TAGS_PER_BOARD);
   });
 
+  test("stores + normalizes sourceIds (trim, dedupe), defaulting to empty", async () => {
+    const a = await boards.createBoard(FP_A, {
+      name: "by-source",
+      tags: [],
+      sourceIds: [" src_1 ", "src_1", "", "src_2"],
+    });
+    expect(a.sourceIds).toEqual(["src_1", "src_2"]);
+
+    const plain = await boards.createBoard(FP_A, { name: "tags-only", tags: ["agent"] });
+    expect(plain.sourceIds).toEqual([]);
+
+    const upd = await boards.updateBoard(FP_A, a.id, { sourceIds: ["src_9"] });
+    expect(upd.sourceIds).toEqual(["src_9"]);
+    expect(upd.tags).toEqual([]); // unchanged dimension stays put
+  });
+
   test("rejects an empty or ambiguous identity, and an empty name", async () => {
     await expectReject(
       () => boards.createBoard({ userId: null, fingerprint: null }, { name: "x", tags: [] }),

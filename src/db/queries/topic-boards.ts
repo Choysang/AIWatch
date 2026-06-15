@@ -17,8 +17,10 @@ import { topicBoards } from "@/db/schema";
 // Exported so the API-route validators share one source of truth.
 export const MAX_BOARDS_PER_IDENTITY = 30;
 export const MAX_TAGS_PER_BOARD = 20;
+export const MAX_SOURCES_PER_BOARD = 50;
 export const MAX_BOARD_NAME_LENGTH = 40;
 export const MAX_TAG_LENGTH = 40;
+export const MAX_SOURCE_ID_LENGTH = 64;
 
 export interface ReaderIdentity {
   /** Exactly one of userId / fingerprint must be set. */
@@ -31,6 +33,8 @@ export interface TopicBoard {
   name: string;
   emoji: string | null;
   tags: string[];
+  /** Optional source scope. The board matches tags OR these sources (see feed interests). */
+  sourceIds: string[];
   sortOrder: number;
   createdAt: Date;
   updatedAt: Date;
@@ -39,6 +43,7 @@ export interface TopicBoard {
 export interface BoardInput {
   name: string;
   tags: string[];
+  sourceIds?: string[];
   emoji?: string | null;
   sortOrder?: number;
 }
@@ -46,6 +51,7 @@ export interface BoardInput {
 export interface BoardPatch {
   name?: string;
   tags?: string[];
+  sourceIds?: string[];
   emoji?: string | null;
   sortOrder?: number;
 }
@@ -86,6 +92,7 @@ const boardColumns = {
   name: topicBoards.name,
   emoji: topicBoards.emoji,
   tags: topicBoards.tags,
+  sourceIds: topicBoards.sourceIds,
   sortOrder: topicBoards.sortOrder,
   createdAt: topicBoards.createdAt,
   updatedAt: topicBoards.updatedAt,
@@ -122,6 +129,21 @@ function normalizeTags(raw: string[]): string[] {
     seen.add(tag);
     out.push(tag);
     if (out.length >= MAX_TAGS_PER_BOARD) break;
+  }
+  return out;
+}
+
+/** Trim, drop empties, cap each id length, dedupe, cap count. Mirrors normalizeTags for sources. */
+function normalizeSourceIds(raw: string[] | undefined): string[] {
+  if (!raw) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const candidate of raw) {
+    const id = candidate.trim().slice(0, MAX_SOURCE_ID_LENGTH);
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+    if (out.length >= MAX_SOURCES_PER_BOARD) break;
   }
   return out;
 }
@@ -194,6 +216,7 @@ export async function createBoard(
   assertIdentity(identity);
   const name = normalizeName(input.name);
   const tags = normalizeTags(input.tags);
+  const sourceIds = normalizeSourceIds(input.sourceIds);
   const emoji = normalizeEmoji(input.emoji);
   const sortOrder = normalizeSortOrder(input.sortOrder);
 
@@ -209,6 +232,7 @@ export async function createBoard(
     name,
     emoji,
     tags,
+    sourceIds,
     sortOrder,
   });
   const created = await getBoard(identity, id, db);
@@ -233,6 +257,7 @@ export async function updateBoard(
     set.name = name;
   }
   if (patch.tags !== undefined) set.tags = normalizeTags(patch.tags);
+  if (patch.sourceIds !== undefined) set.sourceIds = normalizeSourceIds(patch.sourceIds);
   if (patch.emoji !== undefined) set.emoji = normalizeEmoji(patch.emoji);
   if (patch.sortOrder !== undefined) set.sortOrder = normalizeSortOrder(patch.sortOrder);
 

@@ -1,7 +1,7 @@
 // Reader feed query: recent events joined with their main source and main post,
 // shaped for the event card. Read path for the homepage and (later) /api/public/items.
 
-import { and, arrayOverlaps, desc, eq, gte, inArray, ne, sql, type SQL } from "drizzle-orm";
+import { and, arrayOverlaps, desc, eq, gte, inArray, ne, or, sql, type SQL } from "drizzle-orm";
 import { db as defaultDb, type DB } from "@/db/client";
 import { loadReaderSignals } from "@/db/queries/reader-affinity";
 import type { ReaderIdentity } from "@/db/queries/topic-boards";
@@ -81,11 +81,11 @@ export const cardColumns = {
 } as const;
 
 // Strict newest-first over the same effective-time chain the reader timeline groups by
-// (published → promoted → created; see timeline-tree.ts effectiveTime). Ordering and
-// grouping MUST share one chain: buildTimelineTree does a single contiguous pass, so any
-// divergence (an earlier tier-first sort, or selected-mode promotion-time sort) split
-// day buckets and let old events crowd today's items out of the LIMIT. Pure time order
-// matches the HH:mm timeline rail top to bottom; quality discovery lives in 精选 mode.
+// (published → promoted → created; see timeline-tree.ts effectiveTime). 最新/精选 order by
+// this chain so the HH:mm timeline rail reads top-to-bottom; quality discovery lives in 精选
+// mode, personal relevance in 推荐 (which orders by affinity, not time — buildTimelineTree
+// groups by civil-day key so a non-time-sorted feed still buckets cleanly). Keeping this sort
+// time-based also stops old events from crowding today's items out of the LIMIT.
 const effectiveTime = sql`coalesce(${events.publishedAt}, ${events.promotedAt}, ${events.createdAt})`;
 
 /** Most recent events first (All AI Dynamics default sort): strict effective-time order. */
@@ -109,6 +109,12 @@ export interface FeedFilter {
   sourceCategories?: SourceCategory[];
   /** Per-source filter: only events whose main source id is in this list. */
   sourceIds?: string[];
+  /**
+   * Board "interest" (A/B v0.5): an OR group — events carrying ANY of these tags OR from ANY
+   * of these sources. Distinct from the AND-combined `tags`/`sourceIds` facets above; backs
+   * opening a topic board and the 推荐 aggregate feed.
+   */
+  interests?: { tags: string[]; sourceIds: string[] };
   contentTypes?: ContentType[];
   level?: PromotedLevel;
   minScore?: number;
@@ -159,6 +165,21 @@ export async function searchEvents(
   }
   if (filter.sourceIds?.length) {
     conds.push(inArray(events.mainSourceId, filter.sourceIds));
+  }
+  // Board interest: (tags overlap) OR (source in list). One OR group, not AND-narrowing.
+  if (filter.interests) {
+    const orParts: SQL[] = [];
+    if (filter.interests.tags.length) {
+      orParts.push(arrayOverlaps(events.tags, filter.interests.tags));
+    }
+    if (filter.interests.sourceIds.length) {
+      orParts.push(inArray(events.mainSourceId, filter.interests.sourceIds));
+    }
+    if (orParts.length === 1) conds.push(orParts[0]!);
+    else if (orParts.length > 1) {
+      const combined = or(...orParts);
+      if (combined) conds.push(combined);
+    }
   }
   if (filter.contentTypes?.length) {
     conds.push(inArray(events.contentType, filter.contentTypes));

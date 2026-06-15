@@ -15,7 +15,14 @@ export interface BoardView {
   name: string;
   emoji: string | null;
   tags: string[];
+  sourceIds: string[];
   sortOrder: number;
+}
+
+export interface BoardSourceOption {
+  id: string;
+  name: string;
+  platform: string;
 }
 
 interface DraftState {
@@ -24,13 +31,23 @@ interface DraftState {
   emoji: string;
   tags: string[];
   tagInput: string;
+  sourceIds: string[];
 }
 
-const EMPTY_DRAFT: DraftState = { id: null, name: "", emoji: "", tags: [], tagInput: "" };
+const EMPTY_DRAFT: DraftState = { id: null, name: "", emoji: "", tags: [], tagInput: "", sourceIds: [] };
 
-/** Open a board = the home feed filtered to its tags (ANY-of overlap). No tags = all feed. */
-function boardHref(tags: string[]): string {
-  return tags.length === 0 ? "/" : `/?tags=${encodeURIComponent(tags.join(","))}`;
+/**
+ * Open a board = the home feed filtered to its interest (tags OR sources), via the itags /
+ * isources params (mode=latest so it shows all matches, not just 精选). No tags + no sources
+ * = the whole feed.
+ */
+function boardHref(tags: string[], sourceIds: string[]): string {
+  if (tags.length === 0 && sourceIds.length === 0) return "/";
+  const params = new URLSearchParams();
+  params.set("mode", "latest");
+  if (tags.length) params.set("itags", tags.join(","));
+  if (sourceIds.length) params.set("isources", sourceIds.join(","));
+  return `/?${params.toString()}`;
 }
 
 function bySortOrder(a: BoardView, b: BoardView): number {
@@ -40,9 +57,11 @@ function bySortOrder(a: BoardView, b: BoardView): number {
 export function BoardManager({
   initialBoards,
   popularTags,
+  sourceOptions,
 }: {
   initialBoards: BoardView[];
   popularTags: string[];
+  sourceOptions: BoardSourceOption[];
 }) {
   const m = messages.boards;
   const [boards, setBoards] = useState<BoardView[]>([...initialBoards].sort(bySortOrder));
@@ -85,7 +104,14 @@ export function BoardManager({
   };
   const startEdit = (b: BoardView) => {
     setError(null);
-    setDraft({ id: b.id, name: b.name, emoji: b.emoji ?? "", tags: [...b.tags], tagInput: "" });
+    setDraft({
+      id: b.id,
+      name: b.name,
+      emoji: b.emoji ?? "",
+      tags: [...b.tags],
+      tagInput: "",
+      sourceIds: [...b.sourceIds],
+    });
   };
   const cancel = () => {
     setDraft(null);
@@ -109,6 +135,13 @@ export function BoardManager({
         ? { ...d, tags: d.tags.filter((t) => t !== tag) }
         : { ...d, tags: [...d.tags, tag] };
     });
+  const toggleSource = (id: string) =>
+    setDraft((d) => {
+      if (!d) return d;
+      return d.sourceIds.includes(id)
+        ? { ...d, sourceIds: d.sourceIds.filter((s) => s !== id) }
+        : { ...d, sourceIds: [...d.sourceIds, id] };
+    });
 
   const messageForError = (code: string): string => {
     if (code === "name_conflict") return m.nameConflict;
@@ -131,7 +164,12 @@ export function BoardManager({
       const res = await fetch(isEdit ? `/api/boards/${draft.id}` : "/api/boards", {
         method: isEdit ? "PATCH" : "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, emoji: draft.emoji.trim() || null, tags: draft.tags }),
+        body: JSON.stringify({
+          name,
+          emoji: draft.emoji.trim() || null,
+          tags: draft.tags,
+          sourceIds: draft.sourceIds,
+        }),
       });
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
@@ -278,6 +316,33 @@ export function BoardManager({
             )}
           </div>
 
+          {sourceOptions.length > 0 && (
+            <div className="board-field">
+              <span>
+                {m.sourcesLabel}
+                {draft.sourceIds.length > 0 ? `（已选 ${draft.sourceIds.length}）` : ""}
+              </span>
+              <p className="board-tags-hint">{m.sourcesHint}</p>
+              <div className="board-source-grid">
+                {sourceOptions.map((option) => {
+                  const active = draft.sourceIds.includes(option.id);
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      className={`chip ${active ? "is-active" : ""}`}
+                      aria-pressed={active}
+                      onClick={() => toggleSource(option.id)}
+                      disabled={pending}
+                    >
+                      {option.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {error && <output className="composer-error">{error}</output>}
           <div className="board-editor-actions">
             <button type="button" className="chip chip-clear" onClick={cancel} disabled={pending}>
@@ -303,9 +368,12 @@ export function BoardManager({
                   {b.emoji || "📌"}
                 </span>
                 <strong className="board-name">{b.name}</strong>
-                <span className="board-tag-count">{m.tagCountSuffix(b.tags.length)}</span>
+                <span className="board-tag-count">
+                  {m.tagCountSuffix(b.tags.length)}
+                  {b.sourceIds.length > 0 ? ` · ${m.sourceCountSuffix(b.sourceIds.length)}` : ""}
+                </span>
               </div>
-              {b.tags.length > 0 ? (
+              {b.tags.length > 0 && (
                 <div className="board-tags">
                   {b.tags.map((t) => (
                     <span key={t} className="board-tag">
@@ -313,11 +381,12 @@ export function BoardManager({
                     </span>
                   ))}
                 </div>
-              ) : (
+              )}
+              {b.tags.length === 0 && b.sourceIds.length === 0 && (
                 <p className="board-tags-empty">{m.noTags}</p>
               )}
               <div className="board-card-actions">
-                <Link className="board-open" href={boardHref(b.tags)}>
+                <Link className="board-open" href={boardHref(b.tags, b.sourceIds)}>
                   {m.open} →
                 </Link>
                 <button type="button" onClick={() => startEdit(b)} disabled={pending || draft !== null}>

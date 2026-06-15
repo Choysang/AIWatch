@@ -211,6 +211,13 @@
       "when": 1781488800000,
       "tag": "0029_llm_routing_overrides",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1781492400000,
+      "tag": "0030_board_source_ids",
+      "breakpoints": true
     }
   ]
 }

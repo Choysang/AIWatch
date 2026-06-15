@@ -111,4 +111,14 @@ describe("board HTTP routes", () => {
     const res = await boardsRoute.POST(req(token, { method: "POST", json: { tags: ["x"] } }));
     expect(res.status).toBe(400);
   });
+
+  test("a board can carry sourceIds (source scope) and round-trips normalized", async () => {
+    const token = await mintReaderId();
+    const res = await boardsRoute.POST(
+      req(token, { method: "POST", json: { name: "源板", tags: [], sourceIds: ["src_a", "src_a", " src_b "] } }),
+    );
+    expect(res.status).toBe(201);
+    const board = (await res.json()).board as { sourceIds: string[] };
+    expect(board.sourceIds).toEqual(["src_a", "src_b"]);
+  });
 });

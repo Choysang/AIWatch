@@ -70,6 +70,7 @@ export function SearchBar({
   sourceOptions = [],
   isLoggedIn = false,
   defaultApplied = false,
+  hasBoards = false,
 }: {
   /** 指定信源筛选的可选项（启用中的信源）。空数组时该区不渲染。 */
   sourceOptions?: SearchBarSourceOption[];
@@ -77,6 +78,8 @@ export function SearchBar({
   isLoggedIn?: boolean;
   /** 本次渲染由保存的默认信源筛选驱动（URL 未带 sources 参数）。 */
   defaultApplied?: boolean;
+  /** 读者是否已建主题板：决定「推荐」档是否出现（B v0.5：推荐=主题板内容）。 */
+  hasBoards?: boolean;
 }) {
   const m = messages.search;
   const router = useRouter();
@@ -149,12 +152,17 @@ export function SearchBar({
   const minScoreVal = draftValue(minScoreDraft, minScoreParam);
   const timeChoice = draftValue(timeDraft, routeTimeChoice) as TimeChoice;
   const modeParam = params.get("mode");
-  const mode: SearchMode =
+  const rawMode: SearchMode =
     modeParam === "personalized"
       ? "personalized"
       : modeParam === "latest" || modeParam === "all"
         ? "latest"
         : "selected";
+  // 「推荐」只在有主题板时出现；URL 残留 mode=personalized 时把高亮回退到「最新」。
+  const mode: SearchMode = rawMode === "personalized" && !hasBoards ? "latest" : rawMode;
+  const visibleModes: readonly SearchMode[] = hasBoards
+    ? SEARCH_MODES
+    : SEARCH_MODES.filter((value) => value !== "personalized");
   const selectedSourceCategories = parseSourceCategoryParam(params.get("sourceCategories"));
   const selectedEventCategory = params.get("category") as EventCategory | null;
   const nativeSubmitParams = Array.from(params.entries()).filter(([key]) => key !== "q");
@@ -284,6 +292,8 @@ export function SearchBar({
     params.get("sourceCategories") ||
     params.get("contentTypes") ||
     params.get("sources") ||
+    params.get("itags") ||
+    params.get("isources") ||
     params.get("category");
 
   return (
@@ -294,7 +304,7 @@ export function SearchBar({
     >
       <div className="search-main-row">
         <div className="search-mode-tabs" role="group" aria-label={m.modeLabel}>
-          {SEARCH_MODES.map((value) => (
+          {visibleModes.map((value) => (
             <button
               key={value}
               type="button"

@@ -83,4 +83,34 @@ describe("searchPersonalized", () => {
     const result = await searchPersonalized(FP_COLD, FILTER, 10, NOW);
     expect(result.map((e) => e.id)).toEqual(["evt_neutral", "evt_crypto", "evt_ml"]);
   });
+
+  test("board interests scope the pool to matching tags OR sources (v0.5 B)", async () => {
+    await seedEvents();
+    // Interest by tag: only the ml event carries the "ml" tag.
+    const byTag = await searchPersonalized(
+      FP_COLD,
+      { ...FILTER, interests: { tags: ["ml"], sourceIds: [] } },
+      10,
+      NOW,
+    );
+    expect(byTag.map((e) => e.id)).toEqual(["evt_ml"]);
+
+    // Interest by source: all three share src_a → all qualify (cold start = time order).
+    const bySource = await searchPersonalized(
+      FP_COLD,
+      { ...FILTER, interests: { tags: [], sourceIds: ["src_a"] } },
+      10,
+      NOW,
+    );
+    expect(bySource.map((e) => e.id)).toEqual(["evt_neutral", "evt_crypto", "evt_ml"]);
+
+    // OR union: tag "ml" OR source src_a → all three (src_a matches every seeded event).
+    const union = await searchPersonalized(
+      FP_COLD,
+      { ...FILTER, interests: { tags: ["ml"], sourceIds: ["src_a"] } },
+      10,
+      NOW,
+    );
+    expect(new Set(union.map((e) => e.id))).toEqual(new Set(["evt_ml", "evt_crypto", "evt_neutral"]));
+  });
 });

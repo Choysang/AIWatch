@@ -1,37 +1,47 @@
-// 把已按时间排序（最新在前）的事件流归入 年>月>ISO周>日 嵌套树。
-// ISO 周整周挂在「周一（ISO 周起始日）所在的年/月」；日节点保留事件自身日期。
-// 所有分桶基于 APP_TZ 民用日期（复用 dayKey），周计算在 UTC 午夜实例上做纯民用运算，
-// 不涉及时区偏移，故无 DST 问题。
+// 把事件流归入 年>月>ISO周>日 嵌套树。ISO 周整周挂在「周一（ISO 周起始日）所在的年/月」；
+// 日节点保留事件自身日期。所有分桶基于 APP_TZ 民用日期（复用 dayKey），周计算在 UTC 午夜实例上
+// 做纯民用运算，不涉及时区偏移，故无 DST 问题。
+//
+// 分桶按「年/月/周/日复合键」聚合（map），不依赖输入顺序连续：最新/精选按时间倒序喂入，推荐按
+// 相关度倒序喂入，两者都能把同一天的卡片聚到一起（修复推荐流时间线碎裂）。物化时各层按键倒序排，
+// 日内保留输入顺序（最新/精选=时间倒序，推荐=相关度倒序）。
+//
+// 默认折叠规则（统一）：最近 EXPAND_RECENT_DAYS 个民用日默认展开，更早默认折叠。锚点取流中最新民用
+// 日（而非 events[0]，因为推荐流首条未必最新）。
 
 import type { EventCard } from "@/db/queries/feed";
 import { dayKey, formatDayHeading } from "./format";
+
+// 最近多少个民用日默认展开（含当天）。其余默认折叠。
+const EXPAND_RECENT_DAYS = 3;
 
 export interface TimelineDay {
   key: string;
   heading: string;
   count: number;
-  onLatestPath: boolean;
+  /** 默认是否展开（最近 EXPAND_RECENT_DAYS 个民用日内）。 */
+  defaultExpanded: boolean;
   items: EventCard[];
 }
 export interface TimelineWeek {
   key: string;
   heading: string;
   count: number;
-  onLatestPath: boolean;
+  defaultExpanded: boolean;
   days: TimelineDay[];
 }
 export interface TimelineMonth {
   key: string;
   heading: string;
   count: number;
-  onLatestPath: boolean;
+  defaultExpanded: boolean;
   weeks: TimelineWeek[];
 }
 export interface TimelineYear {
   key: string;
   heading: string;
   count: number;
-  onLatestPath: boolean;
+  defaultExpanded: boolean;
   months: TimelineMonth[];
 }
 
@@ -53,6 +63,13 @@ function fmtUtc(date: Date): string {
   const m = String(date.getUTCMonth() + 1).padStart(2, "0");
   const d = String(date.getUTCDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+}
+
+/** Civil YYYY-MM-DD that is `days` calendar days before `ymd` (pure civil math, no DST). */
+function subtractDays(ymd: string, days: number): string {
+  const date = ymdToUtc(ymd);
+  date.setUTCDate(date.getUTCDate() - days);
+  return fmtUtc(date);
 }
 
 /** Monday (ISO week start) of the civil date `ymd`, as YYYY-MM-DD. */
@@ -107,72 +124,117 @@ function buckets(event: EventCard): Buckets {
   };
 }
 
+// --- keyed accumulators (group first, sort + materialize after) ---
+interface DayAcc {
+  key: string;
+  heading: string;
+  items: EventCard[];
+}
+interface WeekAcc {
+  key: string;
+  heading: string;
+  days: Map<string, DayAcc>;
+}
+interface MonthAcc {
+  key: string;
+  heading: string;
+  weeks: Map<string, WeekAcc>;
+}
+interface YearAcc {
+  key: string;
+  heading: string;
+  months: Map<string, MonthAcc>;
+}
+
+/** Sort by civil key, newest first. Keys are fixed-width YYYY[-MM[-DD]], so string order = time order. */
+function byKeyDesc<T extends { key: string }>(a: T, b: T): number {
+  return a.key < b.key ? 1 : a.key > b.key ? -1 : 0;
+}
+
+function toDay(acc: DayAcc, expandFrom: string): TimelineDay {
+  return {
+    key: acc.key,
+    heading: acc.heading,
+    count: acc.items.length,
+    // 民用日键是定宽 YYYY-MM-DD，字典序比较即日期比较。
+    defaultExpanded: expandFrom !== "" && acc.key >= expandFrom,
+    items: acc.items,
+  };
+}
+
+function toWeek(acc: WeekAcc, expandFrom: string): TimelineWeek {
+  const days = [...acc.days.values()].map((d) => toDay(d, expandFrom)).sort(byKeyDesc);
+  return {
+    key: acc.key,
+    heading: acc.heading,
+    count: days.reduce((n, d) => n + d.count, 0),
+    defaultExpanded: days.some((d) => d.defaultExpanded),
+    days,
+  };
+}
+
+function toMonth(acc: MonthAcc, expandFrom: string): TimelineMonth {
+  const weeks = [...acc.weeks.values()].map((w) => toWeek(w, expandFrom)).sort(byKeyDesc);
+  return {
+    key: acc.key,
+    heading: acc.heading,
+    count: weeks.reduce((n, w) => n + w.count, 0),
+    defaultExpanded: weeks.some((w) => w.defaultExpanded),
+    weeks,
+  };
+}
+
+function toYear(acc: YearAcc, expandFrom: string): TimelineYear {
+  const months = [...acc.months.values()].map((m) => toMonth(m, expandFrom)).sort(byKeyDesc);
+  return {
+    key: acc.key,
+    heading: acc.heading,
+    count: months.reduce((n, m) => n + m.count, 0),
+    defaultExpanded: months.some((m) => m.defaultExpanded),
+    months,
+  };
+}
+
 /**
- * Group a time-sorted (newest-first) feed into Year>Month>ISO-week>Day buckets.
- * Bucket keys are globally unique, so a contiguous single pass keeps each bucket whole.
+ * Group a feed into Year>Month>ISO-week>Day buckets. Robust to input order: bucketing is
+ * key-based (a Map per level), so a non-time-sorted feed (推荐 = relevance order) still groups
+ * each civil day together instead of fragmenting. Each level is then sorted newest-first; within
+ * a day, items keep their input order. The most recent EXPAND_RECENT_DAYS civil days are flagged
+ * defaultExpanded (the rest collapse by default), anchored at the newest civil day in the feed.
  */
 export function buildTimelineTree(events: EventCard[]): TimelineYear[] {
-  const years: TimelineYear[] = [];
-  const first = events[0];
-  const latest = first ? buckets(first) : null;
+  if (events.length === 0) return [];
 
+  const yearMap = new Map<string, YearAcc>();
+  let newestDayKey = "";
   for (const event of events) {
     const b = buckets(event);
+    if (b.dayKey !== "unknown" && b.dayKey > newestDayKey) newestDayKey = b.dayKey;
 
-    let year = years[years.length - 1];
-    if (!year || year.key !== b.yearKey) {
-      year = {
-        key: b.yearKey,
-        heading: b.yearHeading,
-        count: 0,
-        onLatestPath: latest?.yearKey === b.yearKey,
-        months: [],
-      };
-      years.push(year);
+    let year = yearMap.get(b.yearKey);
+    if (!year) {
+      year = { key: b.yearKey, heading: b.yearHeading, months: new Map() };
+      yearMap.set(b.yearKey, year);
     }
-
-    let month = year.months[year.months.length - 1];
-    if (!month || month.key !== b.monthKey) {
-      month = {
-        key: b.monthKey,
-        heading: b.monthHeading,
-        count: 0,
-        onLatestPath: latest?.monthKey === b.monthKey,
-        weeks: [],
-      };
-      year.months.push(month);
+    let month = year.months.get(b.monthKey);
+    if (!month) {
+      month = { key: b.monthKey, heading: b.monthHeading, weeks: new Map() };
+      year.months.set(b.monthKey, month);
     }
-
-    let week = month.weeks[month.weeks.length - 1];
-    if (!week || week.key !== b.weekKey) {
-      week = {
-        key: b.weekKey,
-        heading: b.weekHeading,
-        count: 0,
-        onLatestPath: latest?.weekKey === b.weekKey,
-        days: [],
-      };
-      month.weeks.push(week);
+    let week = month.weeks.get(b.weekKey);
+    if (!week) {
+      week = { key: b.weekKey, heading: b.weekHeading, days: new Map() };
+      month.weeks.set(b.weekKey, week);
     }
-
-    let day = week.days[week.days.length - 1];
-    if (!day || day.key !== b.dayKey) {
-      day = {
-        key: b.dayKey,
-        heading: b.dayHeading,
-        count: 0,
-        onLatestPath: latest?.dayKey === b.dayKey,
-        items: [],
-      };
-      week.days.push(day);
+    let day = week.days.get(b.dayKey);
+    if (!day) {
+      day = { key: b.dayKey, heading: b.dayHeading, items: [] };
+      week.days.set(b.dayKey, day);
     }
-
     day.items.push(event);
-    day.count++;
-    week.count++;
-    month.count++;
-    year.count++;
   }
 
-  return years;
+  // 最近 EXPAND_RECENT_DAYS 个民用日默认展开：[newestDayKey - (N-1), newestDayKey]。
+  const expandFrom = newestDayKey ? subtractDays(newestDayKey, EXPAND_RECENT_DAYS - 1) : "";
+  return [...yearMap.values()].map((y) => toYear(y, expandFrom)).sort(byKeyDesc);
 }

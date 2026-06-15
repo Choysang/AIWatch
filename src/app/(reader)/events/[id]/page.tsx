@@ -172,13 +172,14 @@ export default async function EventDetailPage({
           </figure>
         )}
 
-        {/* B1 (v0.5): 内容分层切换 AI 摘要 / 原文 / 全文。默认 AI（保持原行为）；原文是已转
-            纯文本的原帖内容；全文按需经 readability 抽取。原帖 HTML 在服务端转可读纯文本。 */}
+        {/* B1 (v0.5, merged): AI 摘要 / 原文。默认 AI（保持原行为）；原文先显示已转纯文本的原帖
+            内容，有源链接时按需经 readability 抽取完整全文并在原地升级。 */}
         <ContentLayers
           eventId={event.id}
           summary={event.summary}
           recommendationReason={event.recommendationReason}
           originalText={event.rawContent ? htmlToReadableText(event.rawContent) : null}
+          canFetchFull={Boolean(event.url)}
         />
 
         {event.url && (

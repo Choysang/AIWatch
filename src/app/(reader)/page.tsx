@@ -12,6 +12,7 @@ import { resolveReaderIdentityServer } from "@/app/_lib/reader-identity";
 import { getSession } from "@/app/_lib/session";
 import { READER_ID_COOKIE, verifyReaderId } from "@/auth/reader-id";
 import { searchEvents, searchPersonalized, type EventCard as EventCardData, type FeedFilter } from "@/db/queries/feed";
+import { listBoards, type ReaderIdentity } from "@/db/queries/topic-boards";
 import { getOwnerAnnotations, type AnnotationVerdict } from "@/db/queries/owner-annotations";
 import { getViewerReactions, type ViewerReactionState } from "@/db/queries/reactions";
 import { getTopCommentsForEvents } from "@/db/queries/comments";
@@ -116,6 +117,7 @@ function toFeedFilter(query: PublicQuery): FeedFilter {
     sourceTypes: query.sourceTypes,
     sourceCategories: query.sourceCategories,
     sourceIds: query.sourceIds,
+    interests: query.interests,
     level: query.level,
     minScore: query.minScore,
     category: query.category,
@@ -150,17 +152,54 @@ async function loadHomeData(
   }
 }
 
-// 推荐 mode (v0.5 A3): personalized re-rank for the current reader. Identity comes from the
-// rid cookie / session (resolveReaderIdentityServer). No identity yet (first visit) or any
-// failure degrades to the recent feed — never an empty page.
+interface ReaderInterestState {
+  identity: ReaderIdentity | null;
+  hasBoards: boolean;
+  interests: { tags: string[]; sourceIds: string[] };
+}
+
+const EMPTY_INTERESTS: ReaderInterestState = {
+  identity: null,
+  hasBoards: false,
+  interests: { tags: [], sourceIds: [] },
+};
+
+// 推荐 ↔ 主题板联动 (v0.5 B): resolve the reader and fold all their boards into one interest
+// (tags ∪ sources). hasBoards gates the 推荐 tab; the union drives the 推荐 feed. Best-effort —
+// no identity / no boards / any failure leaves 推荐 hidden and the feed on 最新.
+async function loadReaderInterests(): Promise<ReaderInterestState> {
+  try {
+    const identity = await resolveReaderIdentityServer();
+    if (!identity) return EMPTY_INTERESTS;
+    const boards = await listBoards(identity);
+    if (boards.length === 0) return { identity, hasBoards: false, interests: { tags: [], sourceIds: [] } };
+    const tags = new Set<string>();
+    const sourceIds = new Set<string>();
+    for (const board of boards) {
+      for (const tag of board.tags) tags.add(tag);
+      for (const id of board.sourceIds) sourceIds.add(id);
+    }
+    return { identity, hasBoards: true, interests: { tags: [...tags], sourceIds: [...sourceIds] } };
+  } catch (error) {
+    log.warn("[reader] loadReaderInterests failed", handledErrorDetails(error));
+    return EMPTY_INTERESTS;
+  }
+}
+
+// 推荐 mode (v0.5 B): the reader's boards (tags ∪ sources), re-ranked by their affinity. No
+// boards / no identity / any failure degrades to the recent feed — 推荐 is hidden in that case,
+// but a hand-typed mode=personalized still never shows an empty page.
 async function loadPersonalizedData(
   query: PublicQuery,
   limit: number,
+  reader: ReaderInterestState,
 ): Promise<{ events: EventCardData[]; hotspots: CurrentHotspot[] }> {
+  if (!reader.identity || !reader.hasBoards) {
+    return loadHomeData({ ...query, mode: "all" }, limit);
+  }
   try {
-    const identity = await resolveReaderIdentityServer();
-    if (!identity) return loadHomeData({ ...query, mode: "all" }, limit);
-    const events = await searchPersonalized(identity, toFeedFilter(query), limit);
+    const filter: FeedFilter = { ...toFeedFilter(query), mode: "all", interests: reader.interests };
+    const events = await searchPersonalized(reader.identity, filter, limit);
     try {
       const hotspots = await listCurrentHotspots(events.map((event) => event.id));
       return { events, hotspots };
@@ -288,13 +327,14 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const sp = await searchParams;
   const parsedQuery = toQuery(sp);
   const limit = parseHomeLimit(sp);
-  const [{ query, defaultApplied, isLoggedIn }, sourceOptions] = await Promise.all([
+  const [{ query, defaultApplied, isLoggedIn }, sourceOptions, readerInterests] = await Promise.all([
     applySavedSourceDefaults(sp, parsedQuery),
     loadSourceOptions(),
+    loadReaderInterests(),
   ]);
   let { events, hotspots } =
     query.mode === "personalized"
-      ? await loadPersonalizedData(query, limit)
+      ? await loadPersonalizedData(query, limit, readerInterests)
       : await loadHomeData(query, limit);
   let usedLatestFallback = false;
   if (
@@ -329,6 +369,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const isFiltered = Boolean(
     query.q ||
       query.tags?.length ||
+      query.interests ||
       query.level ||
       query.sourceTypes?.length ||
       query.sourceCategories?.length ||
@@ -360,6 +401,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         sourceOptions={sourceOptions}
         isLoggedIn={isLoggedIn}
         defaultApplied={defaultApplied}
+        hasBoards={readerInterests.hasBoards}
       />
       <CurrentHotspots items={hotspots} />
 
@@ -377,6 +419,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         )}
       </p>
       {usedLatestFallback && <p className="section-intro">{m.home.sparseSelectedNotice}</p>}
+      {query.interests && (
+        <p className="section-intro board-active-note">
+          {m.home.boardFilterActive}
+          <a href="/">{m.home.boardFilterClear}</a>
+        </p>
+      )}
 
       {events.length === 0 ? (
         <div className="empty">{isFiltered ? m.search.empty : m.home.empty}</div>
@@ -388,7 +436,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               level="year"
               heading={year.heading}
               count={year.count}
-              defaultCollapsed={!year.onLatestPath}
+              defaultCollapsed={!year.defaultExpanded}
             >
               {year.months.map((month) => (
                 <CollapsibleGroup
@@ -396,7 +444,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                   level="month"
                   heading={month.heading}
                   count={month.count}
-                  defaultCollapsed={!month.onLatestPath}
+                  defaultCollapsed={!month.defaultExpanded}
                 >
                   {month.weeks.map((week) => (
                     <CollapsibleGroup
@@ -404,7 +452,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                       level="week"
                       heading={week.heading}
                       count={week.count}
-                      defaultCollapsed={!week.onLatestPath}
+                      defaultCollapsed={!week.defaultExpanded}
                     >
                       {week.days.map((day) => (
                         <CollapsibleGroup
@@ -412,7 +460,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                           level="day"
                           heading={day.heading}
                           count={day.count}
-                          defaultCollapsed={!day.onLatestPath}
+                          defaultCollapsed={!day.defaultExpanded}
                         >
                           {day.items.map((event) => {
                             const r =

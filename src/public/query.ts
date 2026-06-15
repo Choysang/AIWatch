@@ -78,6 +78,12 @@ export interface PublicQuery {
   sourceCategories?: SourceCategory[];
   /** Per-source facet: only events whose main source is one of these ids (ANY-of). */
   sourceIds?: string[];
+  /**
+   * Board "interest" (A/B v0.5): events carrying ANY of these tags OR from ANY of these
+   * sources (an OR group, unlike the AND-combined facets above). Backs opening a topic board
+   * (itags/isources params) and the 推荐 aggregate. Undefined = no interest filter.
+   */
+  interests?: ReaderInterests;
   /** Content-type facet (ANY-of). Undefined = no filter. */
   contentTypes?: ContentType[];
   level?: PromotedLevel;
@@ -161,6 +167,37 @@ export function parseTags(raw: string | null): string[] | undefined {
 /** Cap on per-source filters per request (the whole pool is ~60; anything more is "all"). */
 export const MAX_SOURCE_IDS = 100;
 const SOURCE_ID_RE = /^[a-z0-9_-]{1,64}$/i;
+
+/** A board "interest": match events with ANY of these tags OR from ANY of these sources. */
+export interface ReaderInterests {
+  tags: string[];
+  sourceIds: string[];
+}
+
+/** Interest tags can exceed the manual MAX_TAGS (a board union aggregates many boards). */
+export const MAX_INTEREST_TAGS = 60;
+
+function parseInterestTags(raw: string | null): string[] {
+  if (!raw) return [];
+  const seen = new Set<string>();
+  for (const part of raw.split(",")) {
+    const tag = part.trim();
+    if (tag) seen.add(tag);
+    if (seen.size >= MAX_INTEREST_TAGS) break;
+  }
+  return [...seen];
+}
+
+/**
+ * Parse the `itags` / `isources` params into a board interest (tags OR sources). Returns
+ * undefined when both are empty so callers can skip the OR predicate entirely.
+ */
+export function parseInterests(params: URLSearchParams): ReaderInterests | undefined {
+  const tags = parseInterestTags(params.get("itags"));
+  const sourceIds = parseSourceIds(params.get("isources")) ?? [];
+  if (tags.length === 0 && sourceIds.length === 0) return undefined;
+  return { tags, sourceIds };
+}
 
 /** Parse a comma-separated `sources` param of source ids. Malformed entries are dropped. */
 export function parseSourceIds(raw: string | null): string[] | undefined {
@@ -268,6 +305,7 @@ export function parsePublicQuery(params: URLSearchParams): PublicQuery {
   const sourceTypes = parseSourceTypes(params.get("sourceTypes"));
   const sourceCategories = parseSourceCategories(params.get("sourceCategories"));
   const sourceIds = parseSourceIds(params.get("sources"));
+  const interests = parseInterests(params);
   const contentTypes = parseContentTypes(params.get("contentTypes"));
   const { dateFrom, dateTo } = parseDateRange(params.get("from"), params.get("to"));
   const minScore = parseMinScore(params.get("minScore"));
@@ -281,6 +319,7 @@ export function parsePublicQuery(params: URLSearchParams): PublicQuery {
     sourceTypes,
     sourceCategories,
     sourceIds,
+    interests,
     contentTypes,
     level,
     minScore,

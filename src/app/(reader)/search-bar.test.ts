@@ -35,6 +35,13 @@ describe("search bar responsiveness", () => {
     expect(searchSource).toContain('else if (value === "personalized") next.set("mode", "personalized");');
   });
 
+  test("gates the 推荐 tab behind having topic boards (v0.5 B)", () => {
+    expect(searchSource).toContain("hasBoards");
+    expect(searchSource).toContain("const visibleModes");
+    expect(searchSource).toContain('SEARCH_MODES.filter((value) => value !== "personalized")');
+    expect(searchSource).toContain("visibleModes.map");
+  });
+
   test("keeps mode tabs above a left-aligned filter/search row", () => {
     const mainRowStart = searchSource.indexOf('className="search-main-row"');
     const modeTabsIndex = searchSource.indexOf('className="search-mode-tabs"');

@@ -23,6 +23,7 @@ export const dynamic = "force-dynamic";
 const createSchema = z.object({
   name: z.string().min(1).max(200),
   tags: z.array(z.string().max(200)).max(100).optional().default([]),
+  sourceIds: z.array(z.string().max(64)).max(200).optional().default([]),
   emoji: z.string().max(40).nullish(),
 });
 
@@ -70,6 +71,7 @@ export async function POST(req: Request): Promise<Response> {
     const board = await createBoard(identity, {
       name: parsed.name,
       tags: parsed.tags,
+      sourceIds: parsed.sourceIds,
       emoji: parsed.emoji ?? null,
     });
     return Response.json({ board }, { status: 201 });

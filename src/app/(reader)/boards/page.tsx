@@ -10,6 +10,7 @@
 import { resolveReaderIdentityServer } from "@/app/_lib/reader-identity";
 import { SubpageNav } from "@/app/subpage-nav";
 import { listBoards, type TopicBoard } from "@/db/queries/topic-boards";
+import { listSourceOptions, type SourceOption } from "@/db/queries/sources";
 import { listPopularTags } from "@/db/queries/tags";
 import { messages } from "@/i18n";
 import { log } from "@/log";
@@ -46,9 +47,22 @@ async function loadPopularTags(): Promise<string[]> {
   }
 }
 
+async function loadSourceOptions(): Promise<SourceOption[]> {
+  try {
+    return await listSourceOptions();
+  } catch (error) {
+    warn("[reader] loadSourceOptions failed", error);
+    return [];
+  }
+}
+
 export default async function BoardsPage() {
   const m = messages.boards;
-  const [initialBoards, popularTags] = await Promise.all([loadInitialBoards(), loadPopularTags()]);
+  const [initialBoards, popularTags, sourceOptions] = await Promise.all([
+    loadInitialBoards(),
+    loadPopularTags(),
+    loadSourceOptions(),
+  ]);
 
   return (
     <main className="page">
@@ -60,7 +74,11 @@ export default async function BoardsPage() {
       </header>
 
       <p className="section-intro">{m.subheading}</p>
-      <BoardManager initialBoards={initialBoards} popularTags={popularTags} />
+      <BoardManager
+        initialBoards={initialBoards}
+        popularTags={popularTags}
+        sourceOptions={sourceOptions}
+      />
     </main>
   );
 }
