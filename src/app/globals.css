@@ -1006,15 +1006,6 @@ canvas {
   color: var(--ink-soft);
   font-style: italic;
 }
-.content-layer-note.content-layer-ok {
-  color: var(--accent);
-  font-style: normal;
-}
-.original-text-body-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
 
 /* --- model routing admin (v0.5 C1) --- */
 .routing-editor select,

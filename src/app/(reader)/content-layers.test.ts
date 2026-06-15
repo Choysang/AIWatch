@@ -30,6 +30,12 @@ describe("content-layer switcher (merged 原文/全文)", () => {
     expect(componentSrc).toContain("const body = upgraded ? fullText : originalText;");
   });
 
+  test("when full text is unavailable it silently shows 原文 (no notice when body exists)", () => {
+    // body present -> render the text only; the loading/unavailable notes are body===null branches.
+    expect(componentSrc).toContain("body !== null ? (");
+    expect(componentSrc).toContain('<div className="original-text-body">{body}</div>');
+  });
+
   test("shows the 原文 tab when there is ingested text OR a fetchable source", () => {
     expect(componentSrc).toContain("const hasBodyTab = originalText !== null || canFetchFull;");
   });
@@ -44,7 +50,8 @@ describe("content-layer switcher (merged 原文/全文)", () => {
   test("i18n + CSS back the switcher", () => {
     expect(i18nSrc).toContain("layer: {");
     expect(i18nSrc).toContain('original: "原文"');
-    expect(i18nSrc).toContain("fullLoaded:");
+    expect(i18nSrc).toContain("loading:");
+    expect(i18nSrc).not.toContain("fullFallback:");
     expect(i18nSrc).not.toContain('fulltext: "全文"');
     expect(cssSrc).toContain(".content-layer-tab.is-active {");
   });

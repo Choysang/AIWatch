@@ -11,8 +11,8 @@ import { type CSSProperties } from "react";
 import { resolveReaderIdentityServer } from "@/app/_lib/reader-identity";
 import { getSession } from "@/app/_lib/session";
 import { READER_ID_COOKIE, verifyReaderId } from "@/auth/reader-id";
-import { searchEvents, searchPersonalized, type EventCard as EventCardData, type FeedFilter } from "@/db/queries/feed";
-import { listBoards, type ReaderIdentity } from "@/db/queries/topic-boards";
+import { searchEvents, type EventCard as EventCardData, type FeedFilter } from "@/db/queries/feed";
+import { listBoards } from "@/db/queries/topic-boards";
 import { getOwnerAnnotations, type AnnotationVerdict } from "@/db/queries/owner-annotations";
 import { getViewerReactions, type ViewerReactionState } from "@/db/queries/reactions";
 import { getTopCommentsForEvents } from "@/db/queries/comments";
@@ -153,64 +153,46 @@ async function loadHomeData(
 }
 
 interface ReaderInterestState {
-  identity: ReaderIdentity | null;
   hasBoards: boolean;
   interests: { tags: string[]; sourceIds: string[] };
 }
 
-const EMPTY_INTERESTS: ReaderInterestState = {
-  identity: null,
-  hasBoards: false,
-  interests: { tags: [], sourceIds: [] },
-};
+const EMPTY_INTERESTS: ReaderInterestState = { hasBoards: false, interests: { tags: [], sourceIds: [] } };
 
-// 推荐 ↔ 主题板联动 (v0.5 B): resolve the reader and fold all their boards into one interest
-// (tags ∪ sources). hasBoards gates the 推荐 tab; the union drives the 推荐 feed. Best-effort —
-// no identity / no boards / any failure leaves 推荐 hidden and the feed on 最新.
+// 推荐 ↔ 主题板联动 (v0.5 B): fold all the reader's boards into one interest (tags ∪ sources).
+// hasBoards gates the 推荐 tab; the union drives the 推荐 feed. Best-effort — no identity / no
+// boards / any failure leaves 推荐 hidden and the feed on 最新.
 async function loadReaderInterests(): Promise<ReaderInterestState> {
   try {
     const identity = await resolveReaderIdentityServer();
     if (!identity) return EMPTY_INTERESTS;
     const boards = await listBoards(identity);
-    if (boards.length === 0) return { identity, hasBoards: false, interests: { tags: [], sourceIds: [] } };
+    if (boards.length === 0) return EMPTY_INTERESTS;
     const tags = new Set<string>();
     const sourceIds = new Set<string>();
     for (const board of boards) {
       for (const tag of board.tags) tags.add(tag);
       for (const id of board.sourceIds) sourceIds.add(id);
     }
-    return { identity, hasBoards: true, interests: { tags: [...tags], sourceIds: [...sourceIds] } };
+    return { hasBoards: true, interests: { tags: [...tags], sourceIds: [...sourceIds] } };
   } catch (error) {
     log.warn("[reader] loadReaderInterests failed", handledErrorDetails(error));
     return EMPTY_INTERESTS;
   }
 }
 
-// 推荐 mode (v0.5 B): the reader's boards (tags ∪ sources), re-ranked by their affinity. No
-// boards / no identity / any failure degrades to the recent feed — 推荐 is hidden in that case,
-// but a hand-typed mode=personalized still never shows an empty page.
+// 推荐 mode (v0.5 B): the reader's boards as one interest (tags ∪ sources), in strict time
+// order like 最新 — just narrowed to what they follow (no behavioral ranking). No boards →
+// recent feed; 推荐 is hidden then, but a hand-typed mode=personalized never shows empty.
 async function loadPersonalizedData(
   query: PublicQuery,
   limit: number,
   reader: ReaderInterestState,
 ): Promise<{ events: EventCardData[]; hotspots: CurrentHotspot[] }> {
-  if (!reader.identity || !reader.hasBoards) {
-    return loadHomeData({ ...query, mode: "all" }, limit);
-  }
-  try {
-    const filter: FeedFilter = { ...toFeedFilter(query), mode: "all", interests: reader.interests };
-    const events = await searchPersonalized(reader.identity, filter, limit);
-    try {
-      const hotspots = await listCurrentHotspots(events.map((event) => event.id));
-      return { events, hotspots };
-    } catch (error) {
-      log.warn("[reader] loadHotspots (personalized) failed", handledErrorDetails(error));
-      return { events, hotspots: [] };
-    }
-  } catch (error) {
-    log.warn("[reader] loadPersonalizedData failed", handledErrorDetails(error));
-    return loadHomeData({ ...query, mode: "all" }, limit);
-  }
+  const personalized: PublicQuery = reader.hasBoards
+    ? { ...query, mode: "all", interests: reader.interests }
+    : { ...query, mode: "all" };
+  return loadHomeData(personalized, limit);
 }
 
 async function loadViewerReactions(

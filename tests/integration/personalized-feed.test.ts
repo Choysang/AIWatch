@@ -1,7 +1,6 @@
-// Integration test for the 推荐 (personalized) feed (v0.5 A3.2) against real Postgres.
-// Seeds three recent events + one reader's signals, then asserts searchPersonalized boosts
-// the liked-tag event above a higher-base neutral one (personalization overrides time),
-// excludes downed events (P6), and falls back to recent order on a cold-start identity (P7).
+// Integration test for the board-driven 推荐 feed (v0.5 B) against real Postgres. 推荐 is just
+// the reader's board interest (tags ∪ sources) applied to the normal feed in strict time order
+// — no behavioral re-ranking. This exercises the `interests` OR predicate in searchEvents.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
@@ -12,7 +11,7 @@ let savedDatabaseUrl: string | undefined;
 let getDb: typeof import("@/db/client").getDb;
 let resetDb: typeof import("@/db/client").resetDb;
 let schema: typeof import("@/db/schema");
-let searchPersonalized: typeof import("@/db/queries/feed").searchPersonalized;
+let searchEvents: typeof import("@/db/queries/feed").searchEvents;
 
 function withTimeout(p: Promise<unknown> | undefined, ms: number): Promise<unknown> {
   if (!p) return Promise.resolve();
@@ -21,9 +20,7 @@ function withTimeout(p: Promise<unknown> | undefined, ms: number): Promise<unkno
 
 const NOW = new Date("2026-06-14T12:00:00Z");
 const H = 60 * 60 * 1000;
-const FP_R = { userId: null, fingerprint: "fp_r" };
-const FP_COLD = { userId: null, fingerprint: "fp_cold" };
-const FILTER = { mode: "personalized" as const, since: "all" as const };
+const BASE = { mode: "all" as const, since: "all" as const };
 
 beforeAll(async () => {
   savedDatabaseUrl = process.env.DATABASE_URL;
@@ -31,11 +28,14 @@ beforeAll(async () => {
   process.env.DATABASE_URL = pgHandle.connectionString;
   ({ getDb, resetDb } = await import("@/db/client"));
   schema = await import("@/db/schema");
-  ({ searchPersonalized } = await import("@/db/queries/feed"));
+  ({ searchEvents } = await import("@/db/queries/feed"));
   await migrate(getDb(), { migrationsFolder: "src/db/migrations" });
   await getDb()
     .insert(schema.sources)
-    .values({ id: "src_a", name: "A", platform: "blog", level: "L1", sourceType: "official", connectorType: "mock" })
+    .values([
+      { id: "src_a", name: "A", platform: "blog", level: "L1", sourceType: "official", connectorType: "mock" },
+      { id: "src_b", name: "B", platform: "blog", level: "L1", sourceType: "official", connectorType: "mock" },
+    ])
     .onConflictDoNothing({ target: schema.sources.id });
 }, 120_000);
 
@@ -47,70 +47,42 @@ afterAll(async () => {
 }, 60_000);
 
 beforeEach(async () => {
-  await getDb().delete(schema.eventReactions);
-  await getDb().delete(schema.eventViews);
   await getDb().delete(schema.events);
 });
 
 async function seedEvents() {
-  // evtNeutral newest + slightly higher base; evtMl oldest. Time order = neutral, crypto, ml.
+  // Time order (newest first): neutral (src_b), crypto (src_a), ml (src_a).
   await getDb()
     .insert(schema.events)
     .values([
-      { id: "evt_ml", title: "ml release", tags: ["ml"], mainSourceId: "src_a", qualityScore: 50, publishedAt: new Date(NOW.getTime() - 3 * H) },
-      { id: "evt_crypto", title: "crypto noise", tags: ["crypto"], mainSourceId: "src_a", qualityScore: 50, publishedAt: new Date(NOW.getTime() - 2 * H) },
-      { id: "evt_neutral", title: "neutral", tags: ["other"], mainSourceId: "src_a", qualityScore: 55, publishedAt: new Date(NOW.getTime() - 1 * H) },
+      { id: "evt_ml", title: "ml release", tags: ["ml"], mainSourceId: "src_a", publishedAt: new Date(NOW.getTime() - 3 * H) },
+      { id: "evt_crypto", title: "crypto noise", tags: ["crypto"], mainSourceId: "src_a", publishedAt: new Date(NOW.getTime() - 2 * H) },
+      { id: "evt_neutral", title: "neutral", tags: ["other"], mainSourceId: "src_b", publishedAt: new Date(NOW.getTime() - 1 * H) },
     ]);
 }
 
-describe("searchPersonalized", () => {
-  test("boosts a liked-tag event above a higher-base neutral one and drops downed events", async () => {
+describe("board interest feed (推荐)", () => {
+  test("scopes to a tag interest, in strict time order", async () => {
     await seedEvents();
-    await getDb().insert(schema.eventReactions).values([
-      { id: "rx1", eventId: "evt_ml", kind: "star", fingerprint: "fp_r" },
-      { id: "rx2", eventId: "evt_crypto", kind: "down", fingerprint: "fp_r" },
-    ]);
-
-    const result = await searchPersonalized(FP_R, FILTER, 10, NOW);
-    const ids = result.map((e) => e.id);
-    expect(ids).not.toContain("evt_crypto"); // downed -> excluded (P6)
-    expect(ids[0]).toBe("evt_ml"); // boosted to the top despite being the oldest + lower base
-    expect(ids).toContain("evt_neutral");
-  });
-
-  test("cold-start identity (no signals) falls back to recent time order", async () => {
-    await seedEvents();
-    const result = await searchPersonalized(FP_COLD, FILTER, 10, NOW);
-    expect(result.map((e) => e.id)).toEqual(["evt_neutral", "evt_crypto", "evt_ml"]);
-  });
-
-  test("board interests scope the pool to matching tags OR sources (v0.5 B)", async () => {
-    await seedEvents();
-    // Interest by tag: only the ml event carries the "ml" tag.
-    const byTag = await searchPersonalized(
-      FP_COLD,
-      { ...FILTER, interests: { tags: ["ml"], sourceIds: [] } },
-      10,
-      NOW,
-    );
+    const byTag = await searchEvents({ ...BASE, interests: { tags: ["ml"], sourceIds: [] } }, 10, NOW);
     expect(byTag.map((e) => e.id)).toEqual(["evt_ml"]);
+  });
 
-    // Interest by source: all three share src_a → all qualify (cold start = time order).
-    const bySource = await searchPersonalized(
-      FP_COLD,
-      { ...FILTER, interests: { tags: [], sourceIds: ["src_a"] } },
+  test("scopes to a source interest, in strict time order", async () => {
+    await seedEvents();
+    // src_a carries crypto + ml (not neutral); newest-first => crypto before ml.
+    const bySource = await searchEvents({ ...BASE, interests: { tags: [], sourceIds: ["src_a"] } }, 10, NOW);
+    expect(bySource.map((e) => e.id)).toEqual(["evt_crypto", "evt_ml"]);
+  });
+
+  test("tags OR sources is a union, not an intersection", async () => {
+    await seedEvents();
+    // tag "other" (neutral) OR source src_a (crypto, ml) => all three, newest-first.
+    const union = await searchEvents(
+      { ...BASE, interests: { tags: ["other"], sourceIds: ["src_a"] } },
       10,
       NOW,
     );
-    expect(bySource.map((e) => e.id)).toEqual(["evt_neutral", "evt_crypto", "evt_ml"]);
-
-    // OR union: tag "ml" OR source src_a → all three (src_a matches every seeded event).
-    const union = await searchPersonalized(
-      FP_COLD,
-      { ...FILTER, interests: { tags: ["ml"], sourceIds: ["src_a"] } },
-      10,
-      NOW,
-    );
-    expect(new Set(union.map((e) => e.id))).toEqual(new Set(["evt_ml", "evt_crypto", "evt_neutral"]));
+    expect(union.map((e) => e.id)).toEqual(["evt_neutral", "evt_crypto", "evt_ml"]);
   });
 });

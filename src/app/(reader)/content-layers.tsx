@@ -105,27 +105,16 @@ export function ContentLayers({
           </>
         )}
 
-        {layer === "body" && (
-          <div className="original-text-body-wrap">
-            {body !== null && <div className="original-text-body">{body}</div>}
-            {upgraded && <p className="content-layer-note content-layer-ok">{m.fullLoaded}</p>}
-            {body !== null && fullStatus === "loading" && (
-              <p className="content-layer-note">{m.loading}</p>
-            )}
-            {body !== null && (fullStatus === "unavailable" || fullStatus === "error") && (
-              <p className="content-layer-note">{m.fullFallback}</p>
-            )}
-            {body === null && fullStatus === "loading" && (
-              <p className="content-layer-note">{m.loading}</p>
-            )}
-            {body === null && fullStatus === "unavailable" && (
-              <p className="content-layer-note">{m.unavailable}</p>
-            )}
-            {body === null && fullStatus === "error" && (
-              <p className="content-layer-note">{m.error}</p>
-            )}
-          </div>
-        )}
+        {layer === "body" &&
+          (body !== null ? (
+            // We have text (ingested 原文, silently upgraded to the full article when available).
+            // Full-text fetch failing is a no-op: just keep showing 原文, never blank or noisy.
+            <div className="original-text-body">{body}</div>
+          ) : fullStatus === "loading" ? (
+            <p className="content-layer-note">{m.loading}</p>
+          ) : (
+            <p className="content-layer-note">{m.unavailable}</p>
+          ))}
       </div>
     </div>
   );

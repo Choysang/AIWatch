@@ -198,17 +198,14 @@ export const zh = {
     openOriginal: "打开原文",
     originalText: "查看原帖全文",
     originalTextNote: "原帖内容未经翻译，以信源原文为准。",
-    // B1 (v0.5, merged): 内容分层切换 AI 摘要 / 原文（原文优先显示完整全文）。
+    // B1 (v0.5, merged): 内容分层切换 AI 摘要 / 原文（原文优先显示完整全文；抓不到就静默用原文）。
     layer: {
       label: "内容",
       ai: "AI 摘要",
       original: "原文",
       aiEmpty: "暂无 AI 摘要。",
       loading: "正在加载完整全文…",
-      fullLoaded: "已加载完整全文",
-      fullFallback: "完整全文暂不可用，已显示原帖内容。",
       unavailable: "无法获取正文，可打开下方原始链接查看。",
-      error: "正文加载失败，请稍后再试，或打开原始链接。",
     },
   },
   loadMore: {

@@ -3,12 +3,9 @@
 
 import { and, arrayOverlaps, desc, eq, gte, inArray, ne, or, sql, type SQL } from "drizzle-orm";
 import { db as defaultDb, type DB } from "@/db/client";
-import { loadReaderSignals } from "@/db/queries/reader-affinity";
-import type { ReaderIdentity } from "@/db/queries/topic-boards";
 import { events, posts, sources } from "@/db/schema";
 import type { ContentType, PublicMode, SemanticWindow, SourceCategory, SourceType } from "@/public/query";
 import { windowStart } from "@/public/query";
-import { buildReaderAffinityProfile, computeReaderBoost } from "@/scoring/reader-affinity";
 import type { PromotedLevel } from "@/scoring/types";
 
 export interface EventCard {
@@ -81,11 +78,10 @@ export const cardColumns = {
 } as const;
 
 // Strict newest-first over the same effective-time chain the reader timeline groups by
-// (published → promoted → created; see timeline-tree.ts effectiveTime). 最新/精选 order by
-// this chain so the HH:mm timeline rail reads top-to-bottom; quality discovery lives in 精选
-// mode, personal relevance in 推荐 (which orders by affinity, not time — buildTimelineTree
-// groups by civil-day key so a non-time-sorted feed still buckets cleanly). Keeping this sort
-// time-based also stops old events from crowding today's items out of the LIMIT.
+// (published → promoted → created; see timeline-tree.ts effectiveTime). Every reader feed —
+// 最新, 精选, and 推荐 (a board interest: tags ∪ sources) — orders by this chain so the HH:mm
+// timeline rail reads top-to-bottom; 精选 narrows to selected events, 推荐 narrows to the
+// reader's boards. Time-based sort also stops old events from crowding today's out of the LIMIT.
 const effectiveTime = sql`coalesce(${events.publishedAt}, ${events.promotedAt}, ${events.createdAt})`;
 
 /** Most recent events first (All AI Dynamics default sort): strict effective-time order. */
@@ -201,62 +197,4 @@ export async function searchEvents(
     .orderBy(sql`${effectiveTime} desc`, desc(events.id))
     .limit(limit);
   return rows as EventCard[];
-}
-
-// 推荐 mode (v0.5 A3): personalized re-rank over a bounded recent candidate pool. The
-// reader profile is built per request (not persisted — millions of rid identities). The
-// default 最新 feed stays strict-time; this is a separate opt-in view.
-const PERSONALIZED_POOL = 150;
-
-/** Quality baseline a personal boost is added to (mirrors the home card emphasis fallback). */
-function baseScore(card: EventCard): number {
-  if (typeof card.qualityScore === "number") return card.qualityScore;
-  const byLevel: Record<EventCard["selectedLevel"], number> = { S: 90, A: 75, B: 60, none: 45 };
-  return byLevel[card.selectedLevel];
-}
-
-function effectiveTimeMs(card: EventCard): number {
-  return (card.publishedAt ?? card.promotedAt ?? card.createdAt).getTime();
-}
-
-/**
- * Personalized feed: take the recent candidate pool (newest-first, the reader's filters
- * applied), then re-rank by base quality + per-reader affinity boost. Downed events are
- * dropped (P6). Cold start (no signals) returns the recent pool unchanged (P7), so a new
- * reader's 推荐 still shows fresh content.
- */
-export async function searchPersonalized(
-  identity: ReaderIdentity,
-  filter: FeedFilter,
-  limit = 30,
-  now: Date = new Date(),
-  db: DB = defaultDb,
-): Promise<EventCard[]> {
-  const poolSize = Math.max(limit, PERSONALIZED_POOL);
-  const candidates = await searchEvents({ ...filter, mode: "all" }, poolSize, now, db);
-
-  const { signals, downedEventIds } = await loadReaderSignals(identity, db);
-  const profile = buildReaderAffinityProfile(signals);
-  if (profile.isEmpty) return candidates.slice(0, limit);
-
-  const downed = new Set(downedEventIds);
-  return candidates
-    .filter((card) => !downed.has(card.id))
-    .map((card) => ({
-      card,
-      score:
-        baseScore(card) +
-        computeReaderBoost(
-          {
-            tags: card.tags,
-            sourceId: card.mainSourceId,
-            category: card.category,
-            contentType: card.contentType,
-          },
-          profile,
-        ),
-    }))
-    .sort((a, b) => b.score - a.score || effectiveTimeMs(b.card) - effectiveTimeMs(a.card))
-    .slice(0, limit)
-    .map((entry) => entry.card);
 }
