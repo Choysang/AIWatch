@@ -11,7 +11,7 @@ import { db as defaultDb, type DB } from "@/db/client";
 import { events } from "@/db/schema";
 import { readBudgetCaps } from "@/llm/budget";
 import { checkLlmBudget, recordLlmSpend } from "@/db/queries/llm-spend";
-import { llmRouting, resolveProvider } from "@/llm/routing";
+import { getRouteConfig, resolveProvider } from "@/llm/routing";
 import { structuredGenerateWithRetry } from "@/llm/structured";
 import { LIGHT_JUDGE_SYSTEM } from "@/pipeline/prompts";
 import {
@@ -79,7 +79,7 @@ export interface BackfillDeps {
 /** Default classifier: same triage route + spend_guard as the live pipeline. */
 function makeDefaultClassify(db: DB): ClassifyFn {
   return async (event) => {
-    const route = llmRouting.light_judge;
+    const route = getRouteConfig("light_judge");
     const provider = resolveProvider("light_judge");
     if (!provider) {
       throw new NoProviderConfiguredError("[backfill-domain] no light_judge provider configured");

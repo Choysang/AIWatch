@@ -17,7 +17,7 @@ import {
 import { insertPostIfNew } from "@/db/queries/posts";
 import type { DueSource } from "@/db/queries/sources";
 import { posts, sources } from "@/db/schema";
-import { llmRouting, resolveProvider, routingConfigVersion, type LlmTask } from "@/llm/routing";
+import { getRouteConfig, resolveProvider, routingConfigVersion, type LlmTask } from "@/llm/routing";
 import {
   LlmProviderError,
   LlmSchemaError,
@@ -116,7 +116,7 @@ async function generateForTask<T>(
   system: string,
   user: string,
 ): Promise<T> {
-  const route = llmRouting[task];
+  const route = getRouteConfig(task);
   const provider = resolveProvider(task);
   if (!provider) {
     throw new NoProviderConfiguredError(`[${task}] no provider configured for route ${route.provider}`);
@@ -378,7 +378,7 @@ export async function judgeAndStorePost(
       contentType: judgment.contentType,
     });
 
-    const route = llmRouting[judgment.tier === "T2" ? "deep_extract" : "light_judge"];
+    const route = getRouteConfig(judgment.tier === "T2" ? "deep_extract" : "light_judge");
     const provider = resolveProvider(judgment.tier === "T2" ? "deep_extract" : "light_judge");
     if (!provider) {
       await markJudgeFailed(db, postId, "no_key");

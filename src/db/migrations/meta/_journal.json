@@ -204,6 +204,13 @@
       "when": 1781485200000,
       "tag": "0028_post_fulltext",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1781488800000,
+      "tag": "0029_llm_routing_overrides",
+      "breakpoints": true
     }
   ]
 }

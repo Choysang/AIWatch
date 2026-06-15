@@ -16,6 +16,7 @@ import { alertSourceHealthTask } from "./tasks/alert-source-health";
 import { digestPendingContributionsTask } from "./tasks/digest-pending-contributions";
 import { recomputeScoresV2Task } from "./tasks/recompute-scores-v2";
 import { recomputeRankScoresTask } from "./tasks/recompute-rank-scores";
+import { refreshRoutingOverrides, refreshRoutingOverridesTask } from "./tasks/refresh-routing-overrides";
 import { suggestSourceReviewTask } from "./tasks/suggest-source-review";
 
 // Fail-fast on a misconfigured environment before opening the worker runtime (E1).
@@ -27,6 +28,15 @@ if (!connectionString) {
 }
 
 async function main(): Promise<void> {
+  // Prime the routing-override cache at boot (the cron keeps it fresh). Best-effort: a
+  // failure (e.g. table not yet migrated) leaves the cache empty -> static/env routing.
+  try {
+    await refreshRoutingOverrides();
+  } catch (error) {
+    // eslint-disable-next-line no-console -- entrypoint lifecycle log
+    console.warn("[worker] routing override prime failed (using static routing):", error);
+  }
+
   const runner = await run({
     connectionString,
     concurrency: Number(process.env.WORKER_CONCURRENCY ?? 4),
@@ -52,6 +62,7 @@ async function main(): Promise<void> {
       "30 8 * * * suggest-source-review",
       "20 * * * * digest-pending-contributions",
       "40 * * * * alert-source-health",
+      "* * * * * refresh-routing-overrides",
     ].join("\n"),
     taskList: {
       "crawl-source": crawlSource,
@@ -65,6 +76,7 @@ async function main(): Promise<void> {
       "recompute-rank-scores": recomputeRankScoresTask,
       "digest-pending-contributions": digestPendingContributionsTask,
       "alert-source-health": alertSourceHealthTask,
+      "refresh-routing-overrides": refreshRoutingOverridesTask,
     },
   });
 

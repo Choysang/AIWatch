@@ -650,6 +650,17 @@ export const topicBoards = pgTable(
   ],
 );
 
+// --- llm_routing_overrides (v0.5 C1: 主理人可编辑的模型路由) ---
+// 每任务一行，覆盖 src/llm/routing.ts 的静态 provider/model（仅这两项；promptVersion/
+// token/temperature 仍由代码控制）。worker 侧内存缓存 + cron 刷新读取，resolveProvider 仍同步。
+export const llmRoutingOverrides = pgTable("llm_routing_overrides", {
+  task: text("task").primaryKey(),
+  provider: text("provider").notNull(),
+  model: text("model").notNull(),
+  updatedBy: text("updated_by"),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
 export const schema = {
   sources,
   posts,
@@ -669,4 +680,5 @@ export const schema = {
   ownerAnnotations,
   userPreferences,
   topicBoards,
+  llmRoutingOverrides,
 };

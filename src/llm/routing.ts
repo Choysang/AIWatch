@@ -7,6 +7,7 @@
 
 import { OpenAICompatibleProvider } from "./openai-compatible";
 import type { LLMProvider } from "./provider";
+import { getRoutingOverride } from "./routing-overrides";
 import { StubLLMProvider } from "./stub";
 
 export type LlmTask =
@@ -174,8 +175,24 @@ export function stubFallbackEnabled(): boolean {
  * fallback is disabled — that's the fail-closed contract: a missing key is not a bug, but
  * it does block this route's judgments until the key is configured.
  */
+/**
+ * The effective route for a task: the static/env base (llmRouting) with a valid owner
+ * override (v0.5 C1) applied to provider + model. The override is ignored when its provider
+ * isn't a known LlmProviderName — defends the judge hot path against a stale/bad cache row,
+ * so an unknown override degrades to the base rather than crashing. promptVersion / token
+ * caps / temperature always come from the code-controlled base.
+ */
+export function getRouteConfig(task: LlmTask): RouteConfig {
+  const base = llmRouting[task];
+  const override = getRoutingOverride(task);
+  if (override && PROVIDERS.includes(override.provider) && override.model) {
+    return { ...base, provider: override.provider, model: override.model };
+  }
+  return base;
+}
+
 export function resolveProvider(task: LlmTask): LLMProvider | null {
-  const route = llmRouting[task];
+  const route = getRouteConfig(task);
   if (route.provider === "stub") return new StubLLMProvider();
 
   if (providerConfigured(route.provider)) {
