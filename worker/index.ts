@@ -17,6 +17,7 @@ import { digestPendingContributionsTask } from "./tasks/digest-pending-contribut
 import { recomputeScoresV2Task } from "./tasks/recompute-scores-v2";
 import { recomputeRankScoresTask } from "./tasks/recompute-rank-scores";
 import { refreshRoutingOverrides, refreshRoutingOverridesTask } from "./tasks/refresh-routing-overrides";
+import { rejudgeFailedPostsTask } from "./tasks/rejudge-failed-posts";
 import { suggestSourceReviewTask } from "./tasks/suggest-source-review";
 
 // Fail-fast on a misconfigured environment before opening the worker runtime (E1).
@@ -50,7 +51,9 @@ async function main(): Promise<void> {
     // at 06:00 daily, Monday 09:00 weekly, and 1st 09:00 monthly; flag low-contribution
     // sources for human review daily at 08:30; digest newly submitted contributions
     // for owner/admin hourly at :20 (信源推荐收集); alert the operator hourly at :40 when
-    // the X source pool fails en masse (TWITTER_AUTH_TOKEN-expired signature).
+    // the X source pool fails en masse (TWITTER_AUTH_TOKEN-expired signature); re-judge posts
+    // stuck in judge_failed for infra-transient reasons hourly at :50 (auto-heal after an LLM
+    // gateway outage — bounded to the last 48h, 50/run; full sweep stays the manual script).
     crontab: [
       "* * * * * enqueue-due-sources",
       "*/10 * * * * recompute-scores-v2",
@@ -63,6 +66,7 @@ async function main(): Promise<void> {
       "20 * * * * digest-pending-contributions",
       "40 * * * * alert-source-health",
       "* * * * * refresh-routing-overrides",
+      "50 * * * * rejudge-failed-posts",
     ].join("\n"),
     taskList: {
       "crawl-source": crawlSource,
@@ -77,6 +81,7 @@ async function main(): Promise<void> {
       "digest-pending-contributions": digestPendingContributionsTask,
       "alert-source-health": alertSourceHealthTask,
       "refresh-routing-overrides": refreshRoutingOverridesTask,
+      "rejudge-failed-posts": rejudgeFailedPostsTask,
     },
   });
 
