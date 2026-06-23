@@ -61,6 +61,16 @@ export function EventCard({
   const showReason = isSelected && Boolean(event.recommendationReason);
   const showComments = (level === "A" || level === "S") && Boolean(topComments?.length);
   const cardMedia = extractCardMedia(event.media);
+  // Card media is a still thumbnail only. We don't inline-play video here: most card video
+  // comes from X/Twitter as HLS (.m3u8) or hotlink-protected CDN URLs that a native <video>
+  // can't actually play, leaving a dead control strip. For a video we show its poster (a
+  // screenshot); with no poster we render nothing rather than a useless bar. The whole card
+  // already routes to the detail page, where the original source link lives.
+  const cardThumb = cardMedia
+    ? cardMedia.type === "image"
+      ? cardMedia.url
+      : cardMedia.poster ?? null
+    : null;
   const contentLabel = eventCategoryLabel(event.category);
   const detailHref = `/events/${event.id}`;
   // Chinese-first titles can equal the one-line summary (deriveTitle fallback);
@@ -118,16 +128,10 @@ export function EventCard({
         </TrackableDetailLink>
       </h2>
 
-      {cardMedia && (
+      {cardThumb && (
         <figure className="card-media">
-          {cardMedia.type === "video" ? (
-            <video controls preload="metadata" playsInline poster={cardMedia.poster}>
-              <source src={cardMedia.url} />
-            </video>
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element -- external media, unknown host, no Next loader
-            <img src={cardMedia.url} alt="" loading="lazy" />
-          )}
+          {/* eslint-disable-next-line @next/next/no-img-element -- external media, unknown host, no Next loader */}
+          <img src={cardThumb} alt="" loading="lazy" />
         </figure>
       )}
 
