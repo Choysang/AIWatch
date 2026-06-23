@@ -1845,6 +1845,76 @@ canvas {
 .board-open:hover {
   filter: brightness(1.08);
 }
+.board-brief {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.32rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+.board-brief:hover,
+.board-brief:focus-visible {
+  border-color: var(--accent);
+  color: var(--ink);
+  outline: none;
+}
+
+/* 主题简报 toolbar (B2): kind tabs + back-to-feed, reuses the report kind-tab look. */
+.brief-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 1.6rem;
+}
+.brief-kind-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.brief-kind-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.1rem;
+  padding: 0.34rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+}
+.brief-kind-tab:hover,
+.brief-kind-tab:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent-weak);
+  color: var(--ink);
+  outline: none;
+}
+.brief-kind-tab.is-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--paper-raised);
+}
+.brief-back {
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.brief-back:hover {
+  text-decoration: underline;
+}
 .board-card-actions > button {
   padding: 0.32rem 0.7rem;
   border: 1px solid var(--line);

@@ -50,6 +50,15 @@ function boardHref(tags: string[], sourceIds: string[]): string {
   return `/?${params.toString()}`;
 }
 
+/** A board's brief (B2): the interest (tags/sources) carried into /brief. Null when empty. */
+function briefHref(tags: string[], sourceIds: string[]): string | null {
+  if (tags.length === 0 && sourceIds.length === 0) return null;
+  const params = new URLSearchParams();
+  if (tags.length) params.set("itags", tags.join(","));
+  if (sourceIds.length) params.set("isources", sourceIds.join(","));
+  return `/brief?${params.toString()}`;
+}
+
 function bySortOrder(a: BoardView, b: BoardView): number {
   return a.sortOrder - b.sortOrder || a.name.localeCompare(b.name);
 }
@@ -389,6 +398,11 @@ export function BoardManager({
                 <Link className="board-open" href={boardHref(b.tags, b.sourceIds)}>
                   {m.open} →
                 </Link>
+                {briefHref(b.tags, b.sourceIds) && (
+                  <Link className="board-brief" href={briefHref(b.tags, b.sourceIds)!} title={m.briefHint}>
+                    {m.brief}
+                  </Link>
+                )}
                 <button type="button" onClick={() => startEdit(b)} disabled={pending || draft !== null}>
                   {m.edit}
                 </button>

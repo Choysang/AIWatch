@@ -4,18 +4,16 @@
 // `now` (spec: "last 24h" / "yesterday follow-up"); the row is keyed by the publish date
 // in APP_TZ so /api/public/daily/{date} can address it. All kinds auto-publish (点11).
 
-import { and, eq, gte, lt, or } from "drizzle-orm";
 import { newId } from "@/core/ids";
-import { APP_TZ, appCalendarDate, DAY_MS } from "@/core/time";
+import { APP_TZ, appCalendarDate } from "@/core/time";
 import { db as defaultDb, type DB } from "@/db/client";
-import { events, posts, reports, sources } from "@/db/schema";
-import { messages } from "@/i18n";
+import { reports } from "@/db/schema";
 import { buildReport } from "@/reports/build-report";
 import { reportConfig, type ReportConfig } from "@/reports/config";
-import type { ReportEvent, ReportKind, ReportStatus, ReportText, SectionCounts } from "@/reports/types";
+import { loadReportEvents, reportWindow } from "@/reports/load-events";
+import { reportText } from "@/reports/report-text";
+import type { ReportKind, ReportStatus, SectionCounts } from "@/reports/types";
 import { scoringConfig } from "@/scoring/config";
-
-const KIND_SPAN_DAYS: Record<ReportKind, number> = { daily: 1, weekly: 7, monthly: 30 };
 
 export interface GenerateReportResult {
   id: string;
@@ -30,29 +28,6 @@ export interface GenerateReportOptions {
   reportCfg?: ReportConfig;
 }
 
-function reportText(kind: ReportKind): ReportText {
-  const r = messages.report;
-  return {
-    title: (ctx) => `${ctx.keywords.join(" / ")} · ${ctx.coverageLabel}`,
-    sectionTitles: r.sections,
-    summary: (ctx) => {
-      if (ctx.itemCount === 0) return r.emptySummary;
-      const topic = ctx.keywords.join("、");
-      const counts = `${r.counts.focus} ${ctx.focus} · ${r.counts.watching} ${ctx.watching} · ${r.counts.followup} ${ctx.followup}`;
-      if (ctx.kind === "weekly") return r.weeklySummary(topic, counts);
-      if (ctx.kind === "monthly") return r.monthlySummary(topic, counts);
-      return r.dailySummary(topic, counts);
-    },
-    readingPath: (ctx) => {
-      if (ctx.topTitles.length === 0) return [];
-      const primary = ctx.topTitles.slice(0, 3).join(" → ");
-      if (ctx.kind === "weekly") return [r.weeklyReadingPath(primary), r.weeklyEditorNote(ctx.keywords.join("、"))];
-      if (ctx.kind === "monthly") return [r.monthlyReadingPath(primary), r.monthlyEditorNote(ctx.keywords.join("、"))];
-      return [r.dailyReadingPath(primary), r.dailyEditorNote(ctx.keywords.join("、"))];
-    },
-  };
-}
-
 export async function generateReport(
   kind: ReportKind,
   now: Date = new Date(),
@@ -64,59 +39,13 @@ export async function generateReport(
 
   // Rolling window ending at generation time; keyed by the publish calendar date in tz.
   const date = appCalendarDate(now, tz);
-  const spanMs = KIND_SPAN_DAYS[kind] * DAY_MS;
-  const window = { start: new Date(now.getTime() - spanMs), end: now };
-  // The follow-up section reaches one more equal-length window into the past.
-  const priorStart = new Date(window.start.getTime() - spanMs);
-
-  const rows = await db
-    .select({
-      id: events.id,
-      title: events.title,
-      summary: events.summary,
-      recommendationReason: events.recommendationReason,
-      category: events.category,
-      qualityScore: events.qualityScore,
-      selectedLevel: events.selectedLevel,
-      selectedLabel: events.selectedLabel,
-      publishedAt: events.publishedAt,
-      promotedAt: events.promotedAt,
-      tags: events.tags,
-      url: posts.url,
-      sourceName: sources.name,
-      sourceHandle: sources.handle,
-    })
-    .from(events)
-    .leftJoin(posts, eq(posts.id, events.mainPostId))
-    .leftJoin(sources, eq(sources.id, events.mainSourceId))
-    .where(
-      or(
-        and(gte(events.promotedAt, priorStart), lt(events.promotedAt, window.end)),
-        and(gte(events.publishedAt, window.start), lt(events.publishedAt, window.end)),
-      ),
-    );
-
-  const reportEvents: ReportEvent[] = rows.map((r) => ({
-    id: r.id,
-    title: r.title,
-    summary: r.summary,
-    recommendationReason: r.recommendationReason,
-    category: r.category,
-    qualityScore: r.qualityScore,
-    selectedLevel: r.selectedLevel,
-    selectedLabel: r.selectedLabel,
-    url: r.url,
-    tags: r.tags,
-    sourceName: r.sourceName,
-    sourceHandle: r.sourceHandle,
-    publishedAt: r.publishedAt,
-    promotedAt: r.promotedAt,
-  }));
+  const win = reportWindow(kind, now);
+  const reportEvents = await loadReportEvents(win, undefined, db);
 
   const content = buildReport({
     kind,
     date,
-    window,
+    window: { start: win.start, end: win.end },
     events: reportEvents,
     text: reportText(kind),
     config: cfg,

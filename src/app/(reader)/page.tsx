@@ -108,6 +108,14 @@ function toQuery(sp: SearchParams): PublicQuery {
   return parsePublicQuery(params);
 }
 
+/** Carry the active board interest into the 主题简报 link (/brief?itags=…&isources=…). */
+function briefQuery(interests: { tags: string[]; sourceIds: string[] }): URLSearchParams {
+  const params = new URLSearchParams();
+  if (interests.tags.length) params.set("itags", interests.tags.join(","));
+  if (interests.sourceIds.length) params.set("isources", interests.sourceIds.join(","));
+  return params;
+}
+
 function toFeedFilter(query: PublicQuery): FeedFilter {
   return {
     mode: query.mode,
@@ -404,6 +412,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       {query.interests && (
         <p className="section-intro board-active-note">
           {m.home.boardFilterActive}
+          <a href={`/brief?${briefQuery(query.interests).toString()}`}>{m.home.boardFilterBrief}</a>
           <a href="/">{m.home.boardFilterClear}</a>
         </p>
       )}

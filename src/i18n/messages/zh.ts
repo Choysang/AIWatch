@@ -89,6 +89,7 @@ export const zh = {
     lastUpdated: (when: string) => `最后更新 ${when}`,
     sparseSelectedNotice: "本期精选较少，已为你展示全部最新动态；带星标的是编辑严选。",
     boardFilterActive: "正在按主题板筛选（命中标签或信源的动态）。",
+    boardFilterBrief: "看主题简报 →",
     boardFilterClear: "查看全部 →",
   },
   search: {
@@ -397,6 +398,18 @@ export const zh = {
     importSubmitted: (n: number) => `已提交 ${n} 个信源建议，待主理人审核。`,
     importNoFeeds: "未在文件中找到可导入的 RSS 信源。",
     importError: "导入失败，请稍后再试。",
+    brief: "简报",
+    briefHint: "把这个主题的近期动态拼成一份日/周/月叙事简报",
+  },
+  // B2 (v0.5): 每主题叙事简报 —— 复用确定性报告引擎，按主题板兴趣（标签∪信源）查询时拼装。
+  brief: {
+    heading: "主题简报",
+    subheading: "按你的主题板兴趣，把近期动态拼成一份叙事简报。",
+    kindLabel: "粒度",
+    viewFeed: "看完整信息流",
+    noInterest: "请从主题板进入查看简报。",
+    goBoards: "去主题板",
+    failed: "简报生成失败，请稍后再试。",
   },
   admin: {
     title: "管理控制台",
