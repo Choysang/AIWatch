@@ -22,6 +22,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { user as authUser } from "./auth-schema";
+import type { RichBlock } from "@/content/rich-blocks";
 
 // --- enums ---
 export const platformEnum = pgEnum("platform", [
@@ -168,6 +169,10 @@ export const posts = pgTable(
     fullText: text("full_text"),
     fullTextStatus: text("full_text_status"),
     fullTextFetchedAt: ts("full_text_fetched_at"),
+    // B1.5 (v0.5): structured rich-content blocks (tables/code/images/headings) parsed from the
+    // readability HTML, cached alongside full_text. Rendered via React elements (XSS-inert);
+    // null/[] = no rich content (client falls back to plain full_text / 原文). See rich-blocks.ts.
+    fullBlocks: jsonb("full_blocks").$type<RichBlock[]>(),
     createdAt: ts("created_at").notNull().defaultNow(),
   },
   (t) => [

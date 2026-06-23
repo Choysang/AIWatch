@@ -967,6 +967,94 @@ canvas {
   overflow-y: auto;
 }
 
+/* --- rich-content rendered article body (v0.5 B1.5): tables / code / images / headings --- */
+.rich-content {
+  padding: 0 0.9rem 0.9rem;
+  font-size: 0.92rem;
+  line-height: 1.75;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.rich-content > * {
+  margin: 0 0 0.85rem;
+}
+.rich-content h2,
+.rich-content h3,
+.rich-content h4 {
+  color: var(--ink);
+  line-height: 1.35;
+  margin: 1.2rem 0 0.6rem;
+}
+.rich-content h2 { font-size: 1.18rem; }
+.rich-content h3 { font-size: 1.06rem; }
+.rich-content h4 { font-size: 0.98rem; }
+.rich-content a {
+  color: var(--accent, #4c8bf5);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.rich-content :is(ul, ol) {
+  padding-left: 1.4rem;
+}
+.rich-content li {
+  margin: 0.25rem 0;
+}
+.rich-content blockquote {
+  margin: 0 0 0.85rem;
+  padding: 0.4rem 0.9rem;
+  border-left: 3px solid var(--line);
+  color: var(--ink-faint);
+}
+.rich-content :not(pre) > code {
+  padding: 0.08rem 0.32rem;
+  border-radius: 5px;
+  background: color-mix(in oklab, var(--ink) 10%, transparent);
+  font-size: 0.86em;
+}
+.rich-code {
+  padding: 0.8rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--ink) 6%, transparent);
+  overflow-x: auto;
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+.rich-code code {
+  white-space: pre;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.rich-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 0.4rem auto 0.85rem;
+}
+.rich-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.rich-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.86rem;
+}
+.rich-table :is(th, td) {
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+.rich-table th {
+  background: color-mix(in oklab, var(--ink) 6%, transparent);
+  color: var(--ink);
+  font-weight: 600;
+}
+
 /* --- content-layer switcher AI 摘要 / 原文 / 全文 (v0.5 B1) --- */
 .content-layers {
   margin: 0 0 1rem;

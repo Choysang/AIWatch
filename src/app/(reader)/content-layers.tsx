@@ -9,6 +9,8 @@
 
 import { useState } from "react";
 import { messages } from "@/i18n";
+import type { RichBlock } from "@/content/rich-blocks";
+import { RichContent } from "./rich-content";
 
 type Layer = "ai" | "body";
 type FullStatus = "idle" | "loading" | "ok" | "unavailable" | "error";
@@ -31,6 +33,7 @@ export function ContentLayers({
   const [layer, setLayer] = useState<Layer>("ai");
   const [fullStatus, setFullStatus] = useState<FullStatus>("idle");
   const [fullText, setFullText] = useState("");
+  const [blocks, setBlocks] = useState<RichBlock[]>([]);
 
   const showBody = async () => {
     setLayer("body");
@@ -42,9 +45,10 @@ export function ContentLayers({
         setFullStatus("error");
         return;
       }
-      const data = (await res.json()) as { status: string; text: string | null };
+      const data = (await res.json()) as { status: string; text: string | null; blocks?: RichBlock[] };
       if (data.status === "ok" && data.text) {
         setFullText(data.text);
+        setBlocks(Array.isArray(data.blocks) ? data.blocks : []);
         setFullStatus("ok");
       } else if (data.status === "empty" || data.status === "unavailable") {
         setFullStatus("unavailable");
@@ -62,6 +66,10 @@ export function ContentLayers({
   const upgraded =
     fullStatus === "ok" && fullText.length > 0 && (originalText === null || fullText.length >= originalText.length);
   const body = upgraded ? fullText : originalText;
+  // Rich rendering (tables/code/images/headings) wins when the full-article extraction produced
+  // structured blocks; otherwise we fall back to the plain-text body (ingested 原文 or pre-B1.5
+  // cached extractions). Only show rich blocks when we'd also be showing the upgraded full text.
+  const richReady = upgraded && blocks.length > 0;
 
   return (
     <div className="content-layers">
@@ -106,7 +114,10 @@ export function ContentLayers({
         )}
 
         {layer === "body" &&
-          (body !== null ? (
+          (richReady ? (
+            // Full article extracted into structured blocks: tables, code, images, headings.
+            <RichContent blocks={blocks} />
+          ) : body !== null ? (
             // We have text (ingested 原文, silently upgraded to the full article when available).
             // Full-text fetch failing is a no-op: just keep showing 原文, never blank or noisy.
             <div className="original-text-body">{body}</div>

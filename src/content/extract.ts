@@ -7,12 +7,20 @@
 
 import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
+import { htmlToBlocks, type RichBlock } from "./rich-blocks";
 
 export type FullTextStatus = "ok" | "empty" | "error";
 
 export interface ExtractResult {
   status: FullTextStatus;
   text: string;
+}
+
+export interface RichExtractResult {
+  status: FullTextStatus;
+  text: string;
+  /** Structured blocks (tables/code/images/headings) — empty unless status is 'ok'. */
+  blocks: RichBlock[];
 }
 
 const FETCH_TIMEOUT_MS = 8000;
@@ -124,4 +132,34 @@ export async function extractArticle(url: string): Promise<ExtractResult> {
   const html = await fetchHtml(url);
   if (html === null) return { status: "error", text: "" };
   return extractReadableText(html);
+}
+
+/**
+ * Readability extraction over already-fetched HTML, returning both plain text (for the length gate
+ * and search) and the structured block model (for rich rendering). `baseUrl` resolves relative
+ * links/images. Pure — no network. Never throws.
+ */
+export function extractReadableRich(html: string, baseUrl: string): RichExtractResult {
+  try {
+    const { document } = parseHTML(html);
+    const reader = new Readability(document as unknown as Document);
+    const article = reader.parse();
+    const text = (article?.textContent ?? "")
+      .replace(/[ \t]+\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+    if (text.length < MIN_TEXT_LENGTH) return { status: "empty", text: "", blocks: [] };
+    const blocks = htmlToBlocks(article?.content ?? "", baseUrl);
+    return { status: "ok", text, blocks };
+  } catch {
+    return { status: "error", text: "", blocks: [] };
+  }
+}
+
+/** Fetch + readability-extract one article URL into text + structured blocks. Never throws. */
+export async function extractArticleRich(url: string): Promise<RichExtractResult> {
+  if (!isSafeFetchUrl(url)) return { status: "error", text: "", blocks: [] };
+  const html = await fetchHtml(url);
+  if (html === null) return { status: "error", text: "", blocks: [] };
+  return extractReadableRich(html, url);
 }

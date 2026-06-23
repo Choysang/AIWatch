@@ -54,28 +54,35 @@ async function seed(post: Record<string, unknown>, eventId = "evt1", mainPostId:
 }
 
 describe("getOrExtractFulltext", () => {
-  test("serves a cached 'ok' extraction without re-fetching", async () => {
+  test("serves a cached 'ok' extraction without re-fetching (no blocks → empty array)", async () => {
     await seed({ url: "https://x.example/a", fullText: "cached article body", fullTextStatus: "ok", fullTextFetchedAt: NOW });
     const result = await getOrExtractFulltext("evt1", getDb(), NOW);
-    expect(result).toEqual({ status: "ok", text: "cached article body" });
+    expect(result).toEqual({ status: "ok", text: "cached article body", blocks: [] });
+  });
+
+  test("serves cached rich blocks (B1.5) alongside the text", async () => {
+    const blocks = [{ type: "paragraph" as const, spans: [{ text: "hello" }] }];
+    await seed({ url: "https://x.example/a", fullText: "hello", fullBlocks: blocks, fullTextStatus: "ok", fullTextFetchedAt: NOW });
+    const result = await getOrExtractFulltext("evt1", getDb(), NOW);
+    expect(result).toEqual({ status: "ok", text: "hello", blocks });
   });
 
   test("returns cached 'empty' and 'error' (within cooldown) without re-fetching", async () => {
     await seed({ url: "https://x.example/a", fullTextStatus: "empty", fullTextFetchedAt: NOW });
-    expect(await getOrExtractFulltext("evt1", getDb(), NOW)).toEqual({ status: "empty", text: null });
+    expect(await getOrExtractFulltext("evt1", getDb(), NOW)).toEqual({ status: "empty", text: null, blocks: null });
 
     await getDb().delete(schema.events);
     await getDb().delete(schema.posts);
     await seed({ url: "https://x.example/a", fullTextStatus: "error", fullTextFetchedAt: NOW });
     // 30 min later — still inside the 1h cooldown.
     const within = new Date(NOW.getTime() + 30 * 60 * 1000);
-    expect(await getOrExtractFulltext("evt1", getDb(), within)).toEqual({ status: "error", text: null });
+    expect(await getOrExtractFulltext("evt1", getDb(), within)).toEqual({ status: "error", text: null, blocks: null });
   });
 
   test("a fresh extraction with an unsafe URL records error (SSRF guard, no network)", async () => {
     await seed({ url: "http://127.0.0.1/secret" }); // status null -> attempt extraction
     const result = await getOrExtractFulltext("evt1", getDb(), NOW);
-    expect(result).toEqual({ status: "error", text: null });
+    expect(result).toEqual({ status: "error", text: null, blocks: null });
 
     const [row] = await getDb()
       .select({ status: schema.posts.fullTextStatus })
@@ -86,11 +93,11 @@ describe("getOrExtractFulltext", () => {
 
   test("records 'empty' when the post has no URL to fetch", async () => {
     await seed({ url: null });
-    expect(await getOrExtractFulltext("evt1", getDb(), NOW)).toEqual({ status: "empty", text: null });
+    expect(await getOrExtractFulltext("evt1", getDb(), NOW)).toEqual({ status: "empty", text: null, blocks: null });
   });
 
   test("returns 'unavailable' when the event has no main post", async () => {
     await getDb().insert(schema.events).values({ id: "evt_nopost", title: "t", mainSourceId: "src_a" });
-    expect(await getOrExtractFulltext("evt_nopost", getDb(), NOW)).toEqual({ status: "unavailable", text: null });
+    expect(await getOrExtractFulltext("evt_nopost", getDb(), NOW)).toEqual({ status: "unavailable", text: null, blocks: null });
   });
 });

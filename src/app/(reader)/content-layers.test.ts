@@ -47,6 +47,17 @@ describe("content-layer switcher (merged 原文/全文)", () => {
     expect(detailSrc).toContain('from "../../content-layers"');
   });
 
+  test("renders structured rich blocks (B1.5) when extraction yields them, else plain text", () => {
+    expect(componentSrc).toContain('import { RichContent } from "./rich-content"');
+    expect(componentSrc).toContain("blocks?: RichBlock[]");
+    expect(componentSrc).toContain("const richReady = upgraded && blocks.length > 0;");
+    expect(componentSrc).toContain("<RichContent blocks={blocks} />");
+    // rich rendering wins, with the plain-text body as the fallback branch.
+    expect(componentSrc).toContain("richReady ? (");
+    expect(cssSrc).toContain(".rich-table {");
+    expect(cssSrc).toContain(".rich-code {");
+  });
+
   test("i18n + CSS back the switcher", () => {
     expect(i18nSrc).toContain("layer: {");
     expect(i18nSrc).toContain('original: "原文"');
