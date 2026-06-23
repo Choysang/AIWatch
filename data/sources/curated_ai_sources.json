@@ -1278,5 +1278,19 @@
     "ai_density_score": 9,
     "recommendedBy": "owner-20260612",
     "recommendReason": "AI 实践测评 KOL（公众号同名），X 账号同步其 AI 工具实测与教程内容。"
+  },
+  {
+    "name": "Tibo Sottiaux",
+    "handle": "@thsottiaux",
+    "url": "https://x.com/thsottiaux",
+    "platform": "x",
+    "connectorType": "rsshub",
+    "connectorRef": "/twitter/user/thsottiaux",
+    "category": "industry_leader",
+    "sourceType": "employee",
+    "level": "L2",
+    "ai_density_score": 8,
+    "recommendedBy": "owner-20260623",
+    "recommendReason": "OpenAI 设计/产品负责人，常分享产品打磨、设计决策与一手项目动态，博文质量高、适合入选精选。"
   }
 ]
