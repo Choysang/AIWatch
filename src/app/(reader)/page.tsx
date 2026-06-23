@@ -105,6 +105,10 @@ function toQuery(sp: SearchParams): PublicQuery {
     if (typeof value === "string") params.set(key, value);
     else if (Array.isArray(value) && value[0]) params.set(key, value[0]);
   }
+  // Reader landing defaults to 最新 (latest, time-ordered). 精选 is opt-in via mode=selected.
+  // (parsePublicQuery still defaults to "selected" for the public agent API — that contract
+  // is unchanged; we only override the reader homepage here.)
+  if (!params.has("mode")) params.set("mode", "all");
   return parsePublicQuery(params);
 }
 
@@ -255,26 +259,6 @@ async function loadTopComments(eventIds: string[]): Promise<Map<string, string[]
   }
 }
 
-// 精选是稀缺资产：冷启动或淡周时默认首页可能只有个位数精选卡片。低于这个数
-// 时回退展示全部最新动态（精选徽标仍内联可见），显式点「精选」(URL 带 mode) 不回退。
-const SPARSE_SELECTED_MIN = 6;
-
-function isDefaultLanding(sp: SearchParams, query: PublicQuery): boolean {
-  return (
-    sp.mode === undefined &&
-    sp.sources === undefined &&
-    !query.q &&
-    !query.tags?.length &&
-    !query.level &&
-    !query.sourceTypes?.length &&
-    !query.sourceCategories?.length &&
-    typeof query.minScore !== "number" &&
-    !query.dateFrom &&
-    !query.dateTo &&
-    !query.category
-  );
-}
-
 // 登录读者的默认信源筛选（bestblogs 式定制）：URL 未显式带 sources 参数时应用保存的偏好。
 async function applySavedSourceDefaults(
   sp: SearchParams,
@@ -322,22 +306,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     loadSourceOptions(),
     loadReaderInterests(),
   ]);
-  let { events, hotspots } =
+  const { events, hotspots } =
     query.mode === "personalized"
       ? await loadPersonalizedData(query, limit, readerInterests)
       : await loadHomeData(query, limit);
-  let usedLatestFallback = false;
-  if (
-    query.mode === "selected" &&
-    events.length < SPARSE_SELECTED_MIN &&
-    isDefaultLanding(sp, query)
-  ) {
-    const fallback = await loadHomeData({ ...query, mode: "all", since: "all" }, limit);
-    if (fallback.events.length > events.length) {
-      ({ events, hotspots } = fallback);
-      usedLatestFallback = true;
-    }
-  }
+  // 精选(mode=selected)显示真实精选集，稀少时如实显示少量/空，不再静默回退最新——
+  // 避免「点了精选却和最新一样」的误解。落地默认已是最新。
   // A full page means there may be more; render the load-more link (limit+step, capped).
   const canLoadMore = events.length >= limit && limit < HOME_LIMIT_MAX;
   const eventIds: string[] = [];
@@ -408,7 +382,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </span>
         )}
       </p>
-      {usedLatestFallback && <p className="section-intro">{m.home.sparseSelectedNotice}</p>}
       {query.interests && (
         <p className="section-intro board-active-note">
           {m.home.boardFilterActive}

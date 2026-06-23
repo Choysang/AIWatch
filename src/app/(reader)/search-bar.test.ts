@@ -22,8 +22,8 @@ describe("search bar responsiveness", () => {
   test("omits explicit all filter chips because empty selection means all", () => {
     expect(searchSource).toContain('const WINDOWS = ["today", "week", "month", "all"] as const;');
     expect(searchSource).toContain('const SEARCH_MODES = ["latest", "selected", "personalized"] as const;');
-    expect(searchSource).toContain('modeParam === "latest" || modeParam === "all"');
-    expect(searchSource).toContain('if (value === "latest") next.set("mode", "latest");');
+    expect(searchSource).toContain('modeParam === "selected"');
+    expect(searchSource).toContain('if (value === "selected") next.set("mode", "selected");');
     expect(searchSource).toContain('else next.delete("mode");');
     expect(searchSource).toContain("const toggleEventCategory");
     expect(searchSource).not.toContain("clearEventCategory");

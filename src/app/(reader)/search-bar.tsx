@@ -152,12 +152,13 @@ export function SearchBar({
   const minScoreVal = draftValue(minScoreDraft, minScoreParam);
   const timeChoice = draftValue(timeDraft, routeTimeChoice) as TimeChoice;
   const modeParam = params.get("mode");
+  // 默认落地页 = 最新；只有显式 mode=selected 才高亮「精选」(URL 带 mode，不再静默回退最新)。
   const rawMode: SearchMode =
     modeParam === "personalized"
       ? "personalized"
-      : modeParam === "latest" || modeParam === "all"
-        ? "latest"
-        : "selected";
+      : modeParam === "selected"
+        ? "selected"
+        : "latest";
   // 「推荐」只在有主题板时出现；URL 残留 mode=personalized 时把高亮回退到「最新」。
   const mode: SearchMode = rawMode === "personalized" && !hasBoards ? "latest" : rawMode;
   const visibleModes: readonly SearchMode[] = hasBoards
@@ -192,7 +193,8 @@ export function SearchBar({
 
   const setMode = (value: SearchMode) =>
     navigate((next) => {
-      if (value === "latest") next.set("mode", "latest");
+      // 精选/推荐写入显式 mode；最新是默认，删掉 mode 保持干净 URL。
+      if (value === "selected") next.set("mode", "selected");
       else if (value === "personalized") next.set("mode", "personalized");
       else next.delete("mode");
     });
