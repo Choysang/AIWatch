@@ -353,7 +353,6 @@ describe("event reactions + rank-score recompute (real Postgres)", () => {
         likeCount: row.likeCount,
         starCount: row.starCount,
       viewCount: row.viewCount,
-      downCount: row.downCount,
       ageHours: ages[evtId]!,
     });
       expect(row.rankScore).toBeCloseTo(expected.rankScore, 5);
@@ -365,7 +364,7 @@ describe("event reactions + rank-score recompute (real Postgres)", () => {
     expect(old.rankScore!).toBeGreaterThan(fresh.rankScore!);
   });
 
-  test("rank-v4: owner annotations feed the SQL recompute and match the TS owner-boost path", async () => {
+  test("rank-v5: owner annotations feed the SQL recompute and match the TS owner-boost path", async () => {
     const sourceId = await seedSource();
     const publishedAt = new Date(NOW.getTime() - 3 * HOUR_MS);
     for (const id of ["evt_u1", "evt_u2", "evt_u3", "evt_neg"]) {
@@ -382,7 +381,7 @@ describe("event reactions + rank-score recompute (real Postgres)", () => {
     });
 
     const result = await recompute.recomputeRankScores(NOW);
-    expect(result.configVersion).toBe("rank-v4");
+    expect(result.configVersion).toBe("rank-v5");
     expect(result.updated).toBeGreaterThan(0);
 
     const { profile, directVerdicts } = await recompute.loadOwnerAffinityProfile(getDb());
@@ -405,7 +404,6 @@ describe("event reactions + rank-score recompute (real Postgres)", () => {
         baseScore: 50,
         likeCount: row.likeCount,
         starCount: row.starCount,
-        downCount: row.downCount,
         viewCount: row.viewCount,
         ageHours: 3,
         ownerBoost: boost.ownerBoost,

@@ -1,6 +1,9 @@
-// recompute-rank-scores (Slice 7; rank-v4 点6 切片C): re-applies the deterministic
-// rank-score formula in bulk on persisted likeCount / starCount / downCount and the latest
-// baseScore, plus the owner-annotation boost. Source of truth is src/scoring/rank-score.ts
+// recompute-rank-scores (Slice 7; rank-v5 点6 切片C): re-applies the deterministic
+// rank-score formula in bulk on persisted likeCount / starCount and the latest
+// baseScore, plus the owner-annotation boost. The public down_count is intentionally NOT
+// read here (v0.5 decision 2026-06-23): the public 👎 only collapses a card for that reader;
+// the authoritative negative signal is the owner ✗没用 annotation, carried in owner_boost.
+// Source of truth is src/scoring/rank-score.ts
 // + src/scoring/owner-affinity.ts — this SQL is their in-database counterpart, kept
 // structurally identical (same log-saturation, same band breakpoints, same additive boost,
 // same direct/affinity owner boost) so the online and offline paths can never disagree.
@@ -101,7 +104,6 @@ export async function recomputeRankScores(
   }
   const likeSat = rankScoreConfig.likeSaturation;
   const starSat = rankScoreConfig.starSaturation;
-  const downSat = rankScoreConfig.downSaturation;
   const viewSat = rankScoreConfig.viewSaturation;
   const viewBoost = rankScoreConfig.viewBoost;
   const affMax = rankScoreConfig.owner.affinityBoostMax;
@@ -109,11 +111,12 @@ export async function recomputeRankScores(
   const { profile, directVerdicts } = await loadOwnerAffinityProfile(db);
 
   // age_hours = (now - coalesce(published_at, created_at)) in hours.
-  // like_norm / star_norm / down_norm = log1p saturation, clamped 0..1.
+  // like_norm / star_norm = log1p saturation, clamped 0..1.
   // boosts picked by CASE on age_hours matching the band schedule.
   // owner_boost = direct verdict boost + clamp(affMax * mean(3 dim affinities), ±affMax)
   //   — structurally identical to computeOwnerBoost (missing key -> COALESCE 0).
-  // new_rank = greatest(base + like + star + view + owner - down, 0).
+  // new_rank = greatest(base + like + star + view + owner, 0). down_count is not read
+  //   (public 👎 no longer penalizes rank; negative judgment flows via owner_boost).
   // WHERE filters: only events that already have a current_score_id (so we know which
   // event_scores row holds the deterministic base_score), and only update when the
   // value actually changes (cheap is-distinct-from check).
@@ -130,7 +133,6 @@ export async function recomputeRankScores(
         s.base_score AS base_score,
         e.like_count AS like_count,
         e.star_count AS star_count,
-        e.down_count AS down_count,
         e.view_count AS view_count,
         EXTRACT(EPOCH FROM (${now}::timestamptz - COALESCE(e.published_at, e.created_at))) / 3600.0
           AS age_hours,
@@ -169,14 +171,7 @@ export async function recomputeRankScores(
               END
           + LEAST(GREATEST(LN(1 + view_count::float) / LN(1 + ${viewSat}::float), 0), 1)
             * ${viewBoost}::float
-          + owner_boost
-          - LEAST(GREATEST(LN(1 + down_count::float) / LN(1 + ${downSat}::float), 0), 1)
-            * CASE
-                WHEN age_hours < ${b0.maxAgeHours} THEN ${b0.downPenalty}::float
-                WHEN age_hours < ${b1.maxAgeHours} THEN ${b1.downPenalty}::float
-                WHEN age_hours < ${b2.maxAgeHours} THEN ${b2.downPenalty}::float
-                ELSE ${b3.downPenalty}::float
-              END,
+          + owner_boost,
           0
         ) AS new_rank
       FROM inputs
