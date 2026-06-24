@@ -1210,20 +1210,6 @@
     "recommendReason": "前沿科技与企业数字化，信息密度高，企业级 AI 应用和行业趋势。"
   },
   {
-    "name": "The Verge",
-    "handle": null,
-    "url": "https://www.theverge.com/",
-    "platform": "rss",
-    "connectorType": "rss",
-    "connectorRef": "https://www.theverge.com/rss/index.xml",
-    "category": "industry_leader",
-    "sourceType": "media",
-    "level": "L3",
-    "ai_density_score": 6,
-    "recommendedBy": "owner-20260612",
-    "recommendReason": "科技、科学、艺术与文化交叉领域，科技对社会和文化的影响。"
-  },
-  {
     "name": "Ars Technica AI",
     "handle": null,
     "url": "https://arstechnica.com/ai/",
@@ -1236,20 +1222,6 @@
     "ai_density_score": 7,
     "recommendedBy": "owner-20260612",
     "recommendReason": "面向技术专业人士的硬核科技媒体，技术评测和行业分析深入。"
-  },
-  {
-    "name": "DataGuidance",
-    "handle": null,
-    "url": "https://www.dataguidance.com/news",
-    "platform": "rss",
-    "connectorType": "rsshub",
-    "connectorRef": "/dataguidance/news",
-    "category": "industry_leader",
-    "sourceType": "media",
-    "level": "L3",
-    "ai_density_score": 7,
-    "recommendedBy": "owner-20260612",
-    "recommendReason": "全球 AI 政策法规和监管动态，AI 合规、治理和政策变化追踪。"
   },
   {
     "name": "hermes-desktop Releases",
