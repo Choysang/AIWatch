@@ -72,6 +72,10 @@ export function EventCard({
       : cardMedia.poster ?? null
     : null;
   const contentLabel = eventCategoryLabel(event.category);
+  // #1 每张卡至少一个标签：深度提取(score≥80)才生成 tags，普通卡为空——空时用分类兜底，
+  // 连分类都没有就给「闲聊」，避免出现完全没有标签的卡片。
+  const displayTags =
+    event.tags.length > 0 ? event.tags.slice(0, MAX_TAGS) : [contentLabel ?? "闲聊"];
   const detailHref = `/events/${event.id}`;
   // Chinese-first titles can equal the one-line summary (deriveTitle fallback);
   // don't render the same sentence twice.
@@ -93,7 +97,19 @@ export function EventCard({
       </div>
       <div className="card-top">
         {contentLabel && <span className="content-badge">{contentLabel}</span>}
-        {event.sourceName && <span className="card-source">{event.sourceName}</span>}
+        {event.sourceName &&
+          (event.sourceUrl ? (
+            <a
+              className="card-source card-source-link"
+              href={event.sourceUrl}
+              target="_blank"
+              rel="noreferrer nofollow noopener"
+            >
+              {event.sourceName}
+            </a>
+          ) : (
+            <span className="card-source">{event.sourceName}</span>
+          ))}
         {author && author !== event.sourceName && (
           <>
             <span className="sep" />
@@ -149,20 +165,11 @@ export function EventCard({
       {showComments && topComments && <CommentTicker comments={topComments} />}
 
       <div className="card-bottom">
-        {event.tags.slice(0, MAX_TAGS).map((tag) => (
+        {displayTags.map((tag) => (
           <span className="tag" key={tag}>
             {tag}
           </span>
         ))}
-        {typeof event.qualityScore === "number" && (
-          <span className="score" title={m.qualityScore}>
-            <span className="num">{event.qualityScore}</span>
-            <span className="max">/100</span>
-          </span>
-        )}
-        <TrackableDetailLink eventId={event.id} href={detailHref}>
-          {m.detail}
-        </TrackableDetailLink>
         <ReactionButtons
           eventId={event.id}
           initialLikeCount={event.likeCount}
@@ -177,8 +184,21 @@ export function EventCard({
         )}
       </div>
 
-      {/* SP3 point C: inline discussion preview without leaving the feed. */}
-      <InlineComments eventId={event.id} />
+      {/* SP3 point C: inline discussion preview. #6: 评分 + 查看详情 right-aligned on this row. */}
+      <div className="card-discussion">
+        <InlineComments eventId={event.id} />
+        <div className="card-score-detail">
+          {typeof event.qualityScore === "number" && (
+            <span className="score" title={m.qualityScore}>
+              <span className="num">{event.qualityScore}</span>
+              <span className="max">/100</span>
+            </span>
+          )}
+          <TrackableDetailLink eventId={event.id} href={detailHref}>
+            {m.detail}
+          </TrackableDetailLink>
+        </div>
+      </div>
     </EventCardShell>
   );
 }
