@@ -113,4 +113,10 @@ describe("search bar responsiveness", () => {
     expect(deckBlock).toContain("position: relative;");
     expect(deckBlock).toContain("z-index: 10;");
   });
+
+  test("offers an explicit search submit button (click + Enter both search)", () => {
+    expect(searchSource).toContain("onSubmit={submitQuery}");
+    expect(searchSource).toContain('<button type="submit" className="search-go">');
+    expect(cssSource).toContain(".search-go {");
+  });
 });

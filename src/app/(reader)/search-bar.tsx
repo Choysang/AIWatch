@@ -375,6 +375,10 @@ export function SearchBar({
             placeholder={m.placeholder}
             aria-label={m.placeholder}
           />
+          {/* 显式搜索按钮：点击即搜；同时让表单有 submit，按 Enter 也能可靠触发。 */}
+          <button type="submit" className="search-go">
+            {m.submit}
+          </button>
           <div className="search-filter-popover">
             <button
               type="button"

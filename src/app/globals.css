@@ -325,6 +325,23 @@ canvas {
   color: var(--accent);
   background: var(--accent-weak);
 }
+/* 显式搜索提交按钮，紧贴搜索框右侧。 */
+.search-go {
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 650;
+  padding: 0.37rem 0.85rem;
+  border: 0;
+  border-radius: 9px;
+  background: var(--ink);
+  color: var(--paper-raised);
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: background 150ms ease;
+}
+.search-go:hover {
+  background: var(--accent);
+}
 .search-filter-popover {
   position: relative;
   flex: 0 0 auto;
@@ -3097,11 +3114,13 @@ html[data-reader-theme="light"] .particle-field {
   border-color: rgb(77 107 254);
   box-shadow: 0 0 0 3px rgba(77, 107, 254, 0.25);
 }
-.reader-home .search-submit {
+.reader-home .search-submit,
+.reader-home .search-go {
   background: rgba(255, 255, 255, 0.92);
   color: #0a0b0d;
 }
-.reader-home .search-submit:hover {
+.reader-home .search-submit:hover,
+.reader-home .search-go:hover {
   background: #fff;
 }
 .reader-home .search-mode-tabs {
