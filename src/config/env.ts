@@ -22,6 +22,7 @@ const LLM_PROVIDERS = [
   "openai_compatible",
   "stub",
 ] as const;
+const LLM_PROVIDER_SET: ReadonlySet<string> = new Set(LLM_PROVIDERS);
 const LLM_PROVIDER_KEYS: Record<Exclude<(typeof LLM_PROVIDERS)[number], "stub">, string> = {
   openai: "OPENAI_API_KEY",
   anthropic: "ANTHROPIC_API_KEY",
@@ -50,7 +51,7 @@ function configuredProviderChain(
 ): LlmProvider {
   for (const envName of envNames) {
     const value = source[envName]?.trim();
-    if (value && LLM_PROVIDERS.includes(value as LlmProvider)) return value as LlmProvider;
+    if (value && LLM_PROVIDER_SET.has(value)) return value as LlmProvider;
   }
   return fallback;
 }

@@ -47,22 +47,21 @@ async function postCommentLike(commentId: string, op: "add" | "remove"): Promise
 
 function CommentLikeButton({ comment }: { comment: CommentView }) {
   const m = messages.comments;
-  const [liked, setLiked] = useState(comment.liked);
-  const [count, setCount] = useState(comment.likeCount);
+  const [optimistic, setOptimistic] = useState<{ liked: boolean; count: number } | null>(null);
   const [isPending, startTransition] = useTransition();
+  const liked = optimistic?.liked ?? comment.liked;
+  const count = optimistic?.count ?? comment.likeCount;
 
   const toggle = useCallback(() => {
     const prevLiked = liked;
     const prevCount = count;
     const op = prevLiked ? "remove" : "add";
-    setLiked(!prevLiked);
-    setCount(Math.max(0, prevCount + (prevLiked ? -1 : 1)));
+    setOptimistic({ liked: !prevLiked, count: Math.max(0, prevCount + (prevLiked ? -1 : 1)) });
     startTransition(() => {
       postCommentLike(comment.id, op)
-        .then((serverCount) => setCount(serverCount))
+        .then((serverCount) => setOptimistic({ liked: op === "add", count: serverCount }))
         .catch(() => {
-          setLiked(prevLiked);
-          setCount(prevCount);
+          setOptimistic(null);
         });
     });
   }, [comment.id, liked, count]);
@@ -100,7 +99,10 @@ export function CommentItem({
       </div>
       <p className="comment-body">{comment.body}</p>
       <div className="comment-actions">
-        <CommentLikeButton comment={comment} />
+        <CommentLikeButton
+          key={`${comment.id}:${comment.liked}:${comment.likeCount}`}
+          comment={comment}
+        />
         {canReply && (
           <button
             type="button"

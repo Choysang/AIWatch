@@ -66,8 +66,10 @@ export interface SearchBarSourceOption {
   platform: string;
 }
 
+const EMPTY_SOURCE_OPTIONS: SearchBarSourceOption[] = [];
+
 export function SearchBar({
-  sourceOptions = [],
+  sourceOptions = EMPTY_SOURCE_OPTIONS,
   isLoggedIn = false,
   defaultApplied = false,
   hasBoards = false,
@@ -177,7 +179,6 @@ export function SearchBar({
       mutate(next);
       const qs = next.toString();
       const href = qs ? `/?${qs}` : "/";
-      router.prefetch(href);
       startTransition(() => {
         router.push(href);
       });
@@ -276,7 +277,6 @@ export function SearchBar({
     setToDraft({ routeValue: toParam, value: "" });
     setMinScoreDraft({ routeValue: minScoreParam, value: "" });
     setSourcesDraft({ routeValue: sourcesParam, value: "" });
-    router.prefetch("/");
     startTransition(() => {
       router.push("/");
     });

@@ -36,16 +36,14 @@ describe("reader nav sidebar", () => {
     expect(navSource).toContain("周报");
     expect(navSource).toContain("月报");
     expect(navSource).toContain('href="/reports"');
-    expect(navSource).toContain("const [reportExpanded, setReportExpanded] = useState(false);");
+    expect(navSource).toContain('const reportExpanded = pathname?.startsWith("/reports") ?? false;');
     expect(navSource).toContain('aria-expanded={reportExpanded}');
-    expect(navSource).toContain("onClick={() => setReportExpanded(true)}");
+    expect(navSource).not.toContain("setReportExpanded");
     expect(navSource).toContain('hidden={!reportExpanded}');
-    expect(navSource).toContain('setReportExpanded(pathname?.startsWith("/reports") ?? false);');
-    expect(navSource).toContain("const [meExpanded, setMeExpanded] = useState(false);");
+    expect(navSource).toContain('const meExpanded = pathname?.startsWith("/me") ?? false;');
     expect(navSource).toContain('aria-expanded={meExpanded}');
-    expect(navSource).toContain("onClick={() => setMeExpanded(true)}");
+    expect(navSource).not.toContain("setMeExpanded");
     expect(navSource).toContain('hidden={!meExpanded}');
-    expect(navSource).toContain('setMeExpanded(pathname?.startsWith("/me") ?? false);');
     // 点11：周报/月报由禁用占位升级为真实链接
     expect(navSource).toContain('href="/reports/weekly"');
     expect(navSource).toContain('href="/reports/monthly"');
@@ -58,12 +56,7 @@ describe("reader nav sidebar", () => {
     expect(navSource).toContain("ReaderNavAccount");
     expect(navSource).toContain("登录 / 注册");
     expect(navSource).toContain("isConsoleRole");
-    expect(navSource).toContain('router.prefetch("/")');
-    expect(navSource).toContain('router.prefetch("/reports")');
-    expect(navSource).toContain('router.prefetch("/me/likes")');
-    expect(navSource).toContain('router.prefetch("/me/stars")');
-    expect(navSource).toContain('router.prefetch("/me/comments")');
-    expect(navSource).toContain('router.prefetch("/about")');
+    expect(navSource).not.toContain("router.prefetch");
   });
 
   test("shows full navigation labels as icon previews in the collapsed sidebar", () => {

@@ -28,7 +28,6 @@ export function NotificationBell() {
 
   useEffect(() => {
     let cancelled = false;
-    router.prefetch("/notifications");
     fetch("/api/notifications/unread-count", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : { count: 0 }))
       .then((d: { count?: number }) => {
@@ -40,7 +39,7 @@ export function NotificationBell() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, []);
 
   const loadPreview = useCallback(() => {
     if (items !== null || previewLoading.current) return;
@@ -113,9 +112,12 @@ export function MastheadAccount() {
 
   async function onSignOut() {
     setSigningOut(true);
-    await authClient.signOut();
-    setSigningOut(false);
-    router.refresh();
+    try {
+      await authClient.signOut();
+      router.refresh();
+    } finally {
+      setSigningOut(false);
+    }
   }
 
   const displayName = user.name || user.email || "";

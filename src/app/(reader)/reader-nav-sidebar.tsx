@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { authClient } from "@/app/_lib/auth-client";
 import { isConsoleRole } from "@/auth/console-roles";
@@ -34,6 +34,15 @@ function effectiveReaderTheme(mode: ReaderThemeMode): "dark" | "light" {
 function applyReaderTheme(mode: ReaderThemeMode) {
   document.documentElement.dataset.readerThemeMode = mode;
   document.documentElement.dataset.readerTheme = effectiveReaderTheme(mode);
+}
+
+function isTabletRailViewport(): boolean {
+  return window.innerWidth > 760 && window.innerWidth < 960;
+}
+
+function subscribeReaderViewport(onStoreChange: () => void): () => void {
+  window.addEventListener("resize", onStoreChange);
+  return () => window.removeEventListener("resize", onStoreChange);
 }
 
 function ReaderNavIcon({ name }: { name: "content" | "boards" | "reports" | "me" | "about" }) {
@@ -210,9 +219,12 @@ function ReaderNavAccount() {
 
   async function onSignOut() {
     setSigningOut(true);
-    await authClient.signOut();
-    setSigningOut(false);
-    router.refresh();
+    try {
+      await authClient.signOut();
+      router.refresh();
+    } finally {
+      setSigningOut(false);
+    }
   }
 
   const displayName = user.name || user.email || "已登录";
@@ -238,36 +250,20 @@ function ReaderNavAccount() {
 }
 
 export function ReaderNavSidebar() {
-  const router = useRouter();
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
-  const [reportExpanded, setReportExpanded] = useState(false);
-  const [meExpanded, setMeExpanded] = useState(false);
+  const shouldCollapseByViewport = useSyncExternalStore(
+    subscribeReaderViewport,
+    isTabletRailViewport,
+    () => false,
+  );
+  const [collapsedOverride, setCollapsedOverride] = useState<boolean | null>(null);
+  const collapsed = collapsedOverride ?? shouldCollapseByViewport;
+  const reportExpanded = pathname?.startsWith("/reports") ?? false;
+  const meExpanded = pathname?.startsWith("/me") ?? false;
   // Mobile (≤760px) renders the sidebar as an off-canvas drawer: hidden by default so it
   // never overlaps content, opened by the floating button below, dismissed by the scrim or
   // by navigating. Desktop ignores this and uses `collapsed` (full ↔ rail).
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  useEffect(() => {
-    // Rail-collapse only in the tablet band (760–960). ≤760 uses the off-canvas drawer,
-    // which shows full labels, so it must NOT be collapsed; >960 shows the full sidebar.
-    setCollapsed(window.innerWidth > 760 && window.innerWidth < 960);
-    router.prefetch("/");
-    router.prefetch("/reports");
-    router.prefetch("/boards");
-    router.prefetch("/me/likes");
-    router.prefetch("/me/stars");
-    router.prefetch("/me/comments");
-    router.prefetch("/about");
-  }, [router]);
-
-  useEffect(() => {
-    setReportExpanded(pathname?.startsWith("/reports") ?? false);
-  }, [pathname]);
-
-  useEffect(() => {
-    setMeExpanded(pathname?.startsWith("/me") ?? false);
-  }, [pathname]);
 
   // Close the mobile drawer on navigation (a tapped nav link changes the path).
   useEffect(() => {
@@ -304,7 +300,7 @@ export function ReaderNavSidebar() {
           className="reader-nav-brand"
           aria-label={collapsed ? "展开主侧栏" : "收起主侧栏"}
           aria-expanded={!collapsed}
-          onClick={() => setCollapsed((value) => !value)}
+          onClick={() => setCollapsedOverride(!collapsed)}
         >
           <span className="reader-nav-mark">
             AI
@@ -331,7 +327,6 @@ export function ReaderNavSidebar() {
           className="reader-nav-item"
           aria-label="每日速览"
           aria-expanded={reportExpanded}
-          onClick={() => setReportExpanded(true)}
         >
           <span className="reader-nav-icon" aria-hidden="true">
             <ReaderNavIcon name="reports" />
@@ -364,7 +359,6 @@ export function ReaderNavSidebar() {
           className="reader-nav-item"
           aria-label="我的互动"
           aria-expanded={meExpanded}
-          onClick={() => setMeExpanded(true)}
         >
           <span className="reader-nav-icon" aria-hidden="true">
             <ReaderNavIcon name="me" />

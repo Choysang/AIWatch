@@ -11,7 +11,8 @@ describe("search bar responsiveness", () => {
     expect(searchSource).toContain("startTransition");
     expect(searchSource).toContain("aria-busy={isPending}");
     expect(searchSource).toContain('className={`search ${isPending ? "is-pending" : ""}`}');
-    expect(searchSource).toContain("router.prefetch(href)");
+    expect(searchSource).not.toContain("router.prefetch(href)");
+    expect(searchSource).toContain("router.push(href)");
   });
 
   test("does not mirror query params into input state through effects", () => {

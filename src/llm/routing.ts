@@ -52,6 +52,7 @@ export const PROVIDERS: LlmProviderName[] = [
   "openai_compatible",
   "stub",
 ];
+const PROVIDER_SET: ReadonlySet<string> = new Set(PROVIDERS);
 
 // Canonical task order for the routing admin UI (v0.5 C1). Keep in sync with LlmTask.
 export const LLM_TASKS: readonly LlmTask[] = [
@@ -67,13 +68,13 @@ export const LLM_TASKS: readonly LlmTask[] = [
 function configuredProvider(envName: string, fallback: LlmProviderName): LlmProviderName {
   const value = process.env[envName]?.trim();
   if (!value) return fallback;
-  return PROVIDERS.includes(value as LlmProviderName) ? (value as LlmProviderName) : fallback;
+  return PROVIDER_SET.has(value) ? (value as LlmProviderName) : fallback;
 }
 
 function configuredProviderChain(envNames: string[], fallback: LlmProviderName): LlmProviderName {
   for (const envName of envNames) {
     const value = process.env[envName]?.trim();
-    if (value && PROVIDERS.includes(value as LlmProviderName)) return value as LlmProviderName;
+    if (value && PROVIDER_SET.has(value)) return value as LlmProviderName;
   }
   return fallback;
 }
@@ -196,7 +197,7 @@ export function stubFallbackEnabled(): boolean {
 export function getRouteConfig(task: LlmTask): RouteConfig {
   const base = llmRouting[task];
   const override = getRoutingOverride(task);
-  if (override && PROVIDERS.includes(override.provider) && override.model) {
+  if (override && PROVIDER_SET.has(override.provider) && override.model) {
     return { ...base, provider: override.provider, model: override.model };
   }
   return base;

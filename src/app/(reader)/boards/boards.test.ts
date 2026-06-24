@@ -49,10 +49,10 @@ describe("topic board reader UI", () => {
     expect(pageSrc).toContain("SubpageNav");
   });
 
-  test("the sidebar surfaces a 主题板 entry and prefetches /boards", () => {
+  test("the sidebar surfaces a 主题板 entry without eager route prefetch", () => {
     expect(navSrc).toContain('href="/boards"');
     expect(navSrc).toContain('name="boards"');
-    expect(navSrc).toContain('router.prefetch("/boards")');
+    expect(navSrc).not.toContain('router.prefetch("/boards")');
     expect(navSrc).toContain("messages.nav.boards");
   });
 
