@@ -7,7 +7,8 @@
 // the session user id or the signed `rid` cookie that middleware planted on first visit.
 
 import { cookies } from "next/headers";
-import { type CSSProperties } from "react";
+import Link from "next/link";
+import { Suspense, type CSSProperties } from "react";
 import { resolveReaderIdentityServer } from "@/app/_lib/reader-identity";
 import { getSession } from "@/app/_lib/session";
 import { READER_ID_COOKIE, verifyReaderId } from "@/auth/reader-id";
@@ -77,8 +78,10 @@ type SearchParams = Record<string, string | string[] | undefined>;
 const HOME_LIMIT = 30;
 // "加载更多" raises the limit in HOME_LIMIT steps via the `limit` URL param (URL-as-state:
 // shareable, SSR-only, no client fetch layer). Capped so a hand-edited URL can't dump
-// the whole table into one render.
-const HOME_LIMIT_MAX = 150;
+// the whole table into one render. Raised to 1000 (v0.5 fix #10): history is never deleted,
+// and the timeline collapse keeps older days folded, so a deep cap lets readers expand back
+// through months of archive without the feed going blank past the old 150 ceiling.
+const HOME_LIMIT_MAX = 1000;
 const HOTSPOT_CANDIDATE_LIMIT = 80;
 
 function parseHomeLimit(sp: SearchParams): number {
@@ -138,29 +141,29 @@ function toFeedFilter(query: PublicQuery): FeedFilter {
   };
 }
 
-async function loadHomeData(
-  query: PublicQuery,
-  limit: number,
-): Promise<{ events: EventCardData[]; hotspots: CurrentHotspot[] }> {
+async function loadHomeData(query: PublicQuery, limit: number): Promise<EventCardData[]> {
   try {
-    const candidates = await searchEvents(
-      toFeedFilter(query),
-      Math.max(limit, HOTSPOT_CANDIDATE_LIMIT),
-    );
-    const events = candidates.slice(0, limit);
-    try {
-      const hotspots = await listCurrentHotspots(candidates.map((event) => event.id));
-      return { events, hotspots };
-    } catch (error) {
-      log.warn("[reader] loadHotspots failed", handledErrorDetails(error));
-      return { events, hotspots: [] };
-    }
+    const candidates = await searchEvents(toFeedFilter(query), limit);
+    return candidates.slice(0, limit);
   } catch (error) {
     // No DB yet (fresh clone before migrate/seed) → show the setup hint, don't crash.
     // Warn with a plain summary only: raw Error objects in an RSC render trigger Next's
     // dev overlay even when the failure is handled and the page safely degrades.
     log.warn("[reader] loadEvents unavailable", handledErrorDetails(error));
-    return { events: [], hotspots: [] };
+    return [];
+  }
+}
+
+// 当前热点 (v0.5 fix #5): 固定按全站近期事件计算，与当前模式/筛选无关——最新/精选/筛选下
+// 都展示同一份「客观热点」，不再随当前视图的卡片集变化。Best-effort：失败则空。
+async function loadGlobalHotspots(): Promise<CurrentHotspot[]> {
+  try {
+    const recentQuery = parsePublicQuery(new URLSearchParams("mode=all&since=week"));
+    const recent = await searchEvents(toFeedFilter(recentQuery), HOTSPOT_CANDIDATE_LIMIT);
+    return await listCurrentHotspots(recent.map((event) => event.id));
+  } catch (error) {
+    log.warn("[reader] loadGlobalHotspots failed", handledErrorDetails(error));
+    return [];
   }
 }
 
@@ -200,7 +203,7 @@ async function loadPersonalizedData(
   query: PublicQuery,
   limit: number,
   reader: ReaderInterestState,
-): Promise<{ events: EventCardData[]; hotspots: CurrentHotspot[] }> {
+): Promise<EventCardData[]> {
   const personalized: PublicQuery = reader.hasBoards
     ? { ...query, mode: "all", interests: reader.interests }
     : { ...query, mode: "all" };
@@ -301,12 +304,14 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const sp = await searchParams;
   const parsedQuery = toQuery(sp);
   const limit = parseHomeLimit(sp);
-  const [{ query, defaultApplied, isLoggedIn }, sourceOptions, readerInterests] = await Promise.all([
-    applySavedSourceDefaults(sp, parsedQuery),
-    loadSourceOptions(),
-    loadReaderInterests(),
-  ]);
-  const { events, hotspots } =
+  const [{ query, defaultApplied, isLoggedIn }, sourceOptions, readerInterests, hotspots] =
+    await Promise.all([
+      applySavedSourceDefaults(sp, parsedQuery),
+      loadSourceOptions(),
+      loadReaderInterests(),
+      loadGlobalHotspots(),
+    ]);
+  const events =
     query.mode === "personalized"
       ? await loadPersonalizedData(query, limit, readerInterests)
       : await loadHomeData(query, limit);
@@ -361,12 +366,14 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <ReaderSidebar items={sidebarItems} />
         <NotificationBell />
       </div>
-      <SearchBar
-        sourceOptions={sourceOptions}
-        isLoggedIn={isLoggedIn}
-        defaultApplied={defaultApplied}
-        hasBoards={readerInterests.hasBoards}
-      />
+      <Suspense fallback={null}>
+        <SearchBar
+          sourceOptions={sourceOptions}
+          isLoggedIn={isLoggedIn}
+          defaultApplied={defaultApplied}
+          hasBoards={readerInterests.hasBoards}
+        />
+      </Suspense>
       <CurrentHotspots items={hotspots} />
 
       <h2 className="section-intro" style={{ fontWeight: 600, color: "var(--ink)" }}>
@@ -385,8 +392,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       {query.interests && (
         <p className="section-intro board-active-note">
           {m.home.boardFilterActive}
-          <a href={`/brief?${briefQuery(query.interests).toString()}`}>{m.home.boardFilterBrief}</a>
-          <a href="/">{m.home.boardFilterClear}</a>
+          <Link href={`/brief?${briefQuery(query.interests).toString()}`}>{m.home.boardFilterBrief}</Link>
+          <Link href="/">{m.home.boardFilterClear}</Link>
         </p>
       )}
 
@@ -480,9 +487,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
       {canLoadMore && (
         <div className="load-more">
-          <a href={loadMoreHref(sp, Math.min(limit + HOME_LIMIT, HOME_LIMIT_MAX))}>
+          <Link href={loadMoreHref(sp, Math.min(limit + HOME_LIMIT, HOME_LIMIT_MAX))}>
             {m.loadMore.action}
-          </a>
+          </Link>
         </div>
       )}
 

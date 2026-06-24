@@ -26,7 +26,7 @@ describe("reader home layout", () => {
 
     expect(pageSource).toContain('import { CurrentHotspots } from "./current-hotspots"');
     expect(pageSource).toContain("loadHomeData(query, limit)");
-    expect(pageSource).toContain("listCurrentHotspots(candidates.map((event) => event.id))");
+    expect(pageSource).toContain("listCurrentHotspots(recent.map((event) => event.id))");
     expect(searchIndex).toBeGreaterThan(-1);
     expect(hotspotsIndex).toBeGreaterThan(-1);
     expect(feedIndex).toBeGreaterThan(-1);
@@ -80,15 +80,15 @@ describe("reader home layout", () => {
     expect(pageSource).toContain("loadTopComments(commentEventIds)");
   });
 
-  test("uses one feed query for timeline events and hotspot candidates", () => {
+  test("computes current hotspots from a global recent query, independent of the feed filter", () => {
     expect(pageSource).toContain("const HOTSPOT_CANDIDATE_LIMIT = 80;");
-    expect(pageSource).toContain("Math.max(limit, HOTSPOT_CANDIDATE_LIMIT)");
-    expect(pageSource).toContain("const events = candidates.slice(0, limit);");
-    expect(pageSource).not.toContain("Promise.all([loadEvents(query), loadHotspots(query)])");
+    expect(pageSource).toContain("async function loadGlobalHotspots()");
+    expect(pageSource).toContain('parsePublicQuery(new URLSearchParams("mode=all&since=week"))');
+    expect(pageSource).toContain("return candidates.slice(0, limit);");
   });
 
   test("offers load-more pagination that keeps active filters in the URL", () => {
-    expect(pageSource).toContain("const HOME_LIMIT_MAX = 150;");
+    expect(pageSource).toContain("const HOME_LIMIT_MAX = 1000;");
     expect(pageSource).toContain("parseHomeLimit(sp)");
     expect(pageSource).toContain('className="load-more"');
     expect(pageSource).toContain('params.set("limit", String(nextLimit));');
