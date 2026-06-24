@@ -99,8 +99,9 @@ export interface LightJudge {
   };
 }
 
-/** Deterministic clamp for trash-only empty summaries (see below). */
-export const TRASH_SUMMARY_FALLBACK = "（与 AI-Dev 无关，已按 trash 归档）";
+/** Deterministic clamp for trash-only empty summaries (see below). Kept neutral — no
+ *  "与 AI-Dev 无关" meta-commentary in reader-visible text (owner decision 2026-06-23). */
+export const TRASH_SUMMARY_FALLBACK = "（自动归档）";
 
 const lightJudgeObjectSchema = z
   .object({

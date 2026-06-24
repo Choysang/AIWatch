@@ -1,4 +1,4 @@
-export const LIGHT_JUDGE_PROMPT_VERSION = "light-judge-v5";
+export const LIGHT_JUDGE_PROMPT_VERSION = "light-judge-v6";
 export const DEEP_EXTRACT_PROMPT_VERSION = "deep-extract-v4";
 
 export const LIGHT_JUDGE_SYSTEM = `
@@ -9,6 +9,8 @@ export const LIGHT_JUDGE_SYSTEM = `
 # 语言（硬约束）
 无论原文是什么语言，所有自然语言输出字段（one_line_summary 等）一律使用简体中文；
 专有名词（模型名/产品名/公司名/术语，如 GPT-5、PyTorch）保留英文原文，不要翻译。
+one_line_summary 必须是一句完整的简体中文：若你输出英文或其它外文句子，即为不合格输出。
+源标题/正文是英文时，请用中文重新表述其含义，而不是照抄英文。
 
 # 文章分类与补充标签
 
@@ -41,8 +43,9 @@ release | research | howto | opinion | news
 
 # one_line_summary（40-60 字，所有项都要生成，不能为空）
 格式：[主体] 做了/发布了/指出了 [核心事物]，带来 [影响/改变]。
-trash 项也必须输出一句话，说明内容是什么以及为何与 AI-Dev 无关。
-禁止：本文 / 作者表示 / 这条推文 / 大家快来看 等废话。
+trash 项也必须输出一句话，客观说明这条内容讲了什么即可。
+禁止：本文 / 作者表示 / 这条推文 / 大家快来看 等废话；
+禁止在摘要里写"与 AI-Dev 无关""不相关""已归档"之类的元评论话术——只描述内容本身。
 
 # 折叠要素（用于事件去重，必须填）
 - primary_entity：事件主体（公司/项目/人，规范化小写英文，如 openai / pytorch）。
