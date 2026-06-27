@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { authClient } from "@/app/_lib/auth-client";
 import { isConsoleRole } from "@/auth/console-roles";
@@ -54,9 +54,17 @@ function applyReaderTheme(mode: ReaderThemeMode) {
   document.documentElement.dataset.readerTheme = effectiveReaderTheme(mode);
 }
 
-function readNavGroupState(): Record<NavGroupId, boolean> {
+function readNavGroupSnapshot(): string {
   try {
-    const parsed = JSON.parse(localStorage.getItem(NAV_GROUP_STORAGE_KEY) || "{}") as Partial<Record<NavGroupId, boolean>>;
+    return localStorage.getItem(NAV_GROUP_STORAGE_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function parseNavGroupSnapshot(snapshot: string): Record<NavGroupId, boolean> {
+  try {
+    const parsed = JSON.parse(snapshot || "{}") as Partial<Record<NavGroupId, boolean>>;
     return { ...DEFAULT_NAV_GROUP_OPEN, ...parsed };
   } catch {
     return DEFAULT_NAV_GROUP_OPEN;
@@ -355,11 +363,12 @@ export function ReaderNavSidebar() {
   const collapsed = collapsedOverride ?? shouldCollapseByViewport;
   const reportExpanded = pathname?.startsWith("/daily") || pathname?.startsWith("/reports") || false;
   const meExpanded = pathname?.startsWith("/me") ?? false;
-  const navGroupOpen = useSyncExternalStore(
+  const navGroupSnapshot = useSyncExternalStore(
     (onStoreChange) => subscribeStorage(NAV_GROUP_STORE_EVENT, onStoreChange),
-    readNavGroupState,
-    () => DEFAULT_NAV_GROUP_OPEN,
+    readNavGroupSnapshot,
+    () => "",
   );
+  const navGroupOpen = useMemo(() => parseNavGroupSnapshot(navGroupSnapshot), [navGroupSnapshot]);
   // Mobile (≤760px) renders the sidebar as an off-canvas drawer: hidden by default so it
   // never overlaps content, opened by the floating button below, dismissed by the scrim or
   // by navigating. Desktop ignores this and uses `collapsed` (full ↔ rail).
@@ -371,7 +380,7 @@ export function ReaderNavSidebar() {
   }
 
   function toggleNavGroup(id: NavGroupId) {
-    const current = readNavGroupState();
+    const current = parseNavGroupSnapshot(readNavGroupSnapshot());
     const next = { ...current, [id]: !current[id] };
     localStorage.setItem(NAV_GROUP_STORAGE_KEY, JSON.stringify(next));
     window.dispatchEvent(new Event(NAV_GROUP_STORE_EVENT));

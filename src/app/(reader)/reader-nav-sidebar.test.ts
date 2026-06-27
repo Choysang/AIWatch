@@ -166,6 +166,17 @@ describe("reader nav sidebar", () => {
     expect(cssSource).toContain(".reader-nav-scrim {");
   });
 
+  test("keeps nav group external-store snapshots stable to avoid mobile render loops", () => {
+    expect(navSource).toContain("function readNavGroupSnapshot(): string");
+    expect(navSource).toContain('localStorage.getItem(NAV_GROUP_STORAGE_KEY) || ""');
+    expect(navSource).toContain("const navGroupSnapshot = useSyncExternalStore(");
+    expect(navSource).toContain("readNavGroupSnapshot");
+    expect(navSource).toContain(
+      "useMemo(() => parseNavGroupSnapshot(navGroupSnapshot), [navGroupSnapshot])",
+    );
+    expect(navSource).not.toContain("readNavGroupState,\n    () => DEFAULT_NAV_GROUP_OPEN");
+  });
+
   test("keeps collapsed previews and nested nav controls on the light theme surface", () => {
     expect(cssSource).toContain(
       'html[data-reader-theme="light"] .reader-nav-report-subitems a:hover',
