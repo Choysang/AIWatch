@@ -2,7 +2,7 @@
 // It must never embed feed data, so fetching the Skill cannot become a data export.
 
 export const SKILL_MD = `---
-name: aihot
+name: aiwatch
 description: 读取 AIWatch 的全部 AI 动态、精选内容和每日精编日报。匿名免费，无需 API key。适用于 Claude Code、Codex CLI、Cursor、Gemini CLI、GitHub Copilot、OpenCode、Cline、Windsurf 等任意 Agent。
 ---
 
