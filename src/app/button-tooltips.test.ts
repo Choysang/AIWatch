@@ -10,7 +10,9 @@ describe("button tooltips", () => {
     expect(tooltipSource).toContain("closest(\"button\")");
     expect(tooltipSource).toContain("pointerover");
     expect(tooltipSource).toContain("focusin");
-    expect(tooltipSource).toContain("aria-label");
+    expect(tooltipSource).toContain("DESCRIPTIVE_TOOLTIP_BY_LABEL");
+    expect(tooltipSource).toContain("data-tooltip");
+    expect(tooltipSource).toContain("normalized !== visibleText");
     expect(layoutSource).toContain("<ButtonTooltips />");
   });
 });

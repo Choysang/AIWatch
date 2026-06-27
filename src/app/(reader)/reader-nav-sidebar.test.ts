@@ -38,7 +38,9 @@ describe("reader nav sidebar", () => {
     expect(navSource).toContain('href="/reports"');
     expect(navSource).toContain('const reportExpanded = pathname?.startsWith("/reports") ?? false;');
     expect(navSource).toContain('aria-expanded={reportExpanded}');
-    expect(navSource).not.toContain("setReportExpanded");
+    expect(navSource).toContain("ReaderNavGroup");
+    expect(navSource).toContain("NAV_GROUP_STORAGE_KEY");
+    expect(navSource).toContain("toggleNavGroup");
     expect(navSource).toContain('hidden={!reportExpanded}');
     expect(navSource).toContain('const meExpanded = pathname?.startsWith("/me") ?? false;');
     expect(navSource).toContain('aria-expanded={meExpanded}');
@@ -145,14 +147,16 @@ describe("reader nav sidebar", () => {
   });
 
   test("renders an off-canvas mobile drawer with a toggle button and dismiss scrim", () => {
-    expect(navSource).toContain("const [mobileOpen, setMobileOpen] = useState(false);");
+    expect(navSource).toContain("const [mobileDrawer, setMobileDrawer] = useState({ open: false, pathKey });");
+    expect(navSource).toContain("const mobileOpen = mobileDrawer.open && mobileDrawer.pathKey === pathKey;");
     expect(navSource).toContain('className="reader-nav-fab"');
+    expect(navSource).toContain("AI HOT");
     expect(navSource).toContain("onClick={() => setMobileOpen(true)}");
     expect(navSource).toContain('className={`reader-nav-scrim ${mobileOpen ? "is-open" : ""}`}');
     expect(navSource).toContain("onClick={() => setMobileOpen(false)}");
     expect(navSource).toContain("${mobileOpen ? \"is-mobile-open\" : \"\"}");
     // Drawer closes on navigation (path change).
-    expect(navSource).toContain("setMobileOpen(false);\n  }, [pathname]);");
+    expect(navSource).toContain("setMobileDrawer({ open, pathKey });");
     // Rail-collapse is suppressed on true mobile so the drawer shows full labels.
     expect(navSource).toContain("window.innerWidth > 760 && window.innerWidth < 960");
     // The drawer slides fully off-canvas by default (no content overlap / hydration flash).

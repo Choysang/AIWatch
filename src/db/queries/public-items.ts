@@ -4,7 +4,7 @@
 
 import { and, arrayOverlaps, desc, eq, gte, inArray, ne, sql, type SQL } from "drizzle-orm";
 import { db as defaultDb, type DB } from "@/db/client";
-import { events, posts, sources } from "@/db/schema";
+import { events, ownerAnnotations, posts, sources } from "@/db/schema";
 import type { PublicItem, PublicItemsResponse } from "@/public/item";
 import { encodeCursor, windowStart, type PublicQuery } from "@/public/query";
 
@@ -72,6 +72,13 @@ export async function listPublicItems(
   if (q.mode === "selected") {
     conds.push(ne(events.selectedLevel, "none"));
     if (q.level) conds.push(eq(events.selectedLevel, q.level));
+  } else {
+    conds.push(sql`not exists (
+      select 1 from ${ownerAnnotations}
+      where ${ownerAnnotations.subjectType} = 'event'
+        and ${ownerAnnotations.subjectId} = ${events.id}
+        and ${ownerAnnotations.verdict} = 'not_useful'
+    )`);
   }
   // Custom range (explicit from/to) takes precedence over the rolling `since` window.
   const customRange = Boolean(q.dateFrom || q.dateTo);

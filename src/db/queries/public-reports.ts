@@ -19,6 +19,7 @@ export interface PublicReportListItem {
   title: string;
   summary: string | null;
   generated_at: string;
+  item_count: number;
 }
 
 const MAX_DAILIES = 60;
@@ -69,6 +70,7 @@ export async function listByKind(
       reportDate: reports.reportDate,
       title: reports.title,
       summary: reports.summary,
+      content: reports.content,
       generatedAt: reports.generatedAt,
     })
     .from(reports)
@@ -80,6 +82,10 @@ export async function listByKind(
     title: r.title,
     summary: r.summary,
     generated_at: r.generatedAt.toISOString(),
+    item_count: ((r.content as ReportContent).sections ?? []).reduce(
+      (sum, section) => sum + section.items.length,
+      0,
+    ),
   }));
 }
 

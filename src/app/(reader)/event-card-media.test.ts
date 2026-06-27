@@ -6,11 +6,17 @@ const eventCardSource = readFileSync(join(import.meta.dir, "event-card.tsx"), "u
 const cssSource = readFileSync(join(import.meta.dir, "..", "globals.css"), "utf8");
 
 describe("event card media", () => {
-  test("wraps card images in a proxied large-image link", () => {
+  test("wraps card images in the in-page lightbox instead of a new tab", () => {
     expect(eventCardSource).toContain("proxiedImageUrl");
-    expect(eventCardSource).toContain('className="card-media-link"');
-    expect(eventCardSource).toContain("target=\"_blank\"");
+    expect(eventCardSource).toContain("ImageLightbox");
+    expect(eventCardSource).toContain("extractCardMediaGallery");
+    expect(eventCardSource).toContain('triggerClassName="card-media-link image-lightbox-trigger"');
     expect(eventCardSource).toContain("cardThumbProxy");
+    const mediaBlock = eventCardSource.slice(
+      eventCardSource.indexOf("<ImageLightbox"),
+      eventCardSource.indexOf("</figure>", eventCardSource.indexOf("<ImageLightbox")),
+    );
+    expect(mediaBlock).not.toContain('target="_blank"');
   });
 
   test("does not force card images into a fixed-height black thumbnail box", () => {

@@ -1,9 +1,6 @@
-// Content-layer switcher (v0.5 B1, merged): readers toggle an event's body between AI 摘要 and
-// 原文. Default = AI (the page's prior behavior). 原文 shows the ingested post text immediately,
-// and — when the event has a source link — auto-fetches the complete article via readability
-// (/api/events/[id]/fulltext) and upgrades in place, but only when the extracted full text is at
-// least as long as the ingested excerpt (so a poor extraction never downgrades a clean original).
-// Everything renders as plain text (XSS-inert by construction), no sanitizer needed.
+// Detail reading layers: show AI 摘要 and the source body on the same page. 原文 can still
+// upgrade to the extracted full article on demand, and foreign-language bodies can be
+// translated by the event-scoped translation API.
 
 "use client";
 
@@ -12,8 +9,8 @@ import { messages } from "@/i18n";
 import type { RichBlock } from "@/content/rich-blocks";
 import { RichContent } from "./rich-content";
 
-type Layer = "ai" | "body";
 type FullStatus = "idle" | "loading" | "ok" | "unavailable" | "error";
+type TranslationStatus = "idle" | "loading" | "ok" | "error";
 
 export function ContentLayers({
   eventId,
@@ -30,13 +27,14 @@ export function ContentLayers({
   canFetchFull: boolean;
 }) {
   const m = messages.detail.layer;
-  const [layer, setLayer] = useState<Layer>("ai");
   const [fullStatus, setFullStatus] = useState<FullStatus>("idle");
   const [fullText, setFullText] = useState("");
   const [blocks, setBlocks] = useState<RichBlock[]>([]);
+  const [translationStatus, setTranslationStatus] = useState<TranslationStatus>("idle");
+  const [translatedText, setTranslatedText] = useState("");
+  const [showTranslation, setShowTranslation] = useState(false);
 
   const showBody = async () => {
-    setLayer("body");
     if (!canFetchFull || fullStatus !== "idle") return; // nothing to fetch / already fetched
     setFullStatus("loading");
     try {
@@ -60,6 +58,32 @@ export function ContentLayers({
     }
   };
 
+  const translateBody = async () => {
+    if (translationStatus === "loading") return;
+    if (translatedText) {
+      setShowTranslation(true);
+      return;
+    }
+    setTranslationStatus("loading");
+    try {
+      const res = await fetch(`/api/events/${eventId}/translate`, { method: "POST" });
+      if (!res.ok) {
+        setTranslationStatus("error");
+        return;
+      }
+      const data = (await res.json()) as { translated_text?: string };
+      if (data.translated_text) {
+        setTranslatedText(data.translated_text);
+        setShowTranslation(true);
+        setTranslationStatus("ok");
+      } else {
+        setTranslationStatus("error");
+      }
+    } catch {
+      setTranslationStatus("error");
+    }
+  };
+
   // The merged body has two layers only: AI summary, and 原文 (which prefers the full article).
   const hasBodyTab = originalText !== null || canFetchFull;
   // Prefer the complete article, but never replace a clean excerpt with a shorter extraction.
@@ -70,51 +94,51 @@ export function ContentLayers({
   // structured blocks; otherwise we fall back to the plain-text body (ingested 原文 or pre-B1.5
   // cached extractions). Only show rich blocks when we'd also be showing the upgraded full text.
   const richReady = upgraded && blocks.length > 0;
+  const bodyHeading = showTranslation && translatedText ? m.translated : m.original;
 
   return (
     <div className="content-layers">
-      <div className="content-layer-tabs" role="tablist" aria-label={m.label}>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={layer === "ai"}
-          className={`content-layer-tab ${layer === "ai" ? "is-active" : ""}`}
-          onClick={() => setLayer("ai")}
-        >
-          {m.ai}
-        </button>
-        {hasBodyTab && (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={layer === "body"}
-            className={`content-layer-tab ${layer === "body" ? "is-active" : ""}`}
-            onClick={showBody}
-          >
-            {m.original}
-          </button>
+      <section className="content-layer-summary" aria-label={m.ai}>
+        <h3 className="content-layer-heading">{m.ai}</h3>
+        {summary ? (
+          <p className="summary">{summary}</p>
+        ) : (
+          <p className="content-layer-note">{m.aiEmpty}</p>
         )}
-      </div>
-
-      <div className="content-layer-body">
-        {layer === "ai" && (
-          <>
-            {summary ? (
-              <p className="summary">{summary}</p>
-            ) : (
-              <p className="content-layer-note">{m.aiEmpty}</p>
-            )}
-            {recommendationReason && (
-              <p className="reason">
-                <span className="label">{messages.card.recommendationReason}</span>
-                {recommendationReason}
-              </p>
-            )}
-          </>
+        {recommendationReason && (
+          <p className="reason">
+            <span className="label">{messages.card.recommendationReason}</span>
+            {recommendationReason}
+          </p>
         )}
+      </section>
 
-        {layer === "body" &&
-          (richReady ? (
+      {hasBodyTab && (
+        <section className="content-layer-original" aria-label={bodyHeading}>
+          <h3 className="content-layer-heading">{bodyHeading}</h3>
+          <div className="content-layer-actions">
+            {canFetchFull && (
+              <button
+                type="button"
+                onClick={showBody}
+                disabled={fullStatus === "loading" || fullStatus === "ok"}
+                data-tooltip="拉取站内可读的完整正文"
+              >
+                {fullStatus === "loading" ? m.loading : m.loadOriginal}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={showTranslation ? () => setShowTranslation(false) : translateBody}
+              disabled={translationStatus === "loading"}
+              data-tooltip="把原文翻译成中文阅读"
+            >
+              {showTranslation ? m.showOriginal : translationStatus === "loading" ? m.translating : translatedText ? m.showTranslation : m.translate}
+            </button>
+          </div>
+          {showTranslation && translatedText ? (
+            <div className="original-text-body">{translatedText}</div>
+          ) : richReady ? (
             // Full article extracted into structured blocks: tables, code, images, headings.
             <RichContent blocks={blocks} />
           ) : body !== null ? (
@@ -125,8 +149,12 @@ export function ContentLayers({
             <p className="content-layer-note">{m.loading}</p>
           ) : (
             <p className="content-layer-note">{m.unavailable}</p>
-          ))}
-      </div>
+          )}
+          {translationStatus === "error" && (
+            <p className="content-layer-note">{m.translationFailed}</p>
+          )}
+        </section>
+      )}
     </div>
   );
 }

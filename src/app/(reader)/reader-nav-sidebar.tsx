@@ -1,16 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { authClient } from "@/app/_lib/auth-client";
 import { isConsoleRole } from "@/auth/console-roles";
 import { messages } from "@/i18n";
 
 type ReaderThemeMode = "dark" | "system" | "light";
+type NavGroupId = "content" | "access" | "more";
 
 const READER_THEME_STORAGE_KEY = "aiwatch:reader-theme-mode";
+const NAV_GROUP_STORAGE_KEY = "aiwatch:reader-nav-groups";
+const READER_THEME_STORE_EVENT = "aiwatch:reader-theme-mode";
+const NAV_GROUP_STORE_EVENT = "aiwatch:reader-nav-groups";
 const DEFAULT_READER_THEME_MODE: ReaderThemeMode = "system";
+const DEFAULT_NAV_GROUP_OPEN: Record<NavGroupId, boolean> = {
+  content: true,
+  access: true,
+  more: true,
+};
 
 const READER_THEME_OPTIONS: { name: ReaderThemeMode; label: string }[] = [
   { name: "dark", label: "夜间" },
@@ -26,6 +35,15 @@ function isReaderThemeMode(value: string | null): value is ReaderThemeMode {
   return value === "dark" || value === "system" || value === "light";
 }
 
+function readReaderThemeMode(): ReaderThemeMode {
+  try {
+    const storedMode = localStorage.getItem(READER_THEME_STORAGE_KEY);
+    return isReaderThemeMode(storedMode) ? storedMode : DEFAULT_READER_THEME_MODE;
+  } catch {
+    return DEFAULT_READER_THEME_MODE;
+  }
+}
+
 function effectiveReaderTheme(mode: ReaderThemeMode): "dark" | "light" {
   if (mode !== "system") return mode;
   return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
@@ -34,6 +52,27 @@ function effectiveReaderTheme(mode: ReaderThemeMode): "dark" | "light" {
 function applyReaderTheme(mode: ReaderThemeMode) {
   document.documentElement.dataset.readerThemeMode = mode;
   document.documentElement.dataset.readerTheme = effectiveReaderTheme(mode);
+}
+
+function readNavGroupState(): Record<NavGroupId, boolean> {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(NAV_GROUP_STORAGE_KEY) || "{}") as Partial<Record<NavGroupId, boolean>>;
+    return { ...DEFAULT_NAV_GROUP_OPEN, ...parsed };
+  } catch {
+    return DEFAULT_NAV_GROUP_OPEN;
+  }
+}
+
+function subscribeStorage(eventName: string, onStoreChange: () => void): () => void {
+  const onStorage = (event: StorageEvent) => {
+    if (!event.key || event.key === eventName) onStoreChange();
+  };
+  window.addEventListener(eventName, onStoreChange);
+  window.addEventListener("storage", onStorage);
+  return () => {
+    window.removeEventListener(eventName, onStoreChange);
+    window.removeEventListener("storage", onStorage);
+  };
 }
 
 function isTabletRailViewport(): boolean {
@@ -153,14 +192,15 @@ function ReaderThemeIcon({ name }: { name: ReaderThemeMode }) {
 }
 
 function ReaderThemeSwitch() {
-  const [mode, setMode] = useState<ReaderThemeMode>(DEFAULT_READER_THEME_MODE);
+  const mode = useSyncExternalStore(
+    (onStoreChange) => subscribeStorage(READER_THEME_STORE_EVENT, onStoreChange),
+    readReaderThemeMode,
+    () => DEFAULT_READER_THEME_MODE,
+  );
 
   useEffect(() => {
-    const storedMode = localStorage.getItem(READER_THEME_STORAGE_KEY);
-    const nextMode = isReaderThemeMode(storedMode) ? storedMode : DEFAULT_READER_THEME_MODE;
-    setMode(nextMode);
-    applyReaderTheme(nextMode);
-  }, []);
+    applyReaderTheme(mode);
+  }, [mode]);
 
   useEffect(() => {
     if (mode !== "system") return;
@@ -171,8 +211,8 @@ function ReaderThemeSwitch() {
   }, [mode]);
 
   function chooseMode(nextMode: ReaderThemeMode) {
-    setMode(nextMode);
     localStorage.setItem(READER_THEME_STORAGE_KEY, nextMode);
+    window.dispatchEvent(new Event(READER_THEME_STORE_EVENT));
     applyReaderTheme(nextMode);
   }
 
@@ -194,6 +234,40 @@ function ReaderThemeSwitch() {
         </button>
       ))}
     </div>
+  );
+}
+
+function ReaderNavGroup({
+  id,
+  label,
+  open,
+  onToggle,
+  children,
+}: {
+  id: NavGroupId;
+  label: string;
+  open: boolean;
+  onToggle: (id: NavGroupId) => void;
+  children: ReactNode;
+}) {
+  return (
+    <section className="reader-nav-group">
+      <button
+        type="button"
+        className="reader-nav-group-toggle"
+        aria-expanded={open}
+        data-tooltip={`${open ? "收起" : "展开"}${label}导航`}
+        onClick={() => onToggle(id)}
+      >
+        <span className="reader-nav-group-label">{label}</span>
+        <span className="reader-nav-group-arrow" aria-hidden="true">
+          {open ? "⌄" : "›"}
+        </span>
+      </button>
+      <div className="reader-nav-group-body" hidden={!open}>
+        {children}
+      </div>
+    </section>
   );
 }
 
@@ -276,19 +350,32 @@ export function ReaderNavSidebar() {
     isTabletRailViewport,
     () => false,
   );
+  const pathKey = pathname ?? "";
   const [collapsedOverride, setCollapsedOverride] = useState<boolean | null>(null);
   const collapsed = collapsedOverride ?? shouldCollapseByViewport;
   const reportExpanded = pathname?.startsWith("/reports") ?? false;
   const meExpanded = pathname?.startsWith("/me") ?? false;
+  const navGroupOpen = useSyncExternalStore(
+    (onStoreChange) => subscribeStorage(NAV_GROUP_STORE_EVENT, onStoreChange),
+    readNavGroupState,
+    () => DEFAULT_NAV_GROUP_OPEN,
+  );
   // Mobile (≤760px) renders the sidebar as an off-canvas drawer: hidden by default so it
   // never overlaps content, opened by the floating button below, dismissed by the scrim or
   // by navigating. Desktop ignores this and uses `collapsed` (full ↔ rail).
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileDrawer, setMobileDrawer] = useState({ open: false, pathKey });
+  const mobileOpen = mobileDrawer.open && mobileDrawer.pathKey === pathKey;
 
-  // Close the mobile drawer on navigation (a tapped nav link changes the path).
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
+  function setMobileOpen(open: boolean) {
+    setMobileDrawer({ open, pathKey });
+  }
+
+  function toggleNavGroup(id: NavGroupId) {
+    const current = readNavGroupState();
+    const next = { ...current, [id]: !current[id] };
+    localStorage.setItem(NAV_GROUP_STORAGE_KEY, JSON.stringify(next));
+    window.dispatchEvent(new Event(NAV_GROUP_STORE_EVENT));
+  }
 
   return (
     <>
@@ -299,11 +386,7 @@ export function ReaderNavSidebar() {
         aria-expanded={mobileOpen}
         onClick={() => setMobileOpen(true)}
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden="true">
-          <path d="M4 7h16" />
-          <path d="M4 12h16" />
-          <path d="M4 17h16" />
-        </svg>
+        <span className="reader-nav-fab-mark">AI HOT</span>
       </button>
       <div
         className={`reader-nav-scrim ${mobileOpen ? "is-open" : ""}`}
@@ -331,7 +414,7 @@ export function ReaderNavSidebar() {
       </div>
 
       <nav className="reader-nav-sections" aria-label="读者导航">
-        <span className="reader-nav-group-label">内容</span>
+        <ReaderNavGroup id="content" label="内容" open={navGroupOpen.content} onToggle={toggleNavGroup}>
         <Link href="/" className="reader-nav-item" aria-label="内容广场">
           <span className="reader-nav-icon" aria-hidden="true">
             <ReaderNavIcon name="content" />
@@ -363,8 +446,9 @@ export function ReaderNavSidebar() {
           <Link href="/reports/weekly">周报</Link>
           <Link href="/reports/monthly">月报</Link>
         </div>
+        </ReaderNavGroup>
 
-        <span className="reader-nav-group-label">接入</span>
+        <ReaderNavGroup id="access" label="接入" open={navGroupOpen.access} onToggle={toggleNavGroup}>
         <Link href="/boards" className="reader-nav-item" aria-label={messages.nav.boards}>
           <span className="reader-nav-icon" aria-hidden="true">
             <ReaderNavIcon name="boards" />
@@ -375,8 +459,19 @@ export function ReaderNavSidebar() {
             <small>关注主题 · 个人定制</small>
           </span>
         </Link>
+        <Link href="/aiwatch-skill" className="reader-nav-item" aria-label="Agent 接入">
+          <span className="reader-nav-icon" aria-hidden="true">
+            <ReaderNavIcon name="source" />
+            <span className="reader-nav-tooltip">Agent 接入</span>
+          </span>
+          <span className="reader-nav-text">
+            <strong>Agent 接入</strong>
+            <small>Skill、RSS、API</small>
+          </span>
+        </Link>
+        </ReaderNavGroup>
 
-        <span className="reader-nav-group-label">更多</span>
+        <ReaderNavGroup id="more" label="更多" open={navGroupOpen.more} onToggle={toggleNavGroup}>
         <Link
           href="/me/likes"
           className="reader-nav-item"
@@ -419,6 +514,7 @@ export function ReaderNavSidebar() {
             <small>提交值得跟踪的信息源</small>
           </span>
         </Link>
+        </ReaderNavGroup>
       </nav>
 
       <ReaderThemeSwitch />

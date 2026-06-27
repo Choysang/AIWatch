@@ -12,10 +12,10 @@ import {
 const parse = (qs: string) => parsePublicQuery(new URLSearchParams(qs));
 
 describe("parsePublicQuery", () => {
-  test("defaults to selected mode + week window for the reader's low-noise feed", () => {
+  test("defaults to selected mode + all-time window so historical selected items remain visible", () => {
     const q = parse("");
     expect(q.mode).toBe("selected");
-    expect(q.since).toBe("week");
+    expect(q.since).toBe("all");
     expect(q.take).toBe(DEFAULT_TAKE);
   });
 

@@ -7,12 +7,13 @@
 import type { EventCard as EventCardData } from "@/db/queries/feed";
 import { messages } from "@/i18n";
 import { formatDateTime } from "@/app/_lib/format";
-import { extractCardMedia, proxiedImageUrl } from "@/app/_lib/media";
+import { extractCardMediaGallery, proxiedImageUrl } from "@/app/_lib/media";
 import { AnnotationButtons, type OwnerVerdict } from "./annotation-buttons";
 import { CommentTicker } from "./comment-ticker";
 import { EventCardShell, TrackableDetailLink } from "./event-view-tracker";
 import { InlineComments } from "./inline-comments";
 import { ReactionButtons } from "./reaction-buttons";
+import { ImageLightbox } from "./image-lightbox";
 
 const MAX_TAGS = 4;
 
@@ -22,6 +23,10 @@ type EventCategoryKey = keyof typeof messages.search.eventCategory;
 function eventCategoryLabel(category: string | null): string | null {
   if (!category || !(category in messages.search.eventCategory)) return null;
   return messages.search.eventCategory[category as EventCategoryKey];
+}
+
+function mediaPreviewUrl(item: { type: "image"; url: string } | { type: "video"; url: string; poster?: string }): string | null {
+  return item.type === "image" ? item.url : item.poster ?? null;
 }
 
 interface EventCardProps {
@@ -60,18 +65,21 @@ export function EventCard({
   const isSelected = level !== "none";
   const showReason = isSelected && Boolean(event.recommendationReason);
   const showComments = (level === "A" || level === "S") && Boolean(topComments?.length);
-  const cardMedia = extractCardMedia(event.media);
+  const mediaGallery = extractCardMediaGallery(event.media);
   // Card media is a still thumbnail only. We don't inline-play video here: most card video
   // comes from X/Twitter as HLS (.m3u8) or hotlink-protected CDN URLs that a native <video>
   // can't actually play, leaving a dead control strip. For a video we show its poster (a
   // screenshot); with no poster we render nothing rather than a useless bar. The whole card
   // already routes to the detail page, where the original source link lives.
-  const cardThumb = cardMedia
-    ? cardMedia.type === "image"
-      ? cardMedia.url
-      : cardMedia.poster ?? null
-    : null;
+  const cardThumb =
+    mediaGallery.find((item) => item.type === "image")?.url ??
+    mediaGallery.map(mediaPreviewUrl).find((url): url is string => Boolean(url)) ??
+    null;
   const cardThumbProxy = cardThumb ? proxiedImageUrl(cardThumb) : null;
+  const lightboxImages = mediaGallery
+    .map(mediaPreviewUrl)
+    .filter((url): url is string => Boolean(url))
+    .map((url) => ({ src: proxiedImageUrl(url) }));
   const contentLabel = eventCategoryLabel(event.category);
   // #1 每张卡至少一个标签：深度提取(score≥80)才生成 tags，普通卡为空——空时用分类兜底，
   // 连分类都没有就给「闲聊」，避免出现完全没有标签的卡片。
@@ -147,16 +155,10 @@ export function EventCard({
 
       {cardThumb && cardThumbProxy && (
         <figure className="card-media">
-          <a
-            className="card-media-link"
-            href={cardThumbProxy}
-            target="_blank"
-            rel="noreferrer noopener"
-            title={m.openImage}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element -- proxied external media, unknown dimensions */}
-            <img src={cardThumbProxy} alt="" loading="lazy" decoding="async" />
-          </a>
+          <ImageLightbox
+            images={lightboxImages.length ? lightboxImages : [{ src: cardThumbProxy }]}
+            triggerClassName="card-media-link image-lightbox-trigger"
+          />
         </figure>
       )}
 

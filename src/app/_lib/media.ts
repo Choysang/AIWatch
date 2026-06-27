@@ -70,6 +70,54 @@ export function extractCardMedia(media: unknown): CardMedia | null {
   return null;
 }
 
+function pushMedia(out: CardMedia[], seen: Set<string>, item: CardMedia | null): void {
+  if (!item) return;
+  const key = item.type === "video" ? `${item.url}|${item.poster ?? ""}` : item.url;
+  if (seen.has(key)) return;
+  seen.add(key);
+  out.push(item);
+}
+
+function collectCardMedia(media: unknown, out: CardMedia[], seen: Set<string>): void {
+  if (isHttpUrl(media)) {
+    pushMedia(out, seen, { type: "image", url: media });
+    return;
+  }
+  if (Array.isArray(media)) {
+    for (const item of media) collectCardMedia(item, out, seen);
+    return;
+  }
+  if (!media || typeof media !== "object") return;
+
+  const obj = media as Record<string, unknown>;
+  const direct = urlFromObject(obj);
+  if (direct) {
+    if (looksLikeVideo(obj, direct)) {
+      const poster = posterFromObject(obj);
+      pushMedia(out, seen, poster ? { type: "video", url: direct, poster } : { type: "video", url: direct });
+    } else {
+      pushMedia(out, seen, { type: "image", url: direct });
+    }
+  }
+  for (const key of ["images", "videos", "media", "items"]) {
+    if (key in obj) collectCardMedia(obj[key], out, seen);
+  }
+}
+
+/** Best-effort media gallery from untyped media; preserves source order and de-dupes URLs. */
+export function extractCardMediaGallery(media: unknown): CardMedia[] {
+  const out: CardMedia[] = [];
+  collectCardMedia(media, out, new Set());
+  return out;
+}
+
+/** Best-effort image gallery: image URLs plus video posters only. */
+export function extractImageUrls(media: unknown): string[] {
+  return extractCardMediaGallery(media)
+    .map((item) => (item.type === "image" ? item.url : item.poster ?? null))
+    .filter((url): url is string => Boolean(url));
+}
+
 /** Best-effort primary image URL from untyped media; null when absent or unrecognized. */
 export function extractImageUrl(media: unknown): string | null {
   const cardMedia = extractCardMedia(media);

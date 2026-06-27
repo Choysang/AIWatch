@@ -7,7 +7,7 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { getSession } from "@/app/_lib/session";
 import { htmlToReadableText } from "@/app/_lib/html-text";
-import { extractCardMedia, proxiedImageUrl } from "@/app/_lib/media";
+import { extractCardMedia, extractCardMediaGallery, proxiedImageUrl } from "@/app/_lib/media";
 import { SubpageNav } from "@/app/subpage-nav";
 import { READER_ID_COOKIE, verifyReaderId } from "@/auth/reader-id";
 import { getEventDetail } from "@/db/queries/event-detail";
@@ -21,6 +21,7 @@ import { ContentLayers } from "../../content-layers";
 import { CopyLinkButton } from "../../copy-link-button";
 import { TrackableOriginalLink } from "../../event-view-tracker";
 import { ReactionButtons } from "../../reaction-buttons";
+import { ImageLightbox } from "../../image-lightbox";
 
 export const dynamic = "force-dynamic";
 
@@ -109,8 +110,13 @@ export default async function EventDetailPage({
   const author = event.authorName ?? event.sourceName ?? "";
   const handle = event.authorHandle ? ` ${event.authorHandle}` : "";
   const cardMedia = extractCardMedia(event.media);
+  const mediaGallery = extractCardMediaGallery(event.media);
   const detailImageProxy =
     cardMedia?.type === "image" ? proxiedImageUrl(cardMedia.url) : null;
+  const lightboxImages = mediaGallery
+    .map((item) => (item.type === "image" ? item.url : item.poster ?? null))
+    .filter((url): url is string => Boolean(url))
+    .map((url) => ({ src: proxiedImageUrl(url) }));
 
   return (
     <main className="page">
@@ -164,20 +170,20 @@ export default async function EventDetailPage({
         {cardMedia && (
           <figure className="card-media">
             {cardMedia.type === "video" ? (
-              <video controls preload="metadata" playsInline poster={cardMedia.poster}>
+              <video
+                aria-label="查看原文视频"
+                controls
+                preload="metadata"
+                playsInline
+                poster={cardMedia.poster}
+              >
                 <source src={cardMedia.url} />
               </video>
             ) : (
-              <a
-                className="card-media-link"
-                href={detailImageProxy ?? cardMedia.url}
-                target="_blank"
-                rel="noreferrer noopener"
-                title={card.openImage}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element -- proxied external media, unknown dimensions */}
-                <img src={detailImageProxy ?? cardMedia.url} alt="" loading="lazy" decoding="async" />
-              </a>
+              <ImageLightbox
+                images={lightboxImages.length ? lightboxImages : [{ src: detailImageProxy ?? cardMedia.url }]}
+                triggerClassName="card-media-link image-lightbox-trigger"
+              />
             )}
           </figure>
         )}

@@ -1,78 +1,133 @@
-// Public install page for the aiwatch-hot Skill (decision 13). Static; links to SKILL.md
-// and shows the few read endpoints. No feed data here.
+// Public install page for the AI HOT Skill, RSS feeds, and anonymous public API.
 
+import Link from "next/link";
 import { messages } from "@/i18n";
 import { SubpageNav } from "@/app/subpage-nav";
 
 export const metadata = {
-  title: `${messages.appName} Skill · aiwatch-hot`,
+  title: `${messages.appName} Agent 接入`,
 };
+
+const TRIGGERS = [
+  "今天 AI 圈有什么新东西",
+  "看一下今天的 AI 日报",
+  "最近 OpenAI 有什么发布",
+  "看下精选条目",
+  "最近一周的 AI 论文",
+  "AI 模型发布列表",
+  "最近 3 天 AI 行业动态",
+  "AI 圈昨天发生了什么",
+];
 
 export default function SkillInstallPage() {
   return (
-    <main className="page">
+    <main className="page access-page">
       <header className="masthead">
         <div>
-          <h1 style={{ fontFamily: "var(--font-serif)" }}>aiwatch-hot</h1>
-          <span className="tagline">{messages.appName} 公共 Skill</span>
+          <h1 style={{ fontFamily: "var(--font-serif)" }}>AI HOT Agent 接入</h1>
+          <span className="tagline">Skill · RSS · REST API · OpenAPI</span>
         </div>
         <SubpageNav />
       </header>
 
       <p className="section-intro">
-        让你的 Agent 直接查询 AIWatch 的 AI 精选。只读、无需 API key。触发词：AIWatch、AI
-        热点、AI 日报、AI 精选、AI 动态。
+        让 Claude Code、Codex CLI、Cursor、Gemini CLI、GitHub Copilot、OpenCode、Cline、Windsurf
+        或任意 Agent 直接读取 AI HOT 的精选动态、全部 AI 动态和每日精编日报。匿名免费，无需 token。
       </p>
 
-      <div className="card">
-        <h2 style={{ fontFamily: "var(--font-serif)" }}>安装</h2>
+      <section className="card access-card">
+        <h2 style={{ fontFamily: "var(--font-serif)" }}>一行安装 Skill</h2>
         <p className="summary">
-          将下面的 Skill 文件交给你的 Agent（Claude Code / 兼容 Agent）：
+          在你的 Agent 里直接发这句话，Agent 会自己装到对应目录：
         </p>
+        <pre className="access-command">帮我安装这个 skill：https://aiwatch.icu/aiwatch-skill/</pre>
         <p>
-          <a href="/aiwatch-skill/SKILL.md">
+          <Link href="/aiwatch-skill/SKILL.md">
             <code>/aiwatch-skill/SKILL.md</code>
-          </a>
+          </Link>
         </p>
-      </div>
+      </section>
 
-      <div className="card" style={{ marginTop: "1.25rem" }}>
-        <h2 style={{ fontFamily: "var(--font-serif)" }}>个性化播报</h2>
-        <p className="summary">
-          用于长期播报时，Agent 应先询问用户最想看什么、不想看什么、输出深度、播报时间、
-          存放位置，以及是否发送到邮箱或短信。Skill 文件里已经写入这套提问流程。
-        </p>
-      </div>
+      <section className="card access-card">
+        <h2 style={{ fontFamily: "var(--font-serif)" }}>触发示例</h2>
+        <div className="access-chip-grid">
+          {TRIGGERS.map((text) => (
+            <span className="tag" key={text}>
+              {text}
+            </span>
+          ))}
+        </div>
+      </section>
 
-      <div className="card" style={{ marginTop: "1.25rem" }}>
-        <h2 style={{ fontFamily: "var(--font-serif)" }}>只读端点</h2>
-        <ul>
+      <section className="card access-card">
+        <h2 style={{ fontFamily: "var(--font-serif)" }}>Skill 会怎么分流</h2>
+        <dl className="access-routes">
+          <div>
+            <dt>默认宽问题</dt>
+            <dd>
+              <code>GET /api/public/items?mode=selected&amp;since=...</code>
+            </dd>
+          </div>
+          <div>
+            <dt>明确说日报</dt>
+            <dd>
+              <code>GET /api/public/daily</code> 或 <code>/api/public/daily/YYYY-MM-DD</code>
+            </dd>
+          </div>
+          <div>
+            <dt>明确要全部 / 全量</dt>
+            <dd>
+              <code>GET /api/public/items?mode=all&amp;since=all</code>
+            </dd>
+          </div>
+          <div>
+            <dt>关键词搜索</dt>
+            <dd>
+              <code>GET /api/public/items?q=OpenAI</code>，服务端搜索，不本地抓全量 grep
+            </dd>
+          </div>
+          <div>
+            <dt>日报归档</dt>
+            <dd>
+              <code>GET /api/public/dailies?take=30</code>
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <section className="card access-card">
+        <h2 style={{ fontFamily: "var(--font-serif)" }}>RSS 订阅</h2>
+        <ul className="access-list">
           <li>
-            <code>GET /api/public/items?mode=selected&amp;since=today</code>：今日精选
+            <strong>精选</strong>
+            <Link href="/feed.xml">https://aiwatch.icu/feed.xml</Link>
           </li>
           <li>
-            <code>GET /api/public/items?mode=selected&amp;since=week</code>：本周精选
+            <strong>全部 AI 动态</strong>
+            <Link href="/feed/all.xml">https://aiwatch.icu/feed/all.xml</Link>
           </li>
           <li>
-            <code>GET /api/public/items?mode=selected&amp;since=month</code>：本月精选
-          </li>
-          <li>
-            <code>GET /api/public/items?q=关键词</code>：关键词搜索（服务端）
-          </li>
-          <li>
-            <code>GET /api/public/items?mode=all</code>：全部动态（按时间）
-          </li>
-          <li>
-            <code>GET /api/public/daily</code>：最新 AI 日报（含三节正文）
-          </li>
-          <li>
-            <code>GET /api/public/dailies?take=N</code>：近期日报列表
+            <strong>AI HOT 日报</strong>
+            <Link href="/feed/daily.xml">https://aiwatch.icu/feed/daily.xml</Link>
           </li>
         </ul>
-        <p className="note" style={{ border: 0, margin: 0 }}>
-          摘要由 LLM 生成，请以 <code>url</code> 原文为权威来源。
+      </section>
+
+      <section className="card access-card">
+        <h2 style={{ fontFamily: "var(--font-serif)" }}>开发者 API</h2>
+        <p className="summary">
+          公共 REST API 匿名只读，只暴露浏览器里也能看到的最终内容字段。严格 schema 可读取 OpenAPI 3.1。
         </p>
-      </div>
+        <p>
+          <Link href="/openapi.yaml">
+            <code>/openapi.yaml</code>
+          </Link>
+        </p>
+      </section>
+
+      <p className="note">
+        摘要由 LLM 生成，请以原文为准。测试版如遇滥用或服务器压力，接口可能临时限流或调整。
+      </p>
     </main>
   );
 }

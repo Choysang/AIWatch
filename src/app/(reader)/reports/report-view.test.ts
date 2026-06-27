@@ -17,8 +17,11 @@ describe("report reader layout", () => {
 
   test("renders the report archive from both latest and date pages", () => {
     expect(kindPageSource).toContain("function ReportArchive");
-    expect(kindPageSource).toContain("<ReportArchive kind={kind} archiveBase={archiveBase} archive={archive} />");
-    expect(kindPageSource).toContain("<ReportArchive kind={kind} archiveBase={archiveBase} archive={archive} />");
+    expect(kindPageSource).toContain("report-archive-shell");
+    expect(kindPageSource).toContain("report-archive-month");
+    expect(kindPageSource).toContain("item_count");
+    expect(kindPageSource).toContain("activeDate={latest?.date ?? null}");
+    expect(kindPageSource).toContain("activeDate={date}");
     expect(kindPageSource).toContain("KindReportByDate");
   });
 });

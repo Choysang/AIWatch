@@ -10,9 +10,7 @@ import { useCallback, useState, useTransition } from "react";
 import { messages } from "@/i18n";
 import {
   EVENT_CATEGORIES,
-  SOURCE_CATEGORIES,
   type EventCategory,
-  type SourceCategory,
 } from "@/public/query";
 import {
   expandGroups,
@@ -20,7 +18,6 @@ import {
   SOURCE_GROUPS,
   type SourceGroup,
 } from "@/public/source-groups";
-import { AI_SOURCE_CATEGORY_SHORT_LABEL } from "@/sources/ai-source-categories";
 
 type ChipValue = string | undefined;
 type DraftField = { routeValue: string; value: string };
@@ -32,17 +29,6 @@ type TimeChoice = (typeof WINDOWS)[number] | "custom";
 
 function draftValue(draft: DraftField, routeValue: string) {
   return draft.routeValue === routeValue ? draft.value : routeValue;
-}
-
-function parseSourceCategoryParam(raw: string | null): Set<SourceCategory> {
-  const set = new Set<SourceCategory>();
-  if (!raw) return set;
-  const known: ReadonlySet<string> = new Set(SOURCE_CATEGORIES);
-  for (const part of raw.split(",")) {
-    const v = part.trim();
-    if (v && known.has(v)) set.add(v as SourceCategory);
-  }
-  return set;
 }
 
 function parseSourceGroupParam(raw: string | null): Set<SourceGroup> {
@@ -182,7 +168,6 @@ export function SearchBar({
   const visibleModes: readonly SearchMode[] = hasBoards
     ? SEARCH_MODES
     : SEARCH_MODES.filter((value) => value !== "personalized");
-  const selectedSourceCategories = parseSourceCategoryParam(params.get("sourceCategories"));
   const selectedSourceGroups = parseSourceGroupParam(params.get("sourceTypes"));
   const selectedEventCategory = params.get("category") as EventCategory | null;
   const nativeSubmitParams = Array.from(params.entries()).filter(([key]) => key !== "q");
@@ -224,16 +209,6 @@ export function SearchBar({
       setToDraft({ routeValue: toParam, value: "" });
     }
   };
-
-  const toggleSourceCategory = (category: SourceCategory) =>
-    navigate((next) => {
-      const current = parseSourceCategoryParam(next.get("sourceCategories"));
-      if (current.size === 1 && current.has(category)) {
-        next.delete("sourceCategories");
-      } else {
-        next.set("sourceCategories", category);
-      }
-    });
 
   const toggleSourceGroup = (group: SourceGroup) =>
     navigate((next) => {
@@ -339,6 +314,13 @@ export function SearchBar({
               type="button"
               className={`search-mode-tab ${mode === value ? "is-active" : ""}`}
               aria-pressed={mode === value}
+              data-tooltip={
+                value === "latest"
+                  ? "按发布时间查看全部动态"
+                  : value === "selected"
+                    ? "只看经过筛选的精选内容"
+                    : "按主题板偏好查看推荐"
+              }
               onClick={() => setMode(value)}
             >
               {m.mode[value]}
@@ -347,23 +329,6 @@ export function SearchBar({
         </div>
 
         <div className="search-filter-line">
-          <div className="search-facet-row" role="group" aria-label={m.sourceCategoryLabel}>
-            <span className="filter-label">{m.sourceCategoryLabel}</span>
-            {SOURCE_CATEGORIES.map((category) => {
-              const active = selectedSourceCategories.has(category);
-              return (
-                <button
-                  key={category}
-                  type="button"
-                  className={`chip ${active ? "is-active" : ""}`}
-                  aria-pressed={active}
-                  onClick={() => toggleSourceCategory(category)}
-                >
-                  {m.sourceCategory[category] ?? AI_SOURCE_CATEGORY_SHORT_LABEL[category]}
-                </button>
-              );
-            })}
-          </div>
           <div className="search-facet-row" role="group" aria-label={m.sourceGroupLabel}>
             <span className="filter-label">{m.sourceGroupLabel}</span>
             {SOURCE_GROUPS.map((group) => {
@@ -374,6 +339,7 @@ export function SearchBar({
                   type="button"
                   className={`chip ${active ? "is-active" : ""}`}
                   aria-pressed={active}
+                  data-tooltip={`只看${m.sourceGroup[group]}类来源`}
                   onClick={() => toggleSourceGroup(group)}
                 >
                   {m.sourceGroup[group]}
@@ -392,6 +358,7 @@ export function SearchBar({
                     type="button"
                     className={`chip ${active ? "is-active" : ""}`}
                     aria-pressed={active}
+                    data-tooltip={`只看${m.eventCategory[value]}类内容`}
                     onClick={() => toggleEventCategory(value)}
                   >
                     {m.eventCategory[value]}
@@ -420,7 +387,7 @@ export function SearchBar({
             aria-label={m.placeholder}
           />
           {/* 显式搜索按钮：点击即搜；同时让表单有 submit，按 Enter 也能可靠触发。 */}
-          <button type="submit" className="search-go">
+            <button type="submit" className="search-go">
             {m.submit}
           </button>
           <div className="search-filter-popover">
@@ -429,6 +396,7 @@ export function SearchBar({
               className={`search-filter-toggle ${filterPanelOpen || hasPanelFilters ? "is-active" : ""}`}
               aria-expanded={filterPanelOpen}
               aria-controls="reader-search-filter-panel"
+              data-tooltip="展开时间、评分、模式和信源筛选"
               onClick={() => setFilterPanelOpen((open) => !open)}
             >
               {m.filterButton}
@@ -492,6 +460,43 @@ export function SearchBar({
                   )}
                 </div>
 
+                <div className="search-filter-section search-filter-mobile-section" role="group" aria-label={m.modeLabel}>
+                  <span className="filter-label">{m.modeLabel}</span>
+                  <div className="search-filter-options">
+                    {visibleModes.map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={`chip ${mode === value ? "is-active" : ""}`}
+                        aria-pressed={mode === value}
+                        onClick={() => setMode(value)}
+                      >
+                        {m.mode[value]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="search-filter-section search-filter-mobile-section" role="group" aria-label={m.eventCategoryLabel}>
+                  <span className="filter-label">{m.eventCategoryLabel}</span>
+                  <div className="search-filter-options">
+                    {EVENT_CATEGORIES.map((value) => {
+                      const active = selectedEventCategory === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          className={`chip ${active ? "is-active" : ""}`}
+                          aria-pressed={active}
+                          onClick={() => toggleEventCategory(value)}
+                        >
+                          {m.eventCategory[value]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="search-filter-section" role="group" aria-label={m.scoreLabel}>
                   <span className="filter-label">{m.scoreLabel}</span>
                   <div className="search-score-row">
@@ -535,12 +540,13 @@ export function SearchBar({
                         return (
                           <button
                             key={option.id}
-                            type="button"
-                            className={`chip ${active ? "is-active" : ""}`}
-                            aria-pressed={active}
-                            onClick={() => toggleSourceDraft(option.id)}
-                          >
-                            {option.name}
+                          type="button"
+                          className={`chip ${active ? "is-active" : ""}`}
+                          aria-pressed={active}
+                          data-tooltip={`只看 ${option.name} 的动态`}
+                          onClick={() => toggleSourceDraft(option.id)}
+                        >
+                          {option.name}
                           </button>
                         );
                       })}

@@ -291,9 +291,7 @@ export function parsePublicQuery(params: URLSearchParams): PublicQuery {
   const since: SemanticWindow =
     sinceRaw === "today" || sinceRaw === "week" || sinceRaw === "month" || sinceRaw === "all"
       ? sinceRaw
-      : mode === "selected"
-        ? "week" // sensible default for "what's hot": this week's selected
-        : "all";
+      : "all";
 
   const levelRaw = params.get("level");
   const level: PromotedLevel | undefined =

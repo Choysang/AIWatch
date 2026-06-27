@@ -17,7 +17,8 @@ export type LlmTask =
   | "cold_judge"
   | "comment_classification"
   | "merge_detection"
-  | "s_level_review";
+  | "s_level_review"
+  | "translation";
 
 export type LlmProviderName =
   | "openai"
@@ -63,6 +64,7 @@ export const LLM_TASKS: readonly LlmTask[] = [
   "comment_classification",
   "merge_detection",
   "s_level_review",
+  "translation",
 ];
 
 function configuredProvider(envName: string, fallback: LlmProviderName): LlmProviderName {
@@ -151,6 +153,22 @@ export const llmRouting: Record<LlmTask, RouteConfig> = {
   // s_level_review was anthropic/claude-sonnet-4-6; route to openai gpt-4.1 until the
   // Anthropic adapter ships. S-tier still uses a stronger model than cold_judge.
   s_level_review: { provider: "openai", model: "gpt-4.1", promptVersion: "s-review-v1", maxInputTokens: 8000, maxOutputTokens: 1500, temperature: 0.2 },
+  get translation() {
+    return {
+      provider: configuredProviderChain(
+        ["LLM_PROVIDER", "LLM_DEEP_PROVIDER", "LLM_NEWS_PROVIDER"],
+        "deepseek",
+      ),
+      model: configuredModelChain(
+        ["LLM_MODEL", "LLM_DEEP_MODEL", "LLM_NEWS_MODEL"],
+        "deepseek-chat",
+      ),
+      promptVersion: "translation-v1",
+      maxInputTokens: 8000,
+      maxOutputTokens: 2600,
+      temperature: 0,
+    };
+  },
 };
 
 interface ProviderEnv {

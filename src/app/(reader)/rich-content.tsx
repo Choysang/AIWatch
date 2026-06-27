@@ -4,11 +4,28 @@
 // Images already point at our same-origin /api/img proxy (set in rich-blocks.ts).
 
 import type { InlineSpan, RichBlock } from "@/content/rich-blocks";
+import { ImageLightbox } from "./image-lightbox";
+
+function hashKey(input: string): string {
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash * 31 + input.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash).toString(36);
+}
+
+function occurrenceKey(prefix: string, value: unknown, seen: Map<string, number>): string {
+  const base = `${prefix}-${hashKey(JSON.stringify(value))}`;
+  const count = (seen.get(base) ?? 0) + 1;
+  seen.set(base, count);
+  return count === 1 ? base : `${base}-${count}`;
+}
 
 function Spans({ spans }: { spans: InlineSpan[] }) {
+  const seen = new Map<string, number>();
   return (
     <>
-      {spans.map((span, i) => {
+      {spans.map((span) => {
         let node: React.ReactNode = span.text;
         if (span.code) node = <code>{node}</code>;
         if (span.bold) node = <strong>{node}</strong>;
@@ -20,7 +37,7 @@ function Spans({ spans }: { spans: InlineSpan[] }) {
             </a>
           );
         }
-        return <span key={i}>{node}</span>;
+        return <span key={occurrenceKey("span", span, seen)}>{node}</span>;
       })}
     </>
   );
@@ -37,32 +54,44 @@ function Block({ block }: { block: RichBlock }) {
       return <p><Spans spans={block.spans} /></p>;
     case "quote":
       return <blockquote><Spans spans={block.spans} /></blockquote>;
-    case "list":
+    case "list": {
+      const seenItems = new Map<string, number>();
       return block.ordered ? (
-        <ol>{block.items.map((item, i) => <li key={i}><Spans spans={item} /></li>)}</ol>
+        <ol>{block.items.map((item) => <li key={occurrenceKey("li", item, seenItems)}><Spans spans={item} /></li>)}</ol>
       ) : (
-        <ul>{block.items.map((item, i) => <li key={i}><Spans spans={item} /></li>)}</ul>
+        <ul>{block.items.map((item) => <li key={occurrenceKey("li", item, seenItems)}><Spans spans={item} /></li>)}</ul>
       );
+    }
     case "code":
       return <pre className="rich-code"><code>{block.code}</code></pre>;
     case "image":
       return (
-        // eslint-disable-next-line @next/next/no-img-element -- proxied external images, dimensions unknown
-        <img className="rich-image" src={block.src} alt={block.alt} loading="lazy" decoding="async" />
+        <ImageLightbox
+          images={[{ src: block.src, alt: block.alt }]}
+          triggerClassName="rich-image-button"
+          imageClassName="rich-image"
+        />
       );
     case "table":
+      const seenHeaders = new Map<string, number>();
+      const seenRows = new Map<string, number>();
       return (
         <div className="rich-table-wrap">
           <table className="rich-table">
             {block.header.length > 0 && (
               <thead>
-                <tr>{block.header.map((cell, i) => <th key={i}>{cell}</th>)}</tr>
+                <tr>{block.header.map((cell) => <th key={occurrenceKey("th", cell, seenHeaders)}>{cell}</th>)}</tr>
               </thead>
             )}
             <tbody>
-              {block.rows.map((row, r) => (
-                <tr key={r}>{row.map((cell, c) => <td key={c}>{cell}</td>)}</tr>
-              ))}
+              {block.rows.map((row) => {
+                const seenCells = new Map<string, number>();
+                return (
+                  <tr key={occurrenceKey("tr", row, seenRows)}>
+                    {row.map((cell) => <td key={occurrenceKey("td", cell, seenCells)}>{cell}</td>)}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -71,9 +100,10 @@ function Block({ block }: { block: RichBlock }) {
 }
 
 export function RichContent({ blocks }: { blocks: RichBlock[] }) {
+  const seenBlocks = new Map<string, number>();
   return (
     <div className="rich-content">
-      {blocks.map((block, i) => <Block key={i} block={block} />)}
+      {blocks.map((block) => <Block key={occurrenceKey("block", block, seenBlocks)} block={block} />)}
     </div>
   );
 }

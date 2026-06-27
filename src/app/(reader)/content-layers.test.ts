@@ -10,12 +10,13 @@ const detailSrc = readFileSync(join(dir, "events", "[id]", "page.tsx"), "utf8");
 const i18nSrc = readFileSync(join(dir, "..", "..", "i18n", "messages", "zh.ts"), "utf8");
 const cssSrc = readFileSync(join(dir, "..", "globals.css"), "utf8");
 
-describe("content-layer switcher (merged 原文/全文)", () => {
-  test("offers AI / 原文 layers, defaulting to AI", () => {
-    expect(componentSrc).toContain('useState<Layer>("ai")');
+describe("content-layer reader (summary + original + translation)", () => {
+  test("renders AI 摘要 and 原文 on the same page", () => {
+    expect(componentSrc).toContain("content-layer-summary");
+    expect(componentSrc).toContain("content-layer-original");
     expect(componentSrc).toContain("m.ai");
     expect(componentSrc).toContain("m.original");
-    // 全文 is no longer a separate tab — it is merged into 原文.
+    expect(componentSrc).not.toContain("role=\"tab\"");
     expect(componentSrc).not.toContain("m.fulltext");
   });
 
@@ -23,6 +24,13 @@ describe("content-layer switcher (merged 原文/全文)", () => {
     expect(componentSrc).toContain("`/api/events/${eventId}/fulltext`");
     expect(componentSrc).toContain('if (!canFetchFull || fullStatus !== "idle") return;');
     expect(componentSrc).toContain('setFullStatus("loading")');
+  });
+
+  test("原文 exposes one-click Chinese translation through the event-scoped API", () => {
+    expect(componentSrc).toContain("translateBody");
+    expect(componentSrc).toContain("`/api/events/${eventId}/translate`");
+    expect(componentSrc).toContain('setTranslationStatus("loading")');
+    expect(componentSrc).toContain("setShowTranslation");
   });
 
   test("prefers full text but never downgrades a longer original (length guard)", () => {
@@ -61,9 +69,12 @@ describe("content-layer switcher (merged 原文/全文)", () => {
   test("i18n + CSS back the switcher", () => {
     expect(i18nSrc).toContain("layer: {");
     expect(i18nSrc).toContain('original: "原文"');
+    expect(i18nSrc).toContain("translate:");
+    expect(i18nSrc).toContain("showOriginal:");
+    expect(i18nSrc).toContain("showTranslation:");
     expect(i18nSrc).toContain("loading:");
     expect(i18nSrc).not.toContain("fullFallback:");
     expect(i18nSrc).not.toContain('fulltext: "全文"');
-    expect(cssSrc).toContain(".content-layer-tab.is-active {");
+    expect(cssSrc).toContain(".content-layer-actions {");
   });
 });
