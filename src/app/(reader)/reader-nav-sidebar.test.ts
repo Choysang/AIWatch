@@ -166,6 +166,15 @@ describe("reader nav sidebar", () => {
     expect(cssSource).toContain(".reader-nav-scrim {");
   });
 
+  test("makes the mobile drawer trigger a readable AI HOT icon in both themes", () => {
+    expect(navSource).toContain('className="reader-nav-fab-icon"');
+    expect(navSource).toContain('className="reader-nav-fab-label"');
+    expect(cssSource).toContain(".reader-nav-fab-icon {");
+    expect(cssSource).toContain(".reader-nav-fab-label {");
+    expect(cssSource).toContain('html[data-reader-theme="light"] .reader-nav-fab {');
+    expect(cssSource).toContain('html[data-reader-theme="light"] .reader-nav-fab-icon {');
+  });
+
   test("keeps nav group external-store snapshots stable to avoid mobile render loops", () => {
     expect(navSource).toContain("function readNavGroupSnapshot(): string");
     expect(navSource).toContain('localStorage.getItem(NAV_GROUP_STORAGE_KEY) || ""');

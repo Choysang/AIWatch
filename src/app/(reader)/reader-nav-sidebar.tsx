@@ -395,7 +395,12 @@ export function ReaderNavSidebar() {
         aria-expanded={mobileOpen}
         onClick={() => setMobileOpen(true)}
       >
-        <span className="reader-nav-fab-mark">AI HOT</span>
+        <span className="reader-nav-fab-icon" aria-hidden="true">
+          <span className="reader-nav-fab-line" />
+          <span className="reader-nav-fab-line" />
+          <span className="reader-nav-fab-line" />
+        </span>
+        <span className="reader-nav-fab-label">AI HOT</span>
       </button>
       <div
         className={`reader-nav-scrim ${mobileOpen ? "is-open" : ""}`}

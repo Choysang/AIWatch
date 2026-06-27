@@ -119,4 +119,12 @@ describe("search bar responsiveness", () => {
     expect(searchSource).toContain('<button type="submit" className="search-go">');
     expect(cssSource).toContain(".search-go {");
   });
+
+  test("collapses mobile category filters into the filter panel and gives the panel viewport width", () => {
+    expect(searchSource).toContain("search-filter-mobile-section");
+    expect(cssSource).toContain(".search-category-actions > .search-facet-row {\n    display: none;");
+    expect(cssSource).toContain(".search-filter-popover {\n    position: static;");
+    expect(cssSource).toContain("left: 0.65rem;\n    right: 0.65rem;\n    width: auto;");
+    expect(cssSource).toContain("max-height: min(72vh, 34rem);");
+  });
 });

@@ -107,4 +107,17 @@ describe("reader home layout", () => {
       'html[data-reader-theme="light"] .reader-home .day-toggle:hover .day-date',
     );
   });
+
+  test("keeps the mobile timeline visible while shrinking card density and gutters", () => {
+    const mobileStart = cssSource.lastIndexOf("@media (max-width: 760px)");
+    const mobileCss = cssSource.slice(mobileStart);
+    expect(mobileCss).toContain("width: calc(100% - 0.75rem);");
+    expect(mobileCss).toContain("--tl-rail-w: 2.6rem;");
+    expect(mobileCss).toContain("grid-template-columns: var(--tl-rail-w) minmax(0, 1fr);");
+    expect(mobileCss).toContain(".tl-row::before {\n    display: block;");
+    expect(mobileCss).toContain(".tl-dot {\n    display: block;");
+    expect(mobileCss).toContain("padding: 0.58rem 0.68rem;");
+    expect(mobileCss).toContain("max-height: 7.5rem;");
+    expect(mobileCss).toContain("-webkit-line-clamp: 2;");
+  });
 });
