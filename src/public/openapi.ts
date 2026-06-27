@@ -1,14 +1,14 @@
 export const OPENAPI_YAML = `openapi: 3.1.0
 info:
-  title: AI HOT Public API
+  title: AIWatch Public API
   version: 0.6.0
-  description: Anonymous read-only access to AI HOT items and daily reports.
+  description: Anonymous read-only access to AIWatch items and daily reports.
 servers:
   - url: https://aiwatch.icu
 paths:
   /api/public/items:
     get:
-      summary: List AI HOT items
+      summary: List AIWatch items
       parameters:
         - name: mode
           in: query
@@ -79,7 +79,7 @@ paths:
                 $ref: "#/components/schemas/PublicItemsResponse"
   /api/public/daily:
     get:
-      summary: Latest AI HOT daily report
+      summary: Latest AIWatch daily report
       responses:
         "200":
           description: Latest report.
@@ -89,7 +89,7 @@ paths:
                 $ref: "#/components/schemas/PublicReport"
   /api/public/daily/{date}:
     get:
-      summary: AI HOT daily report by date
+      summary: AIWatch daily report by date
       parameters:
         - name: date
           in: path

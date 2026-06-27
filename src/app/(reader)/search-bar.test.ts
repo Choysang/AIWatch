@@ -120,9 +120,21 @@ describe("search bar responsiveness", () => {
     expect(cssSource).toContain(".search-go {");
   });
 
-  test("collapses mobile category filters into the filter panel and gives the panel viewport width", () => {
+  test("keeps mobile mode tabs visible and moves source filters into the panel", () => {
+    const sourcePickIndex = searchSource.indexOf('aria-label={m.sourcePickLabel}');
+    const scoreIndex = searchSource.indexOf('aria-label={m.scoreLabel}');
+
     expect(searchSource).toContain("search-filter-mobile-section");
-    expect(cssSource).toContain(".search-category-actions > .search-facet-row {\n    display: none;");
+    expect(searchSource).toContain("SOURCE_GROUPS.map((group)");
+    expect(searchSource).toContain("search-filter-source-section");
+    expect(sourcePickIndex).toBeGreaterThan(-1);
+    expect(scoreIndex).toBeGreaterThan(-1);
+    expect(sourcePickIndex).toBeLessThan(scoreIndex);
+    expect(cssSource).toContain(
+      ".search-filter-line > .search-facet-row,\n  .search-category-actions > .search-facet-row {",
+    );
+    expect(cssSource).not.toContain(".search-mode-tabs,\n  .search-filter-line");
+    expect(cssSource).toContain(".search-mode-tabs {\n    width: 100%;");
     expect(cssSource).toContain(".search-filter-popover {\n    position: static;");
     expect(cssSource).toContain("left: 0.65rem;\n    right: 0.65rem;\n    width: auto;");
     expect(cssSource).toContain("max-height: min(72vh, 34rem);");

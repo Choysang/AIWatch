@@ -151,7 +151,7 @@ describe("reader nav sidebar", () => {
     expect(navSource).toContain("const [mobileDrawer, setMobileDrawer] = useState({ open: false, pathKey });");
     expect(navSource).toContain("const mobileOpen = mobileDrawer.open && mobileDrawer.pathKey === pathKey;");
     expect(navSource).toContain('className="reader-nav-fab"');
-    expect(navSource).toContain("AI HOT");
+    expect(navSource).toContain("AIWatch");
     expect(navSource).toContain("onClick={() => setMobileOpen(true)}");
     expect(navSource).toContain('className={`reader-nav-scrim ${mobileOpen ? "is-open" : ""}`}');
     expect(navSource).toContain("onClick={() => setMobileOpen(false)}");
@@ -166,10 +166,14 @@ describe("reader nav sidebar", () => {
     expect(cssSource).toContain(".reader-nav-scrim {");
   });
 
-  test("makes the mobile drawer trigger a readable AI HOT icon in both themes", () => {
+  test("makes the mobile drawer trigger a readable AIWatch radar icon in both themes", () => {
     expect(navSource).toContain('className="reader-nav-fab-icon"');
+    expect(navSource).toContain('className="reader-nav-fab-orbit"');
+    expect(navSource).toContain('className="reader-nav-fab-core"');
     expect(navSource).toContain('className="reader-nav-fab-label"');
     expect(cssSource).toContain(".reader-nav-fab-icon {");
+    expect(cssSource).toContain(".reader-nav-fab-orbit {");
+    expect(cssSource).toContain(".reader-nav-fab-core {");
     expect(cssSource).toContain(".reader-nav-fab-label {");
     expect(cssSource).toContain('html[data-reader-theme="light"] .reader-nav-fab {');
     expect(cssSource).toContain('html[data-reader-theme="light"] .reader-nav-fab-icon {');

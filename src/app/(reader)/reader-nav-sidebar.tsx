@@ -396,11 +396,10 @@ export function ReaderNavSidebar() {
         onClick={() => setMobileOpen(true)}
       >
         <span className="reader-nav-fab-icon" aria-hidden="true">
-          <span className="reader-nav-fab-line" />
-          <span className="reader-nav-fab-line" />
-          <span className="reader-nav-fab-line" />
+          <span className="reader-nav-fab-orbit" />
+          <span className="reader-nav-fab-core" />
         </span>
-        <span className="reader-nav-fab-label">AI HOT</span>
+        <span className="reader-nav-fab-label">AIWatch</span>
       </button>
       <div
         className={`reader-nav-scrim ${mobileOpen ? "is-open" : ""}`}

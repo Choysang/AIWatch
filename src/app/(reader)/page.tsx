@@ -23,13 +23,12 @@ import { getUserPreference } from "@/db/queries/user-preferences";
 import { messages } from "@/i18n";
 import { log } from "@/log";
 import { parsePublicQuery, type PublicQuery } from "@/public/query";
-import { formatDateTime, formatTimeOfDay, toIsoAttr } from "@/app/_lib/format";
+import { formatDateTime, formatTimelineDate, formatTimeOfDay, toIsoAttr } from "@/app/_lib/format";
 import { modelAccent } from "@/app/_lib/model-accent";
 import { buildTimelineTree } from "@/app/_lib/timeline-tree";
 import { CollapsibleGroup } from "./collapsible-group";
 import { CurrentHotspots } from "./current-hotspots";
 import { EventCard } from "./event-card";
-import { NotificationBell } from "./masthead-account";
 import { ParticleBackground } from "./particle-background";
 import { ReaderNavSidebar } from "./reader-nav-sidebar";
 import { ReaderSidebar, type SidebarEventItem } from "./reader-sidebar";
@@ -364,7 +363,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       <ReaderNavSidebar />
       <div className="reader-control-strip">
         <ReaderSidebar items={sidebarItems} />
-        <NotificationBell />
       </div>
       <Suspense fallback={null}>
         <SearchBar
@@ -450,6 +448,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                                 style={{ "--card-accent": accent.rgb } as CSSProperties}
                               >
                                 <div className="tl-rail">
+                                  <time className="tl-date" dateTime={toIsoAttr(when)}>{formatTimelineDate(when)}</time>
                                   <time className="tl-time" dateTime={toIsoAttr(when)}>{formatTimeOfDay(when)}</time>
                                 </div>
                                 <span className="tl-dot" aria-hidden="true" />

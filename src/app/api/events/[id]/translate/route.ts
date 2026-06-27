@@ -67,7 +67,7 @@ export async function POST(
         {
           role: "system",
           content:
-            "你是 AI HOT 的中文技术译者。把输入翻译成简体中文，保留模型名、产品名、API、benchmark、论文术语等英文原词；不要添加原文没有的信息；只返回符合 schema 的 JSON。",
+            "你是 AIWatch 的中文技术译者。把输入翻译成简体中文，保留模型名、产品名、API、benchmark、论文术语等英文原词；不要添加原文没有的信息；只返回符合 schema 的 JSON。",
         },
         { role: "user", content: sourceText },
       ],

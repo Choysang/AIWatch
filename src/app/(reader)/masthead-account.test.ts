@@ -5,19 +5,19 @@ import { describe, expect, test } from "bun:test";
 const accountSource = readFileSync(join(import.meta.dir, "masthead-account.tsx"), "utf8");
 const cssSource = readFileSync(join(import.meta.dir, "..", "globals.css"), "utf8");
 
-describe("notification bell responsiveness", () => {
-  test("prefetches the inbox route on user intent and dedupes hover preview requests", () => {
-    expect(accountSource).toContain('router.prefetch("/notifications")');
-    expect(accountSource).toContain("const prepareNotifications");
-    expect(accountSource).toContain("previewLoading");
-    expect(accountSource).toContain("if (items !== null || previewLoading.current) return;");
+describe("masthead account", () => {
+  test("keeps notifications out of the reader top controls", () => {
+    expect(accountSource).not.toContain("NotificationBell");
+    expect(accountSource).not.toContain("masthead-bell");
+    expect(cssSource).not.toContain(".masthead-bell");
+    expect(cssSource).not.toContain(".masthead-notification-preview");
   });
 
-  test("notification bell and hover preview use theme tokens", () => {
-    expect(cssSource).toMatch(/\.masthead-bell\s*\{[^}]*background:\s*var\(--paper-raised\)/);
-    expect(cssSource).toMatch(
-      /\.masthead-notification-preview\s*\{[^}]*background:\s*var\(--paper-raised\)/,
-    );
-    expect(cssSource).toMatch(/\.masthead-notification-preview\s*\{[^}]*color:\s*var\(--ink\)/);
+  test("still renders the account cluster for authenticated readers", () => {
+    expect(accountSource).toContain("export function MastheadAccount()");
+    expect(accountSource).toContain("authClient.useSession()");
+    expect(accountSource).toContain("isConsoleRole");
+    expect(accountSource).toContain("authClient.signOut()");
+    expect(cssSource).toContain(".masthead-account {");
   });
 });

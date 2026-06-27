@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="dial" x1="18" x2="110" y1="18" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2dd4ff" />
+      <stop offset="0.54" stop-color="#4d6bfe" />
+      <stop offset="1" stop-color="#ffbe56" />
+    </linearGradient>
+    <radialGradient id="glow" cx="36%" cy="28%" r="70%">
+      <stop offset="0" stop-color="#2dd4ff" stop-opacity="0.34" />
+      <stop offset="1" stop-color="#0b1020" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="128" height="128" rx="30" fill="#090f1d" />
+  <rect width="128" height="128" rx="30" fill="url(#glow)" />
+  <circle cx="64" cy="64" r="39" fill="none" stroke="url(#dial)" stroke-width="8" />
+  <circle cx="64" cy="64" r="23" fill="none" stroke="#dff7ff" stroke-opacity="0.56" stroke-width="3" />
+  <path d="M64 25a39 39 0 0 1 39 39" fill="none" stroke="#ffbe56" stroke-linecap="round" stroke-width="8" />
+  <path d="M64 64 89 42" fill="none" stroke="#2dd4ff" stroke-linecap="round" stroke-width="5" />
+  <circle cx="64" cy="64" r="7" fill="#ffbe56" />
+  <circle cx="89" cy="42" r="6" fill="#f8fbff" />
+  <path d="M40 86h12l12-44 12 44h12" fill="none" stroke="#f8fbff" stroke-linecap="round" stroke-linejoin="round" stroke-width="7" />
+</svg>

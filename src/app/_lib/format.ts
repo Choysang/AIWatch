@@ -89,6 +89,18 @@ const timeOfDayFmt = new Intl.DateTimeFormat("zh-CN", {
   hour12: false,
 });
 
+const timelineDateFmt = new Intl.DateTimeFormat("zh-CN", {
+  timeZone: APP_TZ,
+  month: "2-digit",
+  day: "2-digit",
+});
+
+/** Compact calendar date in APP_TZ for the timeline rail, e.g. "06/27". */
+export function formatTimelineDate(value: Date | string | null | undefined): string {
+  const date = toDate(value);
+  return date ? timelineDateFmt.format(date) : "";
+}
+
 /** Time-of-day in APP_TZ as "HH:mm" (e.g. "10:24") for the feed timeline rail. */
 export function formatTimeOfDay(value: Date | string | null | undefined): string {
   const date = toDate(value);

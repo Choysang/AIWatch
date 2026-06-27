@@ -20,12 +20,17 @@ const prompts = readFileSync(join(root, "src", "pipeline", "prompts.ts"), "utf8"
 
 describe("curated AI source policy", () => {
   test("keeps only scored AI-dense sources in the curated config", () => {
-    expect(curated.length).toBeGreaterThan(0);
+    expect(curated.length).toBeGreaterThanOrEqual(118);
     for (const source of curated) {
       expect(source.ai_density_score).toBeGreaterThanOrEqual(6);
       expect(["official", "industry_leader", "technical_share"]).toContain(source.category);
       expect(source.connectorRef).toBeTruthy();
     }
+  });
+
+  test("does not define duplicate connector refs", () => {
+    const refs = curated.map((source) => source.connectorRef.toLowerCase());
+    expect(new Set(refs).size).toBe(refs.length);
   });
 
   test("does not keep explicitly excluded generic technology or business sources", () => {

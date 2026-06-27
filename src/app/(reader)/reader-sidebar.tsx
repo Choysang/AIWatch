@@ -60,6 +60,11 @@ export function ReaderSidebar({ items }: { items: SidebarEventItem[] }) {
     window.addEventListener("pointerup", onUp);
   };
 
+  const openEventFromOverview = (eventId: string) => {
+    scrollToEventCard(eventId);
+    if (window.innerWidth <= 760) setOpen(false);
+  };
+
   return (
     <>
       <button
@@ -103,7 +108,7 @@ export function ReaderSidebar({ items }: { items: SidebarEventItem[] }) {
                   <button
                     type="button"
                     className="reader-sidebar-jump"
-                    onClick={() => scrollToEventCard(item.id)}
+                    onClick={() => openEventFromOverview(item.id)}
                   >
                     {item.title}
                   </button>

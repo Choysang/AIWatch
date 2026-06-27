@@ -477,6 +477,26 @@ export function SearchBar({
                   </div>
                 </div>
 
+                <div className="search-filter-section search-filter-mobile-section" role="group" aria-label={m.sourceGroupLabel}>
+                  <span className="filter-label">{m.sourceGroupLabel}</span>
+                  <div className="search-filter-options">
+                    {SOURCE_GROUPS.map((group) => {
+                      const active = selectedSourceGroups.has(group);
+                      return (
+                        <button
+                          key={group}
+                          type="button"
+                          className={`chip ${active ? "is-active" : ""}`}
+                          aria-pressed={active}
+                          onClick={() => toggleSourceGroup(group)}
+                        >
+                          {m.sourceGroup[group]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="search-filter-section search-filter-mobile-section" role="group" aria-label={m.eventCategoryLabel}>
                   <span className="filter-label">{m.eventCategoryLabel}</span>
                   <div className="search-filter-options">
@@ -497,39 +517,8 @@ export function SearchBar({
                   </div>
                 </div>
 
-                <div className="search-filter-section" role="group" aria-label={m.scoreLabel}>
-                  <span className="filter-label">{m.scoreLabel}</span>
-                  <div className="search-score-row">
-                    <button
-                      type="button"
-                      className={`chip ${!minScoreVal ? "is-active" : ""}`}
-                      aria-pressed={!minScoreVal}
-                      onClick={() => setMinScoreDraft({ routeValue: minScoreParam, value: "" })}
-                    >
-                      {m.scoreUnlimited}
-                    </button>
-                    <label className="score-input-label">
-                      <span>{m.scoreMinLabel}</span>
-                      <input
-                        type="number"
-                        className="score-input"
-                        name="minScore"
-                        min={0}
-                        max={100}
-                        step={1}
-                        inputMode="numeric"
-                        value={minScoreVal}
-                        placeholder="不限"
-                        onChange={(e) =>
-                          setMinScoreDraft({ routeValue: minScoreParam, value: e.target.value })
-                        }
-                      />
-                    </label>
-                  </div>
-                </div>
-
                 {sourceOptions.length > 0 && (
-                  <div className="search-filter-section" role="group" aria-label={m.sourcePickLabel}>
+                  <div className="search-filter-section search-filter-source-section" role="group" aria-label={m.sourcePickLabel}>
                     <span className="filter-label">
                       {m.sourcePickLabel}
                       {selectedSources.size > 0 ? `（已选 ${selectedSources.size}）` : ""}
@@ -540,13 +529,13 @@ export function SearchBar({
                         return (
                           <button
                             key={option.id}
-                          type="button"
-                          className={`chip ${active ? "is-active" : ""}`}
-                          aria-pressed={active}
-                          data-tooltip={`只看 ${option.name} 的动态`}
-                          onClick={() => toggleSourceDraft(option.id)}
-                        >
-                          {option.name}
+                            type="button"
+                            className={`chip ${active ? "is-active" : ""}`}
+                            aria-pressed={active}
+                            data-tooltip={`只看 ${option.name} 的动态`}
+                            onClick={() => toggleSourceDraft(option.id)}
+                          >
+                            {option.name}
                           </button>
                         );
                       })}
@@ -588,6 +577,37 @@ export function SearchBar({
                     )}
                   </div>
                 )}
+
+                <div className="search-filter-section" role="group" aria-label={m.scoreLabel}>
+                  <span className="filter-label">{m.scoreLabel}</span>
+                  <div className="search-score-row">
+                    <button
+                      type="button"
+                      className={`chip ${!minScoreVal ? "is-active" : ""}`}
+                      aria-pressed={!minScoreVal}
+                      onClick={() => setMinScoreDraft({ routeValue: minScoreParam, value: "" })}
+                    >
+                      {m.scoreUnlimited}
+                    </button>
+                    <label className="score-input-label">
+                      <span>{m.scoreMinLabel}</span>
+                      <input
+                        type="number"
+                        className="score-input"
+                        name="minScore"
+                        min={0}
+                        max={100}
+                        step={1}
+                        inputMode="numeric"
+                        value={minScoreVal}
+                        placeholder="不限"
+                        onChange={(e) =>
+                          setMinScoreDraft({ routeValue: minScoreParam, value: e.target.value })
+                        }
+                      />
+                    </label>
+                  </div>
+                </div>
 
                 <div className="search-filter-actions">
                   <button type="button" className="chip chip-clear" onClick={clearPanelFilters}>

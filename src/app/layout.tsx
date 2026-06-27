@@ -27,6 +27,9 @@ const readerThemeScript = `
 export const metadata: Metadata = {
   title: `${messages.appName} · ${messages.tagline}`,
   description: messages.home.subheading,
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

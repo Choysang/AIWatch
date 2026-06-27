@@ -116,7 +116,7 @@ function ReportArchive({
         </Link>
       )}
       <div className="report-archive-title">
-        <span>AI HOT {m.kind[kind]} · 历史</span>
+        <span>AIWatch {m.kind[kind]} · 历史</span>
         <small>{kind.toUpperCase()} · ARCHIVE</small>
       </div>
       {groupArchiveByMonth(archive).map((group) => (

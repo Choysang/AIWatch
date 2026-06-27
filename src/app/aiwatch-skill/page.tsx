@@ -1,4 +1,4 @@
-// Public install page for the AI HOT Skill, RSS feeds, and anonymous public API.
+// Public install page for the AIWatch Skill, RSS feeds, and anonymous public API.
 
 import Link from "next/link";
 import { messages } from "@/i18n";
@@ -24,7 +24,7 @@ export default function SkillInstallPage() {
     <main className="page access-page">
       <header className="masthead">
         <div>
-          <h1 style={{ fontFamily: "var(--font-serif)" }}>AI HOT Agent 接入</h1>
+          <h1 style={{ fontFamily: "var(--font-serif)" }}>AIWatch Agent 接入</h1>
           <span className="tagline">Skill · RSS · REST API · OpenAPI</span>
         </div>
         <SubpageNav />
@@ -32,7 +32,7 @@ export default function SkillInstallPage() {
 
       <p className="section-intro">
         让 Claude Code、Codex CLI、Cursor、Gemini CLI、GitHub Copilot、OpenCode、Cline、Windsurf
-        或任意 Agent 直接读取 AI HOT 的精选动态、全部 AI 动态和每日精编日报。匿名免费，无需 token。
+        或任意 Agent 直接读取 AIWatch 的精选动态、全部 AI 动态和每日精编日报。匿名免费，无需 token。
       </p>
 
       <section className="card access-card">
@@ -107,7 +107,7 @@ export default function SkillInstallPage() {
             <Link href="/feed/all.xml">https://aiwatch.icu/feed/all.xml</Link>
           </li>
           <li>
-            <strong>AI HOT 日报</strong>
+            <strong>AIWatch 日报</strong>
             <Link href="/feed/daily.xml">https://aiwatch.icu/feed/daily.xml</Link>
           </li>
         </ul>

@@ -18,10 +18,13 @@ describe("reader sidebar", () => {
 
   test("scrolls overview items to their feed cards instead of opening detail pages", () => {
     expect(sidebarSource).toContain("scrollToEventCard");
+    expect(sidebarSource).toContain("openEventFromOverview");
     expect(sidebarSource).toContain("revealTarget");
     expect(sidebarSource).toContain("aiwatch:reveal-event-card");
     expect(sidebarSource).toContain("scrollIntoView");
     expect(sidebarSource).toContain('behavior: "auto"');
+    expect(sidebarSource).toContain("window.innerWidth <= 760");
+    expect(sidebarSource).toContain("setOpen(false)");
     expect(sidebarSource).not.toContain('behavior: "smooth"');
     expect(sidebarSource).not.toContain("<TrackableDetailLink");
     expect(sidebarSource).not.toContain('href={`/events/${item.id}`}');
