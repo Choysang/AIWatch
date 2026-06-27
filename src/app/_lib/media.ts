@@ -76,3 +76,8 @@ export function extractImageUrl(media: unknown): string | null {
   if (!cardMedia) return null;
   return cardMedia.type === "video" ? cardMedia.poster ?? null : cardMedia.url;
 }
+
+/** Same-origin proxy URL for external images. */
+export function proxiedImageUrl(url: string): string {
+  return `/api/img?u=${encodeURIComponent(url)}`;
+}

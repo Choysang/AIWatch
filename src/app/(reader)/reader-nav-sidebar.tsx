@@ -10,7 +10,7 @@ import { messages } from "@/i18n";
 type ReaderThemeMode = "dark" | "system" | "light";
 
 const READER_THEME_STORAGE_KEY = "aiwatch:reader-theme-mode";
-const DEFAULT_READER_THEME_MODE: ReaderThemeMode = "dark";
+const DEFAULT_READER_THEME_MODE: ReaderThemeMode = "system";
 
 const READER_THEME_OPTIONS: { name: ReaderThemeMode; label: string }[] = [
   { name: "dark", label: "夜间" },
@@ -45,7 +45,11 @@ function subscribeReaderViewport(onStoreChange: () => void): () => void {
   return () => window.removeEventListener("resize", onStoreChange);
 }
 
-function ReaderNavIcon({ name }: { name: "content" | "boards" | "reports" | "me" | "about" }) {
+function ReaderNavIcon({
+  name,
+}: {
+  name: "content" | "boards" | "reports" | "me" | "feedback" | "source" | "about";
+}) {
   return (
     <svg
       className="reader-nav-svg"
@@ -82,6 +86,22 @@ function ReaderNavIcon({ name }: { name: "content" | "boards" | "reports" | "me"
           <circle cx="12" cy="8" r="3.1" />
           <path d="M5.5 20a6.5 6.5 0 0 1 13 0" />
           <path d="M18.3 5.4 19.4 4l1.1 1.4" />
+        </>
+      )}
+      {name === "feedback" && (
+        <>
+          <path d="M5 5.5h14v9.5H9l-4 3.5z" />
+          <path d="M8.5 9h7" />
+          <path d="M8.5 12h4.5" />
+        </>
+      )}
+      {name === "source" && (
+        <>
+          <path d="M5 6.5h14" />
+          <path d="M7 6.5v12" />
+          <path d="M17 6.5v12" />
+          <path d="M8.5 11.5h7" />
+          <path d="M10.5 15.5h3" />
         </>
       )}
       {name === "about" && (
@@ -311,6 +331,7 @@ export function ReaderNavSidebar() {
       </div>
 
       <nav className="reader-nav-sections" aria-label="读者导航">
+        <span className="reader-nav-group-label">内容</span>
         <Link href="/" className="reader-nav-item" aria-label="内容广场">
           <span className="reader-nav-icon" aria-hidden="true">
             <ReaderNavIcon name="content" />
@@ -343,6 +364,7 @@ export function ReaderNavSidebar() {
           <Link href="/reports/monthly">月报</Link>
         </div>
 
+        <span className="reader-nav-group-label">接入</span>
         <Link href="/boards" className="reader-nav-item" aria-label={messages.nav.boards}>
           <span className="reader-nav-icon" aria-hidden="true">
             <ReaderNavIcon name="boards" />
@@ -354,6 +376,7 @@ export function ReaderNavSidebar() {
           </span>
         </Link>
 
+        <span className="reader-nav-group-label">更多</span>
         <Link
           href="/me/likes"
           className="reader-nav-item"
@@ -374,6 +397,28 @@ export function ReaderNavSidebar() {
           <Link href="/me/stars">收藏</Link>
           <Link href="/me/comments">评论</Link>
         </div>
+
+        <Link href="/feedback" className="reader-nav-item" aria-label="意见反馈">
+          <span className="reader-nav-icon" aria-hidden="true">
+            <ReaderNavIcon name="feedback" />
+            <span className="reader-nav-tooltip">意见反馈</span>
+          </span>
+          <span className="reader-nav-text">
+            <strong>意见反馈</strong>
+            <small>告诉我们哪里不好用</small>
+          </span>
+        </Link>
+
+        <Link href="/recommend-source" className="reader-nav-item" aria-label="推荐信源">
+          <span className="reader-nav-icon" aria-hidden="true">
+            <ReaderNavIcon name="source" />
+            <span className="reader-nav-tooltip">推荐信源</span>
+          </span>
+          <span className="reader-nav-text">
+            <strong>推荐信源</strong>
+            <small>提交值得跟踪的信息源</small>
+          </span>
+        </Link>
       </nav>
 
       <ReaderThemeSwitch />

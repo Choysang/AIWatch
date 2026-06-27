@@ -7,7 +7,7 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { getSession } from "@/app/_lib/session";
 import { htmlToReadableText } from "@/app/_lib/html-text";
-import { extractCardMedia } from "@/app/_lib/media";
+import { extractCardMedia, proxiedImageUrl } from "@/app/_lib/media";
 import { SubpageNav } from "@/app/subpage-nav";
 import { READER_ID_COOKIE, verifyReaderId } from "@/auth/reader-id";
 import { getEventDetail } from "@/db/queries/event-detail";
@@ -109,6 +109,8 @@ export default async function EventDetailPage({
   const author = event.authorName ?? event.sourceName ?? "";
   const handle = event.authorHandle ? ` ${event.authorHandle}` : "";
   const cardMedia = extractCardMedia(event.media);
+  const detailImageProxy =
+    cardMedia?.type === "image" ? proxiedImageUrl(cardMedia.url) : null;
 
   return (
     <main className="page">
@@ -166,8 +168,16 @@ export default async function EventDetailPage({
                 <source src={cardMedia.url} />
               </video>
             ) : (
-              // eslint-disable-next-line @next/next/no-img-element -- external media, unknown host, no Next loader
-              <img src={cardMedia.url} alt="" loading="lazy" />
+              <a
+                className="card-media-link"
+                href={detailImageProxy ?? cardMedia.url}
+                target="_blank"
+                rel="noreferrer noopener"
+                title={card.openImage}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- proxied external media, unknown dimensions */}
+                <img src={detailImageProxy ?? cardMedia.url} alt="" loading="lazy" decoding="async" />
+              </a>
             )}
           </figure>
         )}

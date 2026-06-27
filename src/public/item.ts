@@ -8,6 +8,8 @@ export interface PublicItem {
   id: string;
   title: string;
   url: string | null;
+  permalink: string;
+  body: string | null;
   source_name: string | null;
   author_name: string | null;
   author_handle: string | null;

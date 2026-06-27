@@ -67,6 +67,7 @@ afterAll(async () => {
 }, 60_000);
 
 beforeEach(async () => {
+  await getDb().delete(schema.ownerAnnotations);
   await getDb().delete(schema.eventScores);
   await getDb().delete(schema.eventJudgments);
   await getDb().delete(schema.eventPosts);
@@ -386,5 +387,30 @@ describe("checkPromotionV2 (real Postgres)", () => {
     const ev = await readLevel("push_me");
     expect(ev.level).toBe("B");
     expect((ev.breakdown as Record<string, unknown>).directPushed).toBe(true);
+  });
+
+  test("owner not_useful annotations can remove an already-selected event from selection", async () => {
+    await seedV2Event({
+      id: "marked_bad",
+      sourceId: L1,
+      selectedLevel: "B",
+      contentType: "news",
+      dims: { aiRelevance: 90, impact: 90, novelty: 85, audienceUsefulness: 80, evidenceClarity: 90 },
+      publishedAt: ago(0.2),
+    });
+    await getDb().insert(schema.ownerAnnotations).values({
+      id: "anno_marked_bad",
+      subjectType: "event",
+      subjectId: "marked_bad",
+      verdict: "not_useful",
+    });
+
+    await recomputeScoresV2(NOW, getDb());
+    const result = await checkPromotionV2(NOW, getDb());
+
+    const ev = await readLevel("marked_bad");
+    expect(result.demoted).toBe(1);
+    expect(ev.level).toBe("none");
+    expect((ev.breakdown as Record<string, unknown>).editorialReasons).toContain("owner_annotation");
   });
 });

@@ -9,8 +9,12 @@
 
 import { eq, isNotNull, sql } from "drizzle-orm";
 import { db as defaultDb, type DB } from "@/db/client";
-import { events } from "@/db/schema";
+import { events, sources } from "@/db/schema";
+import { loadOwnerAffinityProfile } from "@/db/jobs/recompute-rank-scores";
+import { computeOwnerBoost } from "@/scoring/owner-affinity";
+import { rankScoreConfig } from "@/scoring/rank-score";
 import { scoringConfig, type ScoringConfig } from "@/scoring/config";
+import { applyEditorialPreference } from "@/scoring/editorial-preferences";
 import { levelRank } from "@/scoring/promotion";
 import { computePromotionsV2, type PromotionCandidateV2 } from "@/scoring/promotion-v2";
 import type { PromotedLevel } from "@/scoring/types";
@@ -21,6 +25,7 @@ export interface PromotionResult {
   candidates: number;
   applied: Record<PromotedLevel, number>;
   upgraded: number;
+  demoted: number;
 }
 
 export interface SelectedBreakdownV2 {
@@ -35,6 +40,7 @@ export interface SelectedBreakdownV2 {
   rankInWindow: number;
   slotLimit: number;
   directPushed: boolean;
+  editorialReasons?: string[];
   /** B only (promotion-v3): the APP_TZ publish day whose daily tournament was won. */
   bucketDay?: string;
   computedAt: string;
@@ -56,6 +62,14 @@ export async function checkPromotionV2(
   const rows = await db
     .select({
       id: events.id,
+      title: events.title,
+      summary: events.summary,
+      detailedSummary: events.detailedSummary,
+      recommendationReason: events.recommendationReason,
+      category: events.category,
+      contentType: events.contentType,
+      mainSourceId: events.mainSourceId,
+      sourceType: sources.sourceType,
       publishedAt: events.publishedAt,
       createdAt: events.createdAt,
       currentLevel: events.selectedLevel,
@@ -64,13 +78,38 @@ export async function checkPromotionV2(
       directPushAt: events.expertDirectPushAt,
     })
     .from(events)
+    .leftJoin(sources, eq(sources.id, events.mainSourceId))
     .where(
       sql`${isNotNull(events.selectionScore)} and coalesce(${events.publishedAt}, ${events.createdAt}) >= ${cutoff}`,
     );
 
+  const { profile, directVerdicts } = await loadOwnerAffinityProfile(db);
+  const editorialById = new Map<string, ReturnType<typeof applyEditorialPreference>>();
+
   const candidates: PromotionCandidateV2[] = rows.map((r) => ({
     id: r.id,
-    selectionScore: r.selectionScore ?? 0,
+    selectionScore: (() => {
+      const ownerBoost = computeOwnerBoost(
+        {
+          directVerdict: directVerdicts.get(r.id) ?? null,
+          sourceId: r.mainSourceId,
+          category: r.category,
+          contentType: r.contentType,
+        },
+        profile,
+        rankScoreConfig.owner,
+      ).ownerBoost;
+      const editorial = applyEditorialPreference({
+        selectionScore: r.selectionScore ?? 0,
+        ownerBoost,
+        title: r.title,
+        summary: [r.summary, r.detailedSummary, r.recommendationReason].filter(Boolean).join("\n\n"),
+        contentType: r.contentType,
+        sourceType: r.sourceType,
+      });
+      editorialById.set(r.id, editorial);
+      return editorial.score;
+    })(),
     maxLevel: asPromotedLevel(r.selectionMaxLevel),
     publishedAt: r.publishedAt ?? r.createdAt,
     currentLevel: r.currentLevel,
@@ -82,13 +121,46 @@ export async function checkPromotionV2(
 
   const applied: Record<PromotedLevel, number> = { B: 0, A: 0, S: 0 };
   let upgraded = 0;
+  let demoted = 0;
 
   await db.transaction(async (tx) => {
+    for (const row of rows) {
+      const editorial = editorialById.get(row.id);
+      if (
+        row.currentLevel !== "none" &&
+        row.directPushAt == null &&
+        editorial &&
+        editorial.reasons.length > 0 &&
+        editorial.score < p.thresholds.B
+      ) {
+        await tx
+          .update(events)
+          .set({
+            selectedLevel: "none",
+            selectedLabel: null,
+            promotedAt: null,
+            selectedBreakdown: {
+              scoringConfigVersion: config.version,
+              promotionConfigVersion: p.version,
+              level: "none",
+              selectionScore: editorial.score,
+              threshold: p.thresholds.B,
+              editorialReasons: editorial.reasons,
+              demotedAt: now.toISOString(),
+            },
+            updatedAt: now,
+          })
+          .where(eq(events.id, row.id));
+        demoted++;
+      }
+    }
+
     for (const d of decisions) {
       const row = rowById.get(d.id);
       if (!row) continue;
       if (levelRank(d.level) < levelRank(row.currentLevel)) continue; // never downgrade
       const isUpgrade = levelRank(d.level) > levelRank(row.currentLevel);
+      const editorial = editorialById.get(d.id);
 
       const breakdown: SelectedBreakdownV2 = {
         scoringConfigVersion: config.version,
@@ -101,6 +173,7 @@ export async function checkPromotionV2(
         rankInWindow: d.rankInWindow,
         slotLimit: d.slotLimit,
         directPushed: d.directPushed === true,
+        ...(editorial?.reasons.length ? { editorialReasons: editorial.reasons } : {}),
         ...(d.bucketDay ? { bucketDay: d.bucketDay } : {}),
         computedAt: now.toISOString(),
       };
@@ -121,5 +194,5 @@ export async function checkPromotionV2(
     }
   });
 
-  return { candidates: rows.length, applied, upgraded };
+  return { candidates: rows.length, applied, upgraded, demoted };
 }

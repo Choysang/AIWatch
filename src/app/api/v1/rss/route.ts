@@ -1,6 +1,7 @@
 import { listBriefItems } from "@/db/queries/brief";
 import { EVENT_CATEGORIES, windowStart, type EventCategory } from "@/public/query";
 import { EVENT_TIERS, type EventTier } from "@/pipeline/judge-schema";
+import { hydrateBriefItemsWithFulltext } from "@/public/brief-fulltext";
 import { renderRssFeed } from "@/public/rss";
 import { cacheControl, clientIp, jsonError, publicLimiter } from "../../public/_runtime";
 
@@ -29,13 +30,13 @@ export async function GET(req: Request): Promise<Response> {
   const tierRaw = url.searchParams.get("tier")?.trim();
   const now = new Date();
 
-  const items = await listBriefItems({
+  const items = await hydrateBriefItemsWithFulltext(await listBriefItems({
     category: categoryRaw && CATEGORY_SET.has(categoryRaw) ? (categoryRaw as EventCategory) : undefined,
     tier: tierRaw && TIER_SET.has(tierRaw) ? (tierRaw as EventTier) : undefined,
     since: parseSince(url.searchParams.get("since"), now),
     sort: "default",
     take: 50,
-  });
+  }));
 
   const origin = process.env.PUBLIC_BASE_URL?.replace(/\/+$/, "") || url.origin;
   const xml = renderRssFeed(items, { origin });

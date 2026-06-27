@@ -65,6 +65,16 @@ describe("buildReport", () => {
     expect(section(r, "today_focus").items.map((i) => i.id)).toEqual(["in"]);
   });
 
+  test("today_focus falls back to high-quality current events when no item was promoted", () => {
+    const r = build([
+      ev({ id: "useful", qualityScore: 91, publishedAt: within }),
+      ev({ id: "also_useful", qualityScore: 84, publishedAt: within }),
+      ev({ id: "routine", qualityScore: 72, publishedAt: within }),
+    ]);
+    expect(section(r, "today_focus").items.map((i) => i.id)).toEqual(["useful", "also_useful"]);
+    expect(section(r, "worth_watching").items.map((i) => i.id)).toEqual(["routine"]);
+  });
+
   test("worth_watching: high-score non-selected events published in-window, by score desc", () => {
     const r = build([
       ev({ id: "hi", qualityScore: 90, publishedAt: within }),
@@ -76,9 +86,12 @@ describe("buildReport", () => {
   });
 
   test("worth_watching respects the limit and is deterministic on score ties", () => {
-    const events = Array.from({ length: 8 }, (_, i) =>
-      ev({ id: `w${i}`, qualityScore: 80, publishedAt: within }),
-    );
+    const events = [
+      ev({ id: "focus", qualityScore: 95, selectedLevel: "B", promotedAt: within, publishedAt: within }),
+      ...Array.from({ length: 8 }, (_, i) =>
+        ev({ id: `w${i}`, qualityScore: 80, publishedAt: within }),
+      ),
+    ];
     const r = build(events, { config: { version: "t", worthWatchingMinScore: 70, focusLimit: 30, worthWatchingLimit: 3, followupLimit: 10 } });
     expect(section(r, "worth_watching").items.map((i) => i.id)).toEqual(["w0", "w1", "w2"]);
   });

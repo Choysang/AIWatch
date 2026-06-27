@@ -147,6 +147,17 @@ export function ReportView({ report }: { report: ReportContent }) {
         )}
       </section>
 
+      {report.reading_path && report.reading_path.length > 0 && (
+        <section className="report-section report-reading-path">
+          <h3 className="report-section-title">{m.readingPath}</h3>
+          <div className="report-reading-list">
+            {report.reading_path.map((item) => (
+              <p key={item}>{item}</p>
+            ))}
+          </div>
+        </section>
+      )}
+
       {report.sections.map((section) => (
         <section className="report-section" key={section.key}>
           <h3 className="report-section-title">{section.title}</h3>
@@ -161,17 +172,6 @@ export function ReportView({ report }: { report: ReportContent }) {
           )}
         </section>
       ))}
-
-      {report.reading_path && report.reading_path.length > 0 && (
-        <section className="report-section report-reading-path">
-          <h3 className="report-section-title">{m.readingPath}</h3>
-          <div className="report-reading-list">
-            {report.reading_path.map((item) => (
-              <p key={item}>{item}</p>
-            ))}
-          </div>
-        </section>
-      )}
 
       <p className="note">{messages.card.summaryNote}</p>
     </div>

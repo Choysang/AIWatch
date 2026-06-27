@@ -2972,6 +2972,19 @@ canvas {
   color: var(--accent);
   background: var(--accent-weak);
 }
+.code-block {
+  margin: 0.8rem 0 0;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  white-space: pre;
+}
 
 /* --- feedback --- */
 .feedback-form {
@@ -3506,21 +3519,31 @@ html[data-reader-theme="light"] .particle-field {
   -webkit-line-clamp: 4;
 }
 
-/* optional card image (rendered only when the event carries media) */
-/* #3 媒体按原图原始宽高显示，不裁剪、不压缩高度：宽度撑满列宽，高度按比例自适应。
-   没有图片/视频时整段不渲染（见 event-card），所以不会留空。 */
 .card-media {
   margin: 0.25rem 0 0.6rem;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid var(--rh-line);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  max-width: 100%;
+  overflow: visible;
+}
+.card-media-link {
+  display: inline-block;
+  max-width: 100%;
 }
 .card-media img {
   display: block;
-  width: 100%;
+  max-width: 100%;
+  width: auto;
   height: auto;
-  object-fit: contain;
-  background: #000;
+  border: 1px solid var(--rh-line);
+  border-radius: 12px;
+  background: transparent;
+}
+.card-media video {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
 }
 
 /* 精选 star on the selected badge */
@@ -3991,6 +4014,14 @@ html[data-reader-theme="light"] .reader-home {
   overflow: visible;
   flex: 1 1 auto;
 }
+.reader-nav-group-label {
+  margin: 0.35rem 0 0.05rem;
+  color: var(--rh-faint);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-align: center;
+}
 .reader-nav-item {
   min-height: 2.2rem;
   padding: 0.18rem 0.45rem;
@@ -4137,6 +4168,7 @@ html[data-reader-theme="light"] .reader-home {
   justify-content: center;
 }
 .reader-nav-sidebar.is-collapsed .reader-nav-text,
+.reader-nav-sidebar.is-collapsed .reader-nav-group-label,
 .reader-nav-sidebar.is-collapsed .reader-nav-report-subitems,
 .reader-nav-sidebar.is-collapsed .reader-nav-me-subitems,
 .reader-nav-sidebar.is-collapsed .reader-nav-account-text,
@@ -4862,11 +4894,6 @@ html[data-reader-theme="light"] .reader-sidebar-actions a:hover {
   .reaction-error {
     margin-left: 0;
   }
-  .card-media,
-  .card-media img,
-  .card-media video {
-    max-height: min(52vw, 260px);
-  }
   .reader-sidebar-toggle {
     width: auto;
   }
@@ -5008,13 +5035,6 @@ html[data-reader-theme="light"] .reader-sidebar-actions a:hover {
   -webkit-line-clamp: 2;
   overflow: hidden;
   font-size: 0.8rem;
-}
-
-/* 配图限高，避免单图占满一屏 */
-.reader-home .card-media,
-.reader-home .card-media img,
-.reader-home .card-media video {
-  max-height: 150px;
 }
 
 /* 行间距：流与组的纵向间隔收紧 */

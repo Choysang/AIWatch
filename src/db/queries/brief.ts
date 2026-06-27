@@ -1,6 +1,7 @@
 import { and, desc, eq, gte, sql, type SQL } from "drizzle-orm";
 import { db as defaultDb, type DB } from "@/db/client";
 import { events, posts, sources } from "@/db/schema";
+import type { RichBlock } from "@/content/rich-blocks";
 import type { EventCategory } from "@/public/query";
 import type { EventTier } from "@/pipeline/judge-schema";
 
@@ -28,6 +29,11 @@ export interface BriefItem {
   published_at: string | null;
   updated_at: string;
   url: string | null;
+  permalink?: string;
+  body: string | null;
+  full_text: string | null;
+  full_blocks: RichBlock[];
+  media: unknown;
   source: {
     name: string | null;
     handle: string | null;
@@ -62,7 +68,10 @@ export async function listBriefItems(
       sourceCount: events.sourceCount,
       publishedAt: events.publishedAt,
       updatedAt: events.updatedAt,
+      media: events.media,
       url: posts.url,
+      fullText: posts.fullText,
+      fullBlocks: posts.fullBlocks,
       sourceName: sources.name,
       sourceHandle: sources.handle,
       sourcePlatform: sources.platform,
@@ -99,6 +108,11 @@ export async function listBriefItems(
     published_at: row.publishedAt?.toISOString() ?? null,
     updated_at: row.updatedAt.toISOString(),
     url: row.url,
+    permalink: `/events/${row.id}`,
+    body: row.fullText ?? row.detailedSummary ?? row.oneLineSummary,
+    full_text: row.fullText,
+    full_blocks: row.fullBlocks ?? [],
+    media: row.media,
     source: {
       name: row.sourceName,
       handle: row.sourceHandle,

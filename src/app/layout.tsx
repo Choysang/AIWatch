@@ -2,14 +2,15 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { messages } from "@/i18n";
 import { BackToTop } from "./back-to-top";
+import { ButtonTooltips } from "./button-tooltips";
 import "./globals.css";
 
 const readerThemeScript = `
 (function () {
   try {
     var key = "aiwatch:reader-theme-mode";
-    var mode = localStorage.getItem(key) || "dark";
-    if (mode !== "dark" && mode !== "system" && mode !== "light") mode = "dark";
+    var mode = localStorage.getItem(key) || "system";
+    if (mode !== "dark" && mode !== "system" && mode !== "light") mode = "system";
     var systemLight =
       typeof window.matchMedia === "function" &&
       window.matchMedia("(prefers-color-scheme: light)").matches;
@@ -17,7 +18,7 @@ const readerThemeScript = `
     document.documentElement.setAttribute("data-reader-theme-mode", mode);
     document.documentElement.setAttribute("data-reader-theme", theme);
   } catch {
-    document.documentElement.setAttribute("data-reader-theme-mode", "dark");
+    document.documentElement.setAttribute("data-reader-theme-mode", "system");
     document.documentElement.setAttribute("data-reader-theme", "dark");
   }
 })();
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {readerThemeScript}
         </Script>
         {children}
+        <ButtonTooltips />
         <BackToTop />
       </body>
     </html>

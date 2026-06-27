@@ -49,7 +49,10 @@ describe("reader nav sidebar", () => {
     expect(navSource).toContain('href="/reports/monthly"');
     expect(navSource).not.toContain('aria-disabled="true"');
     expect(navSource).toContain("关于");
-    expect(navSource).not.toContain("反馈与贡献");
+    expect(navSource).toContain("意见反馈");
+    expect(navSource).toContain("推荐信源");
+    expect(navSource).toContain('href="/feedback"');
+    expect(navSource).toContain('href="/recommend-source"');
     expect(navSource).not.toContain("README");
     expect(navSource).not.toContain("播报 Skill");
     expect(navSource).not.toContain("reader-nav-subitems");
@@ -108,6 +111,7 @@ describe("reader nav sidebar", () => {
   test("adds a bottom browser mode switch with icon previews and persisted theme modes", () => {
     expect(navSource).toContain("type ReaderThemeMode");
     expect(navSource).toContain('const READER_THEME_STORAGE_KEY = "aiwatch:reader-theme-mode"');
+    expect(navSource).toContain('const DEFAULT_READER_THEME_MODE: ReaderThemeMode = "system"');
     expect(navSource).toContain('className="reader-theme-switch"');
     expect(navSource).toContain('role="radiogroup"');
     expect(navSource).toContain("夜间");
@@ -124,6 +128,7 @@ describe("reader nav sidebar", () => {
     expect(layoutSource).toContain("readerThemeScript");
     expect(layoutSource).toContain("data-reader-theme");
     expect(layoutSource).toContain("aiwatch:reader-theme-mode");
+    expect(layoutSource).toContain('localStorage.getItem(key) || "system"');
 
     expect(cssSource).toContain('html[data-reader-theme="light"]');
     expect(cssSource).toContain(".reader-theme-switch");

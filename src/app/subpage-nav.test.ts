@@ -15,7 +15,6 @@ const subpageFiles = [
   "(reader)/notifications/page.tsx",
   "(reader)/recommend-source/page.tsx",
   "(reader)/reports/kind-report-page.tsx",
-  "(reader)/reports/[date]/page.tsx",
   "aiwatch-skill/page.tsx",
   "login/page.tsx",
 ];
@@ -39,5 +38,7 @@ describe("subpage navigation", () => {
     for (const file of subpageFiles) {
       expect(readAppFile(file), file).toContain("SubpageNav");
     }
+    expect(readAppFile("(reader)/reports/[date]/page.tsx")).toContain("KindReportByDate");
+    expect(readAppFile("(reader)/reports/kind-report-page.tsx")).toContain("SubpageNav");
   });
 });

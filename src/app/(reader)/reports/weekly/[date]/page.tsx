@@ -23,5 +23,5 @@ export default async function WeeklyByDatePage({
 }) {
   const { date } = await params;
   if (!isCalendarDate(date)) notFound();
-  return <KindReportByDate kind="weekly" date={date} />;
+  return <KindReportByDate kind="weekly" date={date} archiveBase="/reports/weekly" />;
 }

@@ -189,6 +189,7 @@ export const zh = {
     starred: "已收藏",
     reactionError: "操作失败，请稍后再试。",
     detail: "查看详情",
+    openImage: "查看大图",
     copyLink: "复制原文链接",
     copyLinkCopied: "已复制 ✓",
     copyLinkFailed: "复制失败",

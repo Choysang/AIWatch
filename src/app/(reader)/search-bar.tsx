@@ -14,6 +14,12 @@ import {
   type EventCategory,
   type SourceCategory,
 } from "@/public/query";
+import {
+  expandGroups,
+  groupForSourceType,
+  SOURCE_GROUPS,
+  type SourceGroup,
+} from "@/public/source-groups";
 import { AI_SOURCE_CATEGORY_SHORT_LABEL } from "@/sources/ai-source-categories";
 
 type ChipValue = string | undefined;
@@ -35,6 +41,16 @@ function parseSourceCategoryParam(raw: string | null): Set<SourceCategory> {
   for (const part of raw.split(",")) {
     const v = part.trim();
     if (v && known.has(v)) set.add(v as SourceCategory);
+  }
+  return set;
+}
+
+function parseSourceGroupParam(raw: string | null): Set<SourceGroup> {
+  const set = new Set<SourceGroup>();
+  if (!raw) return set;
+  for (const part of raw.split(",")) {
+    const group = groupForSourceType(part.trim());
+    if (group) set.add(group);
   }
   return set;
 }
@@ -167,6 +183,7 @@ export function SearchBar({
     ? SEARCH_MODES
     : SEARCH_MODES.filter((value) => value !== "personalized");
   const selectedSourceCategories = parseSourceCategoryParam(params.get("sourceCategories"));
+  const selectedSourceGroups = parseSourceGroupParam(params.get("sourceTypes"));
   const selectedEventCategory = params.get("category") as EventCategory | null;
   const nativeSubmitParams = Array.from(params.entries()).filter(([key]) => key !== "q");
   const hasPanelFilters = Boolean(
@@ -215,6 +232,16 @@ export function SearchBar({
         next.delete("sourceCategories");
       } else {
         next.set("sourceCategories", category);
+      }
+    });
+
+  const toggleSourceGroup = (group: SourceGroup) =>
+    navigate((next) => {
+      const current = parseSourceGroupParam(next.get("sourceTypes"));
+      if (current.size === 1 && current.has(group)) {
+        next.delete("sourceTypes");
+      } else {
+        next.set("sourceTypes", expandGroups([group]).join(","));
       }
     });
 
@@ -333,6 +360,23 @@ export function SearchBar({
                   onClick={() => toggleSourceCategory(category)}
                 >
                   {m.sourceCategory[category] ?? AI_SOURCE_CATEGORY_SHORT_LABEL[category]}
+                </button>
+              );
+            })}
+          </div>
+          <div className="search-facet-row" role="group" aria-label={m.sourceGroupLabel}>
+            <span className="filter-label">{m.sourceGroupLabel}</span>
+            {SOURCE_GROUPS.map((group) => {
+              const active = selectedSourceGroups.has(group);
+              return (
+                <button
+                  key={group}
+                  type="button"
+                  className={`chip ${active ? "is-active" : ""}`}
+                  aria-pressed={active}
+                  onClick={() => toggleSourceGroup(group)}
+                >
+                  {m.sourceGroup[group]}
                 </button>
               );
             })}
@@ -554,6 +598,7 @@ export function SearchBar({
                 </p>
                 <p className="search-filter-recommend">
                   {messages.boards.exportHint}
+                  {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- API download, not a Next page */}
                   <a href="/api/boards/opml">{messages.boards.exportOpml} ↓</a>
                 </p>
               </div>

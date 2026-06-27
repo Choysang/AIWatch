@@ -19,6 +19,10 @@ function item(overrides: Partial<BriefItem> = {}): BriefItem {
     published_at: "2026-06-01T00:00:00.000Z",
     updated_at: "2026-06-02T00:00:00.000Z",
     url: "https://example.com/post",
+    body: "完整正文第一段。\n\n完整正文第二段。",
+    full_text: "完整正文第一段。\n\n完整正文第二段。",
+    full_blocks: [],
+    media: { type: "image", url: "https://example.com/cover.png" },
     source: { name: "OpenAI", handle: "openai", platform: "x" },
     ...overrides,
   };
@@ -27,17 +31,21 @@ function item(overrides: Partial<BriefItem> = {}): BriefItem {
 describe("renderRssFeed", () => {
   test("emits a well-formed RSS 2.0 channel with items", () => {
     const xml = renderRssFeed([item()], { origin: "https://aiwatch.icu/" });
-    expect(xml).toContain('<rss version="2.0">');
+    expect(xml).toContain('<rss version="2.0"');
     expect(xml).toContain("<channel>");
     expect(xml).toContain("<item>");
     expect(xml).toContain("https://aiwatch.icu</link>"); // trailing slash trimmed
-    expect(xml).toContain("<link>https://example.com/post</link>");
+    expect(xml).toContain("<link>https://aiwatch.icu/events/evt_1</link>");
+    expect(xml).toContain("<source url=\"https://example.com/post\">OpenAI</source>");
     expect(xml).toContain("Mon, 01 Jun 2026 00:00:00 GMT"); // published_at -> RFC822 pubDate
   });
 
-  test("uses CDATA for title + description and a non-permalink guid", () => {
+  test("uses CDATA for title, description, full content and a non-permalink guid", () => {
     const xml = renderRssFeed([item({ title: "A & B <tag>" })], { origin: "https://aiwatch.icu" });
     expect(xml).toContain("<![CDATA[A & B <tag>]]>");
+    expect(xml).toContain("<content:encoded><![CDATA[");
+    expect(xml).toContain("<p>完整正文第一段。</p>");
+    expect(xml).toContain("<img src=\"https://aiwatch.icu/api/img?u=https%3A%2F%2Fexample.com%2Fcover.png\"");
     expect(xml).toContain('<guid isPermaLink="false">evt_1</guid>');
   });
 
@@ -49,7 +57,7 @@ describe("renderRssFeed", () => {
     expect(xml).toContain("<![CDATA[一句话摘要]]>");
   });
 
-  test("missing item url falls back to the on-site event link", () => {
+  test("RSS item link always stays on the in-site event detail page", () => {
     const xml = renderRssFeed([item({ url: null })], { origin: "https://aiwatch.icu" });
     expect(xml).toContain("<link>https://aiwatch.icu/events/evt_1</link>");
   });

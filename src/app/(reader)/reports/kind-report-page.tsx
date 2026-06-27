@@ -6,6 +6,7 @@ import { unstable_cache } from "next/cache";
 import { SubpageNav } from "@/app/subpage-nav";
 import {
   getLatestByKind,
+  getByKindAndDate,
   listByKind,
   type PublicReport,
   type PublicReportListItem,
@@ -40,6 +41,58 @@ async function load(
   }
 }
 
+async function loadArchive(kind: ReportKind): Promise<PublicReportListItem[]> {
+  const listCached = unstable_cache(
+    () => listByKind(kind, ARCHIVE_TAKE[kind]),
+    [`reader-archive-${kind}`],
+    { revalidate: 300 },
+  );
+  try {
+    return await listCached();
+  } catch {
+    return [];
+  }
+}
+
+async function loadByDate(kind: ReportKind, date: string): Promise<PublicReport | null> {
+  const getCachedByDate = unstable_cache(
+    () => getByKindAndDate(kind, date),
+    [`reader-report-by-date-${kind}-${date}`],
+    { revalidate: 300 },
+  );
+  try {
+    return await getCachedByDate();
+  } catch {
+    return null;
+  }
+}
+
+function ReportArchive({
+  kind,
+  archiveBase,
+  archive,
+}: {
+  kind: ReportKind;
+  archiveBase: string;
+  archive: PublicReportListItem[];
+}) {
+  const m = messages.report;
+  if (archive.length <= 1) return null;
+
+  return (
+    <nav className="report-archive">
+      <h3 className="report-section-title">{`历史${m.kind[kind]}`}</h3>
+      <ul>
+        {archive.map((r) => (
+          <li key={r.date}>
+            <Link href={`${archiveBase}/${r.date}`}>{r.date}</Link>：{r.summary}
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
 export async function KindReportPage({
   kind,
   archiveBase,
@@ -63,32 +116,23 @@ export async function KindReportPage({
 
       {latest ? <ReportView report={latest} /> : <div className="empty">{m.empty}</div>}
 
-      {archive.length > 1 && (
-        <nav className="report-archive">
-          <h3 className="report-section-title">{`历史${m.kind[kind]}`}</h3>
-          <ul>
-            {archive.map((r) => (
-              <li key={r.date}>
-                <Link href={`${archiveBase}/${r.date}`}>{r.date}</Link>：{r.summary}
-              </li>
-            ))}
-          </ul>
-        </nav>
-      )}
+      <ReportArchive kind={kind} archiveBase={archiveBase} archive={archive} />
     </main>
   );
 }
 
 /** Shared date page for one kind ("/reports/weekly/2026-06-08" etc.). */
-export async function KindReportByDate({ kind, date }: { kind: ReportKind; date: string }) {
-  const { getByKindAndDate } = await import("@/db/queries/public-reports");
+export async function KindReportByDate({
+  kind,
+  date,
+  archiveBase,
+}: {
+  kind: ReportKind;
+  date: string;
+  archiveBase: string;
+}) {
   const m = messages.report;
-  let report: PublicReport | null = null;
-  try {
-    report = await getByKindAndDate(kind, date);
-  } catch {
-    report = null;
-  }
+  const [report, archive] = await Promise.all([loadByDate(kind, date), loadArchive(kind)]);
 
   return (
     <main className="page">
@@ -102,6 +146,8 @@ export async function KindReportByDate({ kind, date }: { kind: ReportKind; date:
       <ReportKindTabs active={kind} />
 
       {report ? <ReportView report={report} /> : <div className="empty">{m.notFound}</div>}
+
+      <ReportArchive kind={kind} archiveBase={archiveBase} archive={archive} />
     </main>
   );
 }

@@ -12,6 +12,7 @@ interface Row {
   id: string;
   title: string;
   summary: string | null;
+  detailedSummary: string | null;
   recommendationReason: string | null;
   category: string | null;
   contentType: string | null;
@@ -28,6 +29,7 @@ interface Row {
   authorName: string | null;
   authorHandle: string | null;
   url: string | null;
+  fullText: string | null;
 }
 
 function toItem(r: Row): PublicItem {
@@ -35,6 +37,8 @@ function toItem(r: Row): PublicItem {
     id: r.id,
     title: r.title,
     url: r.url,
+    permalink: `/events/${r.id}`,
+    body: r.fullText ?? r.detailedSummary ?? r.summary,
     source_name: r.sourceName,
     author_name: r.authorName,
     author_handle: r.authorHandle,
@@ -112,6 +116,7 @@ export async function listPublicItems(
       id: events.id,
       title: events.title,
       summary: events.summary,
+      detailedSummary: events.detailedSummary,
       recommendationReason: events.recommendationReason,
       category: events.category,
       contentType: events.contentType,
@@ -128,6 +133,7 @@ export async function listPublicItems(
       authorName: posts.authorName,
       authorHandle: posts.authorHandle,
       url: posts.url,
+      fullText: posts.fullText,
     })
     .from(events)
     .leftJoin(sources, eq(sources.id, events.mainSourceId))

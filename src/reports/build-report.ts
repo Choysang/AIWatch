@@ -80,6 +80,12 @@ function byTierThenPromoted(a: ReportEvent, b: ReportEvent): number {
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }
 
+function byQualityThenId(a: ReportEvent, b: ReportEvent): number {
+  const q = (b.qualityScore ?? 0) - (a.qualityScore ?? 0);
+  if (q !== 0) return q;
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+}
+
 function inRange(t: Date | null, start: Date, end: Date): boolean {
   return t != null && t.getTime() >= start.getTime() && t.getTime() < end.getTime();
 }
@@ -157,24 +163,41 @@ export function buildReport(params: BuildReportParams): ReportContent {
   const { kind, date, window, events, text, config = reportConfig } = params;
 
   // Today focus: events selected (B/A/S) within this window, strongest tier first.
-  const focus = events
+  const selectedFocus = events
     .filter((e) => e.selectedLevel !== "none" && inRange(e.promotedAt, window.start, window.end))
     .sort(byTierThenPromoted)
     .slice(0, config.focusLimit);
+  const fallbackFocus =
+    selectedFocus.length > 0
+      ? []
+      : events
+          .filter(
+            (e) =>
+              inRange(e.publishedAt, window.start, window.end) &&
+              (e.qualityScore ?? 0) >= Math.max(config.worthWatchingMinScore, 80),
+          )
+          .sort(byQualityThenId)
+          .slice(0, Math.min(config.focusLimit, 2));
+  const lastResortFocus =
+    selectedFocus.length === 0 && fallbackFocus.length === 0
+      ? events
+          .filter((e) => inRange(e.publishedAt, window.start, window.end))
+          .sort(byQualityThenId)
+          .slice(0, Math.min(config.focusLimit, 1))
+      : [];
+  const focus = [...selectedFocus, ...fallbackFocus, ...lastResortFocus].slice(0, config.focusLimit);
+  const focusIds = new Set(focus.map((e) => e.id));
 
   // Worth watching: high-quality, NOT-yet-selected events published this window.
   const watching = events
     .filter(
       (e) =>
         e.selectedLevel === "none" &&
+        !focusIds.has(e.id) &&
         inRange(e.publishedAt, window.start, window.end) &&
         (e.qualityScore ?? 0) >= config.worthWatchingMinScore,
     )
-    .sort((a, b) => {
-      const q = (b.qualityScore ?? 0) - (a.qualityScore ?? 0);
-      if (q !== 0) return q;
-      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-    })
+    .sort(byQualityThenId)
     .slice(0, config.worthWatchingLimit);
 
   // Yesterday follow-up: events selected in the PRIOR equal-length window. (24h feedback

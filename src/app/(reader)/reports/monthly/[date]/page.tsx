@@ -23,5 +23,5 @@ export default async function MonthlyByDatePage({
 }) {
   const { date } = await params;
   if (!isCalendarDate(date)) notFound();
-  return <KindReportByDate kind="monthly" date={date} />;
+  return <KindReportByDate kind="monthly" date={date} archiveBase="/reports/monthly" />;
 }

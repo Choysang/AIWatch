@@ -33,6 +33,26 @@ export default function AboutPage() {
           ))}
         </div>
 
+        <div className="about-jump-grid" aria-label="快速上手">
+          <section className="about-jump-card">
+            <h2>怎么阅读</h2>
+            <p>先看左侧“每日速览”的今日阅读路径，再读今日头条、值得关注和昨日追踪；需要完整上下文时点进站内详情页。</p>
+            <p>首页按时间展示全部动态，精选会更克制：宁愿少一些，也优先保留能帮助判断、实践或理解行业方向的内容。</p>
+          </section>
+
+          <section className="about-jump-card">
+            <h2>主要功能</h2>
+            <p>内容广场负责浏览和筛选；每日速览沉淀日、周、月报；主题板按标签和信源形成个人观察面；我的互动保存点赞、收藏、评论和主理人反馈。</p>
+            <p>RSS 和公开 API 面向阅读器与自动化流程，提供站内永久链接、摘要、正文和原始出处。</p>
+          </section>
+
+          <section className="about-jump-card">
+            <h2>组件思路</h2>
+            <p>卡片回答“发生了什么”和“为什么值得看”；质量分帮助快速扫读；标签用于二次过滤；详情页保留中文摘要、富文本正文、原文入口和讨论。</p>
+            <p>筛选里的“信源类型”目前聚焦官方、行业领袖、技术分享三类高信号来源；更细的媒体、社区、平台类入口会在信源审核层继续补齐。</p>
+          </section>
+        </div>
+
         <div className="about-jump-grid" aria-label="关于 AIWatch">
           <section className="about-jump-card">
             <h2>反馈与贡献</h2>

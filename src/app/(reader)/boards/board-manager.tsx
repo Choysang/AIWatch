@@ -217,6 +217,7 @@ export function BoardManager({
     <section className="boards">
       <div className="boards-toolbar">
         <div className="boards-toolbar-left">
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- API download, not a Next page */}
           <a className="boards-export" href="/api/boards/opml" title={m.exportHint}>
             ↓ {m.exportOpml}
           </a>

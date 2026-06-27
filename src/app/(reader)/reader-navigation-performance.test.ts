@@ -17,9 +17,9 @@ describe("reader navigation performance", () => {
     expect(kindReportPage).toContain("getCachedLatest");
     expect(kindReportPage).toContain("listCached");
     expect(kindReportPage).toContain("revalidate: 300");
-    expect(reportByDatePage).toContain('import { unstable_cache } from "next/cache";');
-    expect(reportByDatePage).toContain("getCachedDailyByDate");
-    expect(reportByDatePage).toContain("revalidate: 300");
+    expect(kindReportPage).toContain("getCachedByDate");
+    expect(kindReportPage).toContain("getByKindAndDate");
+    expect(reportByDatePage).toContain("KindReportByDate");
   });
 
   test("has an instant skeleton fallback for reader route transitions", () => {

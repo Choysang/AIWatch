@@ -65,12 +65,22 @@ export async function findEventIdBySemanticFold(
   db: DB = defaultDb,
 ): Promise<string | null> {
   const exact = await db
-    .select({ id: events.id })
+    .select({ id: events.id, simhash: events.simhash })
     .from(events)
-    .where(and(eq(events.foldKey, input.foldKey), gte(events.createdAt, input.since)))
+    .where(
+      and(
+        eq(events.foldKey, input.foldKey),
+        gte(events.createdAt, input.since),
+        sql`${events.simhash} is not null`,
+      ),
+    )
     .orderBy(desc(events.sourceCount), desc(events.pipelineScore), desc(events.createdAt))
-    .limit(1);
-  if (exact[0]) return exact[0].id;
+    .limit(10);
+  for (const candidate of exact) {
+    if (hammingDistanceHex(input.simhash, candidate.simhash) <= SIMHASH_HAMMING_THRESHOLD) {
+      return candidate.id;
+    }
+  }
 
   const candidates = await db
     .select({ id: events.id, simhash: events.simhash })

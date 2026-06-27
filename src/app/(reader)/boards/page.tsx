@@ -74,6 +74,25 @@ export default async function BoardsPage() {
       </header>
 
       <p className="section-intro">{m.subheading}</p>
+      <section className="about-jump-card" aria-label="主题板使用说明">
+        <h2>主题板怎么用</h2>
+        <p>
+          主题板用于把关注的标签和信源放在一起。打开某个主题板后，首页会按“命中标签或命中信源”筛选动态，适合做 Agent、模型、公司或研究方向的长期观察。
+        </p>
+        <p>
+          信源导入默认使用通用 OPML 2.0。每个 <code>outline</code> 至少保留 <code>text</code> 和{" "}
+          <code>xmlUrl</code>；<code>htmlUrl</code> 可选，用于展示原站。
+        </p>
+        <pre className="code-block">
+          {`<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+    <outline text="OpenAI Blog" type="rss" xmlUrl="https://openai.com/news/rss.xml" htmlUrl="https://openai.com/news/" />
+    <outline text="Anthropic News" type="rss" xmlUrl="https://www.anthropic.com/news/rss.xml" htmlUrl="https://www.anthropic.com/news" />
+  </body>
+</opml>`}
+        </pre>
+      </section>
       <BoardManager
         initialBoards={initialBoards}
         popularTags={popularTags}
