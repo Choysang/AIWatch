@@ -8,7 +8,7 @@ import { messages } from "@/i18n";
 import type { ReportKind } from "@/reports/types";
 
 const TABS: { kind: ReportKind; href: string }[] = [
-  { kind: "daily", href: "/reports" },
+  { kind: "daily", href: "/daily" },
   { kind: "weekly", href: "/reports/weekly" },
   { kind: "monthly", href: "/reports/monthly" },
 ];

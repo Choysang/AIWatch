@@ -6,11 +6,16 @@ import { describe, expect, test } from "bun:test";
 const tabsSource = readFileSync(join(import.meta.dir, "report-kind-tabs.tsx"), "utf8");
 const kindPageSource = readFileSync(join(import.meta.dir, "kind-report-page.tsx"), "utf8");
 const dailyPageSource = readFileSync(join(import.meta.dir, "page.tsx"), "utf8");
+const canonicalDailyPageSource = readFileSync(join(import.meta.dir, "..", "daily", "page.tsx"), "utf8");
+const canonicalDailyDateSource = readFileSync(
+  join(import.meta.dir, "..", "daily", "[date]", "page.tsx"),
+  "utf8",
+);
 const cssSource = readFileSync(join(import.meta.dir, "..", "..", "globals.css"), "utf8");
 
 describe("report kind switcher", () => {
   test("links to all three granularities with the canonical routes", () => {
-    expect(tabsSource).toContain('{ kind: "daily", href: "/reports" }');
+    expect(tabsSource).toContain('{ kind: "daily", href: "/daily" }');
     expect(tabsSource).toContain('{ kind: "weekly", href: "/reports/weekly" }');
     expect(tabsSource).toContain('{ kind: "monthly", href: "/reports/monthly" }');
     expect(tabsSource).toContain("messages.report");
@@ -31,7 +36,13 @@ describe("report kind switcher", () => {
 
   test("the daily route reuses the shared skeleton so it gains the switcher too", () => {
     expect(dailyPageSource).toContain('import { KindReportPage } from "./kind-report-page"');
-    expect(dailyPageSource).toContain('<KindReportPage kind="daily" archiveBase="/reports" />');
+    expect(dailyPageSource).toContain('<KindReportPage kind="daily" archiveBase="/daily" />');
+  });
+
+  test("canonical /daily routes render the same daily reader with dated archive links", () => {
+    expect(canonicalDailyPageSource).toContain('archiveBase="/daily"');
+    expect(canonicalDailyDateSource).toContain("KindReportByDate");
+    expect(canonicalDailyDateSource).toContain('archiveBase="/daily"');
   });
 
   test("active tab is filled with the accent so the selected period is unmistakable", () => {

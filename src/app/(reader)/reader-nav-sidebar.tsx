@@ -353,7 +353,7 @@ export function ReaderNavSidebar() {
   const pathKey = pathname ?? "";
   const [collapsedOverride, setCollapsedOverride] = useState<boolean | null>(null);
   const collapsed = collapsedOverride ?? shouldCollapseByViewport;
-  const reportExpanded = pathname?.startsWith("/reports") ?? false;
+  const reportExpanded = pathname?.startsWith("/daily") || pathname?.startsWith("/reports") || false;
   const meExpanded = pathname?.startsWith("/me") ?? false;
   const navGroupOpen = useSyncExternalStore(
     (onStoreChange) => subscribeStorage(NAV_GROUP_STORE_EVENT, onStoreChange),
@@ -427,7 +427,7 @@ export function ReaderNavSidebar() {
         </Link>
 
         <Link
-          href="/reports"
+          href="/daily"
           className="reader-nav-item"
           aria-label="每日速览"
           aria-expanded={reportExpanded}
@@ -442,7 +442,7 @@ export function ReaderNavSidebar() {
           </span>
         </Link>
         <div className="reader-nav-report-subitems" aria-label="速览周期" hidden={!reportExpanded}>
-          <Link href="/reports">日报</Link>
+          <Link href="/daily">日报</Link>
           <Link href="/reports/weekly">周报</Link>
           <Link href="/reports/monthly">月报</Link>
         </div>

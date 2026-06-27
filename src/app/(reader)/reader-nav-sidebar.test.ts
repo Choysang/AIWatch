@@ -35,8 +35,9 @@ describe("reader nav sidebar", () => {
     expect(navSource).toContain("日报");
     expect(navSource).toContain("周报");
     expect(navSource).toContain("月报");
-    expect(navSource).toContain('href="/reports"');
-    expect(navSource).toContain('const reportExpanded = pathname?.startsWith("/reports") ?? false;');
+    expect(navSource).toContain('href="/daily"');
+    expect(navSource).toContain('pathname?.startsWith("/daily")');
+    expect(navSource).toContain('pathname?.startsWith("/reports")');
     expect(navSource).toContain('aria-expanded={reportExpanded}');
     expect(navSource).toContain("ReaderNavGroup");
     expect(navSource).toContain("NAV_GROUP_STORAGE_KEY");
