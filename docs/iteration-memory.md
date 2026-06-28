@@ -32,6 +32,7 @@ This file captures recurring operating lessons for future AIWatch updates. Read 
 - Reader feed window filters must use the same effective timestamp as the reader ordering. A post created days ago but promoted today should not disappear from `mode=all&since=week`.
 - Client-side feed freshness polling must preserve the active public query. Selected pages should poll selected items, filtered pages should poll the same filters, and personalized pages should skip public polling unless a personalized freshness endpoint exists.
 - A small polling component can legitimately use a guarded `useEffect` with cancellation and in-flight protection; React Doctor's fetch-in-effect warning should still be reviewed on each edit, but do not replace it with a broad data-layer refactor during incident work.
+- X/RSSHub outages often appear first as many healthy-looking X sources with `last_error` and `failure_count < degraded threshold`. Platform-level alerts should count this early-failure wave, not wait for every source to become degraded or disabled.
 
 ## Operational follow-ups
 

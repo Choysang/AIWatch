@@ -49,7 +49,10 @@ afterEach(() => {
 });
 
 let xSeq = 0;
-async function seedXSource(status: "healthy" | "degraded" | "disabled"): Promise<void> {
+async function seedXSource(
+  status: "healthy" | "degraded" | "disabled",
+  opts: { failureCount?: number; lastError?: string | null } = {},
+): Promise<void> {
   xSeq += 1;
   await getDb().insert(schema.sources).values({
     id: `src_x_${xSeq}`,
@@ -59,7 +62,8 @@ async function seedXSource(status: "healthy" | "degraded" | "disabled"): Promise
     level: "L3",
     connectorType: "rsshub",
     healthStatus: status,
-    failureCount: status === "healthy" ? 0 : 38,
+    failureCount: opts.failureCount ?? (status === "healthy" ? 0 : 38),
+    lastError: opts.lastError ?? null,
   });
 }
 
@@ -89,6 +93,15 @@ describe("alertSourceHealth", () => {
     const result = await alert.alertSourceHealth(getDb());
     expect(result).toMatchObject({ failingXCount: 3, triggered: true, emailSent: false, skipped: "no_recipient" });
     expect(await getDb().select().from(schema.auditLogs)).toHaveLength(0);
+  });
+
+  test("triggers early when many X sources have repeated fetch errors before breaker degradation", async () => {
+    await seedXSource("healthy", { failureCount: 3, lastError: "The operation was aborted." });
+    await seedXSource("healthy", { failureCount: 3, lastError: "The operation was aborted." });
+    await seedXSource("healthy", { failureCount: 3, lastError: "The operation was aborted." });
+
+    const result = await alert.alertSourceHealth(getDb());
+    expect(result).toMatchObject({ failingXCount: 3, triggered: true, emailSent: false, skipped: "no_recipient" });
   });
 
   test("emails the operator and records an audit row on the happy path", async () => {

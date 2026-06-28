@@ -5,7 +5,7 @@
 // feed goes stale. Recipient is SOURCE_ALERT_EMAIL (unset → log-only). Deduped via an
 // audit_logs row so an ongoing outage emails at most once per cooldown window.
 
-import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, or, sql } from "drizzle-orm";
 import { db as defaultDb, type DB } from "@/db/client";
 import { auditLogs, sources } from "@/db/schema";
 import { newId } from "@/core/ids";
@@ -16,6 +16,7 @@ import { log } from "@/log";
 // than a single flaky account. Tuned for a ~24-source X pool; a couple of dead accounts is
 // normal churn, a wave of them is the token.
 const X_FAILURE_ALERT_THRESHOLD = 3;
+const X_EARLY_FAILURE_COUNT = 3;
 const ALERT_COOLDOWN_HOURS = 12;
 const ALERT_ACTION = "source_health_alert";
 const FAILING_STATUSES = ["disabled", "degraded"] as const;
@@ -32,7 +33,13 @@ export async function alertSourceHealth(db: DB = defaultDb): Promise<SourceHealt
     .select({ name: sources.name })
     .from(sources)
     .where(
-      and(eq(sources.platform, "x"), inArray(sources.healthStatus, [...FAILING_STATUSES])),
+      and(
+        eq(sources.platform, "x"),
+        or(
+          inArray(sources.healthStatus, [...FAILING_STATUSES]),
+          and(gte(sources.failureCount, X_EARLY_FAILURE_COUNT), sql`${sources.lastError} is not null`),
+        ),
+      ),
     );
   const failingXCount = failing.length;
 
