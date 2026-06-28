@@ -127,6 +127,8 @@ export const zh = {
     scoreMinLabel: "最低分",
     // 指定信源多选 + 登录默认定制（bestblogs 式）。
     sourcePickLabel: "指定信源",
+    sourcePickSearchPlaceholder: "搜索信源名称或平台…",
+    sourcePickEmpty: "没有匹配的信源。",
     sourcePickClear: "清空已选",
     sourcePrefSave: "存为我的默认",
     sourcePrefClear: "清除我的默认",
@@ -218,7 +220,7 @@ export const zh = {
     },
   },
   loadMore: {
-    action: "加载更多",
+    action: "加载更早日期",
   },
   comments: {
     heading: "讨论",
@@ -274,7 +276,7 @@ export const zh = {
       followup: "跟进",
     },
     heading: "AI 日报",
-    subheading: "基于事件、确定性生成的每日精选。每天 08:00（APP_TZ）出一期。",
+    subheading: "基于事件、确定性生成的精选报告。日报每天 07:00（APP_TZ）出一期；周报周一 06:00；月报每月最后一天 07:00。",
     empty: "暂无日报。运行 worker 或执行 bun run db:seed:demo 后生成。",
     emptySection: "本节暂无内容。",
     emptySummary: "本期暂未筛出足够值得播报的内容，页面会在下一次生成后自动更新。",

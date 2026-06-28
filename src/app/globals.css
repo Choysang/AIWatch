@@ -466,6 +466,22 @@ canvas {
   flex-wrap: wrap;
 }
 /* 指定信源多选（54+ 项）：限高滚动，避免面板被撑爆。 */
+.search-source-search {
+  width: 100%;
+  min-height: 2rem;
+  padding: 0.42rem 0.62rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--paper) 58%, transparent);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+}
+.search-source-search:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-weak);
+}
 .search-source-grid {
   display: flex;
   flex-wrap: wrap;
@@ -473,6 +489,19 @@ canvas {
   max-height: 11rem;
   overflow-y: auto;
   padding-right: 0.25rem;
+}
+.source-count {
+  margin-left: 0.32rem;
+  color: currentColor;
+  opacity: 0.65;
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+}
+.search-source-empty {
+  grid-column: 2;
+  margin: 0;
+  color: var(--ink-faint);
+  font-size: 0.8rem;
 }
 .search-source-prefs {
   display: flex;
@@ -558,6 +587,21 @@ canvas {
   background: var(--accent-weak);
 }
 
+
+/* --- tactile feedback: immediate hover/press/focus states across reader controls --- */
+:where(button, .chip, .search-go, .search-submit, .load-more a, .copy-link-btn, .detail-link) {
+  -webkit-tap-highlight-color: transparent;
+}
+:where(button, .chip, .search-go, .search-submit, .load-more a, .copy-link-btn):active:not(:disabled) {
+  transform: translateY(1px) scale(0.985);
+}
+:where(button, .chip, .search-go, .search-submit, .load-more a, .copy-link-btn):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.card:active {
+  transform: translateY(0);
+}
 /* Content-type badge (SP2): small categorical pill at the head of a card. */
 .content-badge {
   font-size: 0.68rem;
@@ -606,6 +650,33 @@ canvas {
   color-scheme: dark;
 }
 
+
+.feed-refresh-indicator {
+  position: fixed;
+  top: 0.75rem;
+  left: 50%;
+  z-index: 80;
+  transform: translateX(-50%);
+  min-height: 2.15rem;
+  padding: 0.34rem 0.82rem;
+  border: 1px solid color-mix(in oklab, var(--accent) 45%, var(--line));
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--paper-raised) 92%, transparent);
+  color: var(--ink);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.feed-refresh-indicator:hover,
+.feed-refresh-indicator:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+  outline: none;
+}
 /* --- feed --- */
 .feed {
   display: grid;
@@ -1650,6 +1721,207 @@ canvas {
   border-color: var(--accent);
 }
 
+
+/* --- admin operations dashboard --- */
+.admin-dashboard {
+  display: grid;
+  gap: 1rem;
+  margin: 1.2rem 0 2rem;
+}
+.admin-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.admin-section-head h2 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1.45rem;
+}
+.admin-section-head p {
+  margin: 0.2rem 0 0;
+  color: var(--ink-faint);
+  font-size: 0.9rem;
+}
+.admin-section-head a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.88rem;
+}
+.admin-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.admin-metric-card,
+.admin-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-raised);
+  box-shadow: 0 8px 24px rgb(15 23 42 / 0.06);
+}
+.admin-metric-card {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.85rem;
+}
+.admin-metric-card span,
+.admin-panel h3 {
+  color: var(--ink-faint);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.admin-metric-card strong {
+  color: var(--ink);
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+.admin-metric-card p {
+  margin: 0;
+  color: var(--ink-faint);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+.admin-metric-card.is-bad {
+  border-color: color-mix(in oklab, #dc2626 42%, var(--line));
+  background: color-mix(in oklab, #dc2626 7%, var(--paper-raised));
+}
+.admin-metric-card.is-warn {
+  border-color: color-mix(in oklab, #d97706 38%, var(--line));
+  background: color-mix(in oklab, #d97706 7%, var(--paper-raised));
+}
+.admin-metric-card.is-good strong {
+  color: #15803d;
+}
+.admin-dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr) minmax(16rem, 1fr);
+  gap: 0.75rem;
+}
+.admin-dashboard-grid:has(.admin-panel-wide:nth-child(1):last-child) {
+  grid-template-columns: 1fr;
+}
+.admin-panel {
+  min-width: 0;
+  padding: 0.9rem;
+}
+.admin-panel-wide {
+  grid-column: span 1;
+}
+.admin-panel h3 {
+  margin: 0 0 0.8rem;
+  color: var(--ink);
+}
+.admin-daily-bars {
+  display: grid;
+  gap: 0.55rem;
+}
+.admin-daily-row {
+  display: grid;
+  grid-template-columns: 3.2rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.6rem;
+}
+.admin-daily-day {
+  color: var(--ink-faint);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+.admin-bar-stack {
+  display: grid;
+  gap: 0.25rem;
+}
+.admin-bar {
+  width: var(--bar-width);
+  min-width: 3.2rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  color: var(--paper-raised);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.admin-bar.posts { background: #64748b; }
+.admin-bar.events { background: #0f766e; }
+.admin-bar.views { background: #7c3aed; }
+.admin-provider-error {
+  color: #dc2626;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.admin-compact-list,
+.admin-event-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+.admin-compact-list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px dashed var(--line);
+  padding-bottom: 0.45rem;
+}
+.admin-compact-list span {
+  display: grid;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+.admin-compact-list small,
+.admin-event-list span,
+.admin-mini-table small {
+  color: var(--ink-faint);
+  font-size: 0.72rem;
+}
+.admin-compact-list strong {
+  font-variant-numeric: tabular-nums;
+}
+.admin-mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.admin-mini-table th,
+.admin-mini-table td {
+  padding: 0.45rem 0.35rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+.admin-mini-table td:first-child {
+  display: grid;
+  gap: 0.1rem;
+}
+.admin-mini-table .is-danger {
+  color: #dc2626;
+  font-weight: 700;
+}
+.admin-event-list a {
+  color: var(--ink);
+  text-decoration: none;
+}
+.admin-event-list a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.admin-event-list li {
+  display: grid;
+  gap: 0.2rem;
+}
+
+/* Public contribution forms: keep the actual form centered, not stretched edge-to-edge. */
+.form-page-shell {
+  width: min(100%, 720px);
+  margin: 0 auto;
+}
+.form-page-shell .section-intro {
+  max-width: 46rem;
+}
 /* --- reports --- */
 .report-view {
   display: grid;
@@ -4074,7 +4346,7 @@ html[data-reader-theme="light"] .current-hotspots-source-list {
 .reader-home {
   --reader-nav-width: 192px;
   --reader-nav-gap: 1rem;
-  --reader-page-right-gap: min(5vw, 1.25rem);
+  --reader-page-right-gap: clamp(0.9rem, 2vw, 1.5rem);
 }
 html[data-reader-theme="light"] .reader-home {
   --rh-text: rgba(20, 25, 36, 0.94);
@@ -4824,11 +5096,11 @@ html[data-reader-theme="light"] .reader-sidebar-actions a:hover {
 .reader-sidebar {
   position: fixed;
   top: 3.5rem;
-  right: 0.75rem;
-  bottom: 1rem;
+  right: max(0.75rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
   z-index: 35;
   width: var(--reader-sidebar-width, 340px);
-  max-width: calc(100vw - 1.5rem);
+  max-width: calc(100vw - 2rem);
   display: grid;
   align-content: start;
   gap: 1rem;
@@ -5237,8 +5509,8 @@ html[data-reader-theme="light"] .reader-sidebar-actions a:hover {
   }
   .reader-sidebar {
     top: 3.25rem;
-    right: 0.5rem;
-    bottom: 0.5rem;
+    right: max(0.5rem, env(safe-area-inset-right));
+    bottom: max(0.5rem, env(safe-area-inset-bottom));
     width: calc(100vw - 1rem);
     max-width: calc(100vw - 1rem);
     border-radius: 14px;
@@ -5549,5 +5821,26 @@ html[data-reader-theme="light"] .reader-sidebar-actions a:hover {
   .reader-home .card-bottom {
     padding-top: 0.28rem;
     gap: 0.35rem;
+  }
+}
+
+/* admin dashboard responsive */
+@media (max-width: 980px) {
+  .admin-metric-grid,
+  .admin-dashboard-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .admin-panel-wide {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 680px) {
+  .admin-section-head {
+    align-items: start;
+    flex-direction: column;
+  }
+  .admin-metric-grid,
+  .admin-dashboard-grid {
+    grid-template-columns: 1fr;
   }
 }

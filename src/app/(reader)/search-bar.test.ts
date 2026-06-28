@@ -17,7 +17,10 @@ describe("search bar responsiveness", () => {
 
   test("does not mirror query params into input state through effects", () => {
     expect(searchSource).not.toContain("useEffect");
+    expect(searchSource).toContain("base === routeParamString");
+    expect(searchSource).toContain("setOptimisticParams({ base: routeParamString, value: qs })");
     expect(searchSource).toContain("draftValue");
+    expect(searchSource).not.toContain("setTextDraft({ routeValue: routeParamString");
   });
 
   test("omits explicit all filter chips because empty selection means all", () => {
@@ -125,7 +128,7 @@ describe("search bar responsiveness", () => {
     const scoreIndex = searchSource.indexOf('aria-label={m.scoreLabel}');
 
     expect(searchSource).toContain("search-filter-mobile-section");
-    expect(searchSource).toContain("SOURCE_GROUPS.map((group)");
+    expect(searchSource).toContain("activeSourceGroups.map((group)");
     expect(searchSource).toContain("search-filter-source-section");
     expect(sourcePickIndex).toBeGreaterThan(-1);
     expect(scoreIndex).toBeGreaterThan(-1);

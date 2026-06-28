@@ -96,7 +96,7 @@ export async function generateReport(
   return { id: inserted[0]!.id, kind, date, status, counts };
 }
 
-/** Convenience for the 08:00 daily cron and the demo seed. */
+/** Convenience for the 07:00 daily cron and the demo seed. */
 export function generateDailyReport(now: Date = new Date(), db: DB = defaultDb): Promise<GenerateReportResult> {
   return generateReport("daily", now, db);
 }

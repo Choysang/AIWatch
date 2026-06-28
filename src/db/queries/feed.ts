@@ -135,7 +135,7 @@ export async function searchEvents(
   const sortKey: SQL =
     filter.mode === "selected"
       ? sql`${events.promotedAt}`
-      : sql`coalesce(${events.publishedAt}, ${events.createdAt})`;
+      : effectiveTime;
 
   const conds: SQL[] = [];
   if (filter.mode === "selected") {

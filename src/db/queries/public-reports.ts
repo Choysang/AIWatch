@@ -3,7 +3,7 @@
 // landed), so the kind-generic queries back /reports, /reports/weekly and /reports/monthly.
 // A separate admin listing surfaces every kind/status for the console.
 
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql, type SQL } from "drizzle-orm";
 import { db as defaultDb, type DB } from "@/db/client";
 import { reports } from "@/db/schema";
 import type { ReportContent, ReportKind, ReportStatus } from "@/reports/types";
@@ -27,6 +27,19 @@ const MAX_DAILIES = 60;
 function toPublic(row: { content: unknown; generatedAt: Date }): PublicReport {
   return { ...(row.content as ReportContent), generated_at: row.generatedAt.toISOString() };
 }
+function publishedReportWhere(kind: ReportKind, date?: string) {
+  const conds: SQL[] = [eq(reports.kind, kind), eq(reports.status, "published")];
+  if (date) conds.push(eq(reports.reportDate, date));
+  if (kind === "weekly") {
+    // 周报只认 APP_TZ 周一的报告日期；历史误生成的其他日期不对外展示。
+    conds.push(sql`extract(dow from ${reports.reportDate}::date) = 1`);
+  }
+  if (kind === "monthly") {
+    // 月报只认自然月最后一天；例如 2026-06-12 这类误生成月报会被隐藏。
+    conds.push(sql`${reports.reportDate}::date = (date_trunc('month', ${reports.reportDate}::date) + interval '1 month - 1 day')::date`);
+  }
+  return and(...conds);
+}
 
 /** Latest published report of a kind, or null when none exists yet (点11: 周/月报公开). */
 export async function getLatestByKind(
@@ -36,7 +49,7 @@ export async function getLatestByKind(
   const rows = await db
     .select({ content: reports.content, generatedAt: reports.generatedAt })
     .from(reports)
-    .where(and(eq(reports.kind, kind), eq(reports.status, "published")))
+    .where(publishedReportWhere(kind))
     .orderBy(desc(reports.reportDate))
     .limit(1);
   return rows[0] ? toPublic(rows[0]) : null;
@@ -51,9 +64,7 @@ export async function getByKindAndDate(
   const rows = await db
     .select({ content: reports.content, generatedAt: reports.generatedAt })
     .from(reports)
-    .where(
-      and(eq(reports.kind, kind), eq(reports.status, "published"), eq(reports.reportDate, date)),
-    )
+    .where(publishedReportWhere(kind, date))
     .limit(1);
   return rows[0] ? toPublic(rows[0]) : null;
 }
@@ -74,7 +85,7 @@ export async function listByKind(
       generatedAt: reports.generatedAt,
     })
     .from(reports)
-    .where(and(eq(reports.kind, kind), eq(reports.status, "published")))
+    .where(publishedReportWhere(kind))
     .orderBy(desc(reports.reportDate))
     .limit(capped);
   return rows.map((r) => ({

@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { asc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
+import { getConnector } from "@/connectors/registry";
 import { db } from "@/db/client";
 import { archiveSources, createSource } from "@/db/queries/sources";
 import { sources } from "@/db/schema";
@@ -35,6 +36,7 @@ const sourceSchema = z.object({
 
 const sourcesSchema = z.array(sourceSchema).min(1);
 type CuratedSource = z.infer<typeof sourceSchema>;
+type CreatedSource = CuratedSource & { id: string };
 
 function sourceKey(input: {
   connectorType: string;
@@ -127,6 +129,36 @@ async function archiveNonCurated(curatedKeys: Set<string>): Promise<number> {
   return ids.length;
 }
 
+
+async function smokeTestCreatedSources(createdSources: CreatedSource[]): Promise<number> {
+  let failed = 0;
+  for (const source of createdSources) {
+    try {
+      const connector = getConnector(source.connectorType as ConnectorType);
+      const posts = await connector.fetch({
+        id: source.id,
+        platform: source.platform as Platform,
+        connectorType: source.connectorType as ConnectorType,
+        connectorRef: source.connectorRef,
+        url: source.url,
+        handle: source.handle ?? null,
+      });
+      const latest = posts[0];
+      if (!latest) {
+        failed += 1;
+        console.warn(`[curated-import:test] ${source.name} no_items`);
+      } else {
+        console.log(
+          `[curated-import:test] ${source.name} ok items=${posts.length} latest=${JSON.stringify(latest.rawTitle ?? latest.url ?? latest.externalId ?? "untitled").slice(0, 160)}`,
+        );
+      }
+    } catch (error) {
+      failed += 1;
+      console.warn(`[curated-import:test] ${source.name} error=${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  return failed;
+}
 async function main() {
   const dryRun = process.argv.includes("--dry-run");
   const shouldArchiveNonCurated = process.argv.includes("--archive-non-curated");
@@ -134,6 +166,7 @@ async function main() {
   const curatedKeys = new Set(curatedSources.map(sourceKey));
   let created = 0;
   let updated = 0;
+  const createdSources: CreatedSource[] = [];
 
   for (const source of curatedSources) {
     const input = toCreateInput(source);
@@ -172,17 +205,19 @@ async function main() {
         .where(eq(sources.id, existingId));
       updated += 1;
     } else {
-      await createSource(input, db);
+      const id = await createSource(input, db);
+      createdSources.push({ ...source, id });
       created += 1;
     }
   }
 
+  const createdTestFailures = dryRun ? 0 : await smokeTestCreatedSources(createdSources);
   const archivedDuplicates = dryRun ? 0 : await archiveDuplicates();
   const archivedNonCurated =
     dryRun || !shouldArchiveNonCurated ? 0 : await archiveNonCurated(curatedKeys);
 
   console.log(
-    `[curated-import] total=${curatedSources.length} created=${created} updated=${updated} archivedDuplicates=${archivedDuplicates} archivedNonCurated=${archivedNonCurated}${dryRun ? " dryRun=1" : ""}`,
+    `[curated-import] total=${curatedSources.length} created=${created} updated=${updated} createdTestFailures=${createdTestFailures} archivedDuplicates=${archivedDuplicates} archivedNonCurated=${archivedNonCurated}${dryRun ? " dryRun=1" : ""}`,
   );
 }
 

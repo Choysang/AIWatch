@@ -11,7 +11,7 @@ import type { Task } from "graphile-worker";
 import { db } from "@/db/client";
 import { rejudgeFailedPosts, REJUDGE_TRANSIENT_REASONS } from "@/pipeline/rejudge-failed-posts";
 
-const CRON_WINDOW_HOURS = 48;
+const CRON_WINDOW_HOURS = 168;
 const CRON_BATCH_LIMIT = 50;
 
 export const rejudgeFailedPostsTask: Task = async (_payload, helpers) => {

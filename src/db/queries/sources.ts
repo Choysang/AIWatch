@@ -6,7 +6,7 @@ import { and, asc, eq, inArray, isNotNull, isNull, lte, ne, or, sql } from "driz
 import type { ConnectorSource, ConnectorType } from "@/connectors/types";
 import { newId } from "@/core/ids";
 import { db as defaultDb, type DB, type Tx } from "@/db/client";
-import { sources } from "@/db/schema";
+import { events, sources } from "@/db/schema";
 import type { Platform, SourceLevel } from "@/scoring/types";
 
 const DEGRADE_AFTER = 5; // consecutive failures -> degraded + slower interval
@@ -277,14 +277,28 @@ export interface SourceOption {
   id: string;
   name: string;
   platform: string;
+  sourceType: string;
+  categories: string[];
+  eventCount: number;
 }
 
 export async function listSourceOptions(db: DB = defaultDb): Promise<SourceOption[]> {
-  return db
-    .select({ id: sources.id, name: sources.name, platform: sources.platform })
+  const rows = await db
+    .select({
+      id: sources.id,
+      name: sources.name,
+      platform: sources.platform,
+      sourceType: sources.sourceType,
+      categories: sources.categories,
+      eventCount: sql<number>`count(${events.id})::int`,
+    })
     .from(sources)
+    .leftJoin(events, eq(events.mainSourceId, sources.id))
     .where(and(isNull(sources.archivedAt), eq(sources.enabled, true)))
+    .groupBy(sources.id)
+    .having(sql`count(${events.id}) > 0`)
     .orderBy(asc(sources.platform), asc(sources.name));
+  return rows.map((row) => ({ ...row, eventCount: Number(row.eventCount) || 0 }));
 }
 
 /** Curated sources that expose a public, subscribable feed URL (RSS-family connectors).

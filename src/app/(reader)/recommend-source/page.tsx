@@ -22,8 +22,10 @@ export default function RecommendSourcePage() {
         <SubpageNav />
       </header>
 
-      <p className="section-intro">{m.subheading}</p>
-      <SourceRecommendationForm />
+      <div className="form-page-shell">
+        <p className="section-intro">{m.subheading}</p>
+        <SourceRecommendationForm />
+      </div>
     </main>
   );
 }

@@ -67,7 +67,7 @@ describe("reader home layout", () => {
   });
 
   test("lets the reader content fill the available width with only a small right gap", () => {
-    expect(cssSource).toContain("--reader-page-right-gap: min(5vw, 1.25rem);");
+    expect(cssSource).toContain("--reader-page-right-gap: clamp(0.9rem, 2vw, 1.5rem);");
     // 点8：右侧速览栏展开时占据布局空间 — 宽度计算包含 --reader-sidebar-reserve
     expect(cssSource).toContain("var(--reader-sidebar-reserve, 0px)");
     expect(cssSource).toContain(
@@ -90,11 +90,19 @@ describe("reader home layout", () => {
   });
 
   test("offers load-more pagination that keeps active filters in the URL", () => {
-    expect(pageSource).toContain("const HOME_LIMIT_MAX = 1000;");
+    expect(pageSource).toContain("const HOME_LIMIT_MAX = 5000;");
     expect(pageSource).toContain("parseHomeLimit(sp)");
     expect(pageSource).toContain('className="load-more"');
     expect(pageSource).toContain('params.set("limit", String(nextLimit));');
     expect(cssSource).toContain(".load-more {");
+  });
+
+  test("polls for new feed items with the current public query only", () => {
+    expect(pageSource).toContain("function refreshQueryString");
+    expect(pageSource).toContain('if (query.mode === "personalized") return null;');
+    expect(pageSource).toContain('params.set("mode", query.mode === "selected" ? "selected" : "all");');
+    expect(pageSource).toContain('params.set("take", "1");');
+    expect(pageSource).toContain("<FeedRefreshIndicator latestKey={latestKey} refreshQuery={refreshQuery} />");
   });
 
   test("covers reader-home interaction surfaces in light theme", () => {

@@ -22,13 +22,14 @@ import { listSourceOptions, type SourceOption } from "@/db/queries/sources";
 import { getUserPreference } from "@/db/queries/user-preferences";
 import { messages } from "@/i18n";
 import { log } from "@/log";
-import { parsePublicQuery, type PublicQuery } from "@/public/query";
+import { EVENT_CATEGORIES, parsePublicQuery, type EventCategory, type PublicQuery } from "@/public/query";
 import { formatDateTime, formatTimelineDate, formatTimeOfDay, toIsoAttr } from "@/app/_lib/format";
 import { modelAccent } from "@/app/_lib/model-accent";
 import { buildTimelineTree } from "@/app/_lib/timeline-tree";
 import { CollapsibleGroup } from "./collapsible-group";
 import { CurrentHotspots } from "./current-hotspots";
 import { EventCard } from "./event-card";
+import { FeedRefreshIndicator } from "./feed-refresh-indicator";
 import { ParticleBackground } from "./particle-background";
 import { ReaderNavSidebar } from "./reader-nav-sidebar";
 import { ReaderSidebar, type SidebarEventItem } from "./reader-sidebar";
@@ -74,13 +75,14 @@ export const metadata = {
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
-const HOME_LIMIT = 30;
+const HOME_LIMIT = 240;
+const EVENT_CATEGORY_SET: ReadonlySet<string> = new Set(EVENT_CATEGORIES);
 // "加载更多" raises the limit in HOME_LIMIT steps via the `limit` URL param (URL-as-state:
 // shareable, SSR-only, no client fetch layer). Capped so a hand-edited URL can't dump
-// the whole table into one render. Raised to 1000 (v0.5 fix #10): history is never deleted,
-// and the timeline collapse keeps older days folded, so a deep cap lets readers expand back
-// through months of archive without the feed going blank past the old 150 ceiling.
-const HOME_LIMIT_MAX = 1000;
+// the whole table into one render. Raised for the archive fix: history is never deleted, and
+// the timeline collapse keeps older days folded, so a deep cap lets readers expand back through
+// months of archive without the feed going blank past the old 150 ceiling.
+const HOME_LIMIT_MAX = 5000;
 const HOTSPOT_CANDIDATE_LIMIT = 80;
 
 function parseHomeLimit(sp: SearchParams): number {
@@ -114,12 +116,44 @@ function toQuery(sp: SearchParams): PublicQuery {
   return parsePublicQuery(params);
 }
 
+function refreshQueryString(sp: SearchParams, query: PublicQuery): string | null {
+  if (query.mode === "personalized") return null;
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(sp)) {
+    if (key === "limit" || key === "cursor" || key === "take") continue;
+    if (typeof value === "string") params.set(key, value);
+    else if (Array.isArray(value) && value[0]) params.set(key, value[0]);
+  }
+  params.set("mode", query.mode === "selected" ? "selected" : "all");
+  if (query.sourceIds?.length && !params.has("sources")) {
+    params.set("sources", query.sourceIds.join(","));
+  }
+  if (query.interests?.tags.length && !params.has("itags")) {
+    params.set("itags", query.interests.tags.join(","));
+  }
+  if (query.interests?.sourceIds.length && !params.has("isources")) {
+    params.set("isources", query.interests.sourceIds.join(","));
+  }
+  params.set("take", "1");
+  return params.toString();
+}
+
 /** Carry the active board interest into the 主题简报 link (/brief?itags=…&isources=…). */
 function briefQuery(interests: { tags: string[]; sourceIds: string[] }): URLSearchParams {
   const params = new URLSearchParams();
   if (interests.tags.length) params.set("itags", interests.tags.join(","));
   if (interests.sourceIds.length) params.set("isources", interests.sourceIds.join(","));
   return params;
+}
+
+function availableCategories(events: EventCardData[]): EventCategory[] {
+  const seen = new Set<EventCategory>();
+  for (const event of events) {
+    if (event.category && EVENT_CATEGORY_SET.has(event.category)) {
+      seen.add(event.category as EventCategory);
+    }
+  }
+  return EVENT_CATEGORIES.filter((category) => seen.has(category));
 }
 
 function toFeedFilter(query: PublicQuery): FeedFilter {
@@ -314,6 +348,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     query.mode === "personalized"
       ? await loadPersonalizedData(query, limit, readerInterests)
       : await loadHomeData(query, limit);
+  const latestEvent = events[0];
+  const latestKey = latestEvent
+    ? `${latestEvent.id}:${latestEvent.publishedAt?.toISOString() ?? ""}:${latestEvent.promotedAt?.toISOString() ?? ""}`
+    : null;
+  const refreshQuery = refreshQueryString(sp, query);
   // 精选(mode=selected)显示真实精选集，稀少时如实显示少量/空，不再静默回退最新——
   // 避免「点了精选却和最新一样」的误解。落地默认已是最新。
   // A full page means there may be more; render the load-more link (limit+step, capped).
@@ -356,6 +395,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     selectedLabel: event.selectedLabel,
     viewCount: event.viewCount,
   }));
+  const availableEventCategories = availableCategories(events);
 
   return (
     <main className="page reader-home">
@@ -364,9 +404,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       <div className="reader-control-strip">
         <ReaderSidebar items={sidebarItems} />
       </div>
+      <FeedRefreshIndicator latestKey={latestKey} refreshQuery={refreshQuery} />
       <Suspense fallback={null}>
         <SearchBar
           sourceOptions={sourceOptions}
+          availableEventCategories={availableEventCategories}
           isLoggedIn={isLoggedIn}
           defaultApplied={defaultApplied}
           hasBoards={readerInterests.hasBoards}

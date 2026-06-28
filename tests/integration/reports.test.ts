@@ -167,7 +167,7 @@ describe("generateReport (daily) + public read (real Postgres)", () => {
 
   test("weekly reports auto-publish (点11) but never leak into the daily queries", async () => {
     await seedDay();
-    const weekly = await generateReport("weekly", NOW);
+    const weekly = await generateReport("weekly", new Date("2026-05-25T00:30:00Z"));
     expect(weekly.status).toBe("published");
     expect(await getLatestDaily()).toBeNull(); // kind filter: weekly is not a daily
     expect(await listDailies()).toHaveLength(0);

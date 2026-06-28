@@ -22,8 +22,10 @@ export default function FeedbackPage() {
         <SubpageNav />
       </header>
 
-      <p className="section-intro">{m.subheading}</p>
-      <FeedbackForm />
+      <div className="form-page-shell">
+        <p className="section-intro">{m.subheading}</p>
+        <FeedbackForm />
+      </div>
     </main>
   );
 }

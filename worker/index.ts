@@ -12,6 +12,7 @@ import {
   generateMonthlyReportTask,
   generateWeeklyReportTask,
 } from "./tasks/generate-report";
+import { alertPipelineHealthTask } from "./tasks/alert-pipeline-health";
 import { alertSourceHealthTask } from "./tasks/alert-source-health";
 import { digestPendingContributionsTask } from "./tasks/digest-pending-contributions";
 import { recomputeScoresV2Task } from "./tasks/recompute-scores-v2";
@@ -48,23 +49,24 @@ async function main(): Promise<void> {
     // so the tournament always gates on a fresh selection_score; recompute rank scores every
     // 15 minutes so band transitions + accumulated
     // likes/stars gradually re-rank events without re-running the LLM; assemble reports
-    // at 06:00 daily, Monday 09:00 weekly, and 1st 09:00 monthly; flag low-contribution
+    // at 07:00 daily, Monday 06:00 weekly, and 07:00 on month-end for monthly; flag low-contribution
     // sources for human review daily at 08:30; digest newly submitted contributions
     // for owner/admin hourly at :20 (信源推荐收集); alert the operator hourly at :40 when
     // the X source pool fails en masse (TWITTER_AUTH_TOKEN-expired signature); re-judge posts
     // stuck in judge_failed for infra-transient reasons hourly at :50 (auto-heal after an LLM
-    // gateway outage — bounded to the last 48h, 50/run; full sweep stays the manual script).
+    // gateway outage — bounded to the last 168h, 50/run; full sweep stays the manual script).
     crontab: [
       "* * * * * enqueue-due-sources",
       "*/10 * * * * recompute-scores-v2",
       "*/5 * * * * check-promotion-v2",
       "*/15 * * * * recompute-rank-scores",
-      "0 6 * * * generate-daily-report",
-      "0 9 * * 1 generate-weekly-report",
-      "0 9 1 * * generate-monthly-report",
+      "0 7 * * * generate-daily-report",
+      "0 6 * * 1 generate-weekly-report",
+      "0 7 * * * generate-monthly-report",
       "30 8 * * * suggest-source-review",
       "20 * * * * digest-pending-contributions",
       "40 * * * * alert-source-health",
+      "45 * * * * alert-pipeline-health",
       "* * * * * refresh-routing-overrides",
       "50 * * * * rejudge-failed-posts",
     ].join("\n"),
@@ -80,6 +82,7 @@ async function main(): Promise<void> {
       "recompute-rank-scores": recomputeRankScoresTask,
       "digest-pending-contributions": digestPendingContributionsTask,
       "alert-source-health": alertSourceHealthTask,
+      "alert-pipeline-health": alertPipelineHealthTask,
       "refresh-routing-overrides": refreshRoutingOverridesTask,
       "rejudge-failed-posts": rejudgeFailedPostsTask,
     },

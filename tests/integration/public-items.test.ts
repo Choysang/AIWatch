@@ -69,7 +69,8 @@ async function insertEvent(opts: {
   level?: "none" | "B" | "A" | "S";
   contentType?: "release" | "research" | "howto" | "opinion" | "news";
   promotedAt?: Date | null;
-  publishedAt: Date;
+  publishedAt: Date | null;
+  createdAt?: Date;
   sourceId?: string;
   qualityScore?: number;
 }): Promise<void> {
@@ -82,6 +83,7 @@ async function insertEvent(opts: {
     contentType,
     promotedAt = null,
     publishedAt,
+    createdAt,
     sourceId = SOURCE_ID,
     qualityScore = 80,
   } = opts;
@@ -98,6 +100,7 @@ async function insertEvent(opts: {
     contentType,
     promotedAt,
     publishedAt,
+    createdAt,
     mainSourceId: sourceId,
     qualityScore,
   });
@@ -206,6 +209,45 @@ describe("listPublicItems (real Postgres)", () => {
 
     expect(seen).toEqual(["c0", "c1", "c2", "c3", "c4"]);
     expect(new Set(seen).size).toBe(5); // no overlap
+  });
+
+  test("all-mode cursor uses the same effective time as the sort key", async () => {
+    await insertEvent({ id: "all_new", title: "new", publishedAt: ago(0.5) });
+    await insertEvent({
+      id: "all_promoted_only",
+      title: "promoted only",
+      promotedAt: ago(1),
+      publishedAt: null,
+    });
+    await insertEvent({ id: "all_old", title: "old", publishedAt: ago(2) });
+
+    const seen: string[] = [];
+    let cursor: string | undefined;
+    for (let guard = 0; guard < 5; guard++) {
+      const qs = `mode=all&take=2${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`;
+      const res = await listPublicItems(query(qs), NOW);
+      seen.push(...res.items.map((i) => i.id));
+      if (!res.next_cursor) break;
+      cursor = res.next_cursor;
+    }
+
+    expect(seen).toEqual(["all_new", "all_promoted_only", "all_old"]);
+    expect(new Set(seen).size).toBe(3);
+  });
+
+  test("searchEvents all-mode window uses the same effective time as its ordering", async () => {
+    await insertEvent({ id: "feed_new", title: "feed new", publishedAt: ago(0.5) });
+    await insertEvent({
+      id: "feed_promoted_only",
+      title: "feed promoted only",
+      promotedAt: ago(1),
+      publishedAt: null,
+      createdAt: ago(8),
+    });
+    await insertEvent({ id: "feed_old", title: "feed old", publishedAt: ago(8) });
+
+    const feed = await searchEvents({ mode: "all", since: "week" }, 30, NOW);
+    expect(feed.map((e) => e.id)).toEqual(["feed_new", "feed_promoted_only"]);
   });
 
   test("sourceTypes filter narrows to events whose main source matches ANY of the requested types", async () => {

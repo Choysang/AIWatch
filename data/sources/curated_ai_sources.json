@@ -2230,5 +2230,19 @@
     "ai_density_score": 8,
     "recommendedBy": "owner-20260627",
     "recommendReason": "OpenAI Agents SDK release，适合捕捉官方 Agent 工程能力和 API 变化。"
+  },
+  {
+    "name": "Raytar",
+    "handle": "@Raytar",
+    "url": "https://x.com/Raytar",
+    "platform": "x",
+    "connectorType": "rsshub",
+    "connectorRef": "/twitter/user/Raytar",
+    "category": "technical_share",
+    "sourceType": "kol",
+    "level": "L3",
+    "ai_density_score": 7,
+    "recommendedBy": "owner-20260628",
+    "recommendReason": "开发者视角的 AI/Claude/工作流实践信源，适合补充工具使用经验；精选时过滤夸张故事和参与诱导内容。"
   }
 ]

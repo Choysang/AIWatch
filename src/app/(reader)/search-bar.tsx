@@ -6,7 +6,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import { messages } from "@/i18n";
 import {
   EVENT_CATEGORIES,
@@ -21,6 +21,7 @@ import {
 
 type ChipValue = string | undefined;
 type DraftField = { routeValue: string; value: string };
+type OptimisticParams = { base: string; value: string };
 
 const WINDOWS = ["today", "week", "month", "all"] as const;
 const SEARCH_MODES = ["latest", "selected", "personalized"] as const;
@@ -66,18 +67,25 @@ export interface SearchBarSourceOption {
   id: string;
   name: string;
   platform: string;
+  sourceType: string;
+  categories: string[];
+  eventCount: number;
 }
 
 const EMPTY_SOURCE_OPTIONS: SearchBarSourceOption[] = [];
+const EMPTY_EVENT_CATEGORIES: EventCategory[] = [];
 
 export function SearchBar({
   sourceOptions = EMPTY_SOURCE_OPTIONS,
+  availableEventCategories = EMPTY_EVENT_CATEGORIES,
   isLoggedIn = false,
   defaultApplied = false,
   hasBoards = false,
 }: {
-  /** 指定信源筛选的可选项（启用中的信源）。空数组时该区不渲染。 */
+  /** 指定信源筛选的可选项（启用中且已有内容的信源）。空数组时该区不渲染。 */
   sourceOptions?: SearchBarSourceOption[];
+  /** 当前结果里实际出现过的事件分类；用于隐藏空分类。 */
+  availableEventCategories?: EventCategory[];
   /** 登录读者可把当前信源选择存为默认（bestblogs 式定制）。 */
   isLoggedIn?: boolean;
   /** 本次渲染由保存的默认信源筛选驱动（URL 未带 sources 参数）。 */
@@ -87,7 +95,16 @@ export function SearchBar({
 }) {
   const m = messages.search;
   const router = useRouter();
-  const params = useSearchParams();
+  const routeParams = useSearchParams();
+  const routeParamString = routeParams.toString();
+  const [optimisticParams, setOptimisticParams] = useState<OptimisticParams | null>(null);
+  const effectiveParamString = optimisticParams?.base === routeParamString
+    ? optimisticParams.value
+    : routeParamString;
+  const params = useMemo(
+    () => new URLSearchParams(effectiveParamString),
+    [effectiveParamString],
+  );
   const queryParam = params.get("q") ?? "";
   const fromParam = params.get("from") ?? "";
   const toParam = params.get("to") ?? "";
@@ -116,6 +133,7 @@ export function SearchBar({
     value: routeTimeChoice,
   });
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [sourceSearchDraft, setSourceSearchDraft] = useState("");
   const [isPending, startTransition] = useTransition();
 
   // 指定信源多选：面板内为草稿态，点「应用筛选」才写回 URL（sources=id1,id2）。
@@ -170,6 +188,29 @@ export function SearchBar({
     : SEARCH_MODES.filter((value) => value !== "personalized");
   const selectedSourceGroups = parseSourceGroupParam(params.get("sourceTypes"));
   const selectedEventCategory = params.get("category") as EventCategory | null;
+  const activeSourceGroups = useMemo(() => {
+    const groups = new Set<SourceGroup>();
+    for (const option of sourceOptions) {
+      const group = groupForSourceType(option.sourceType);
+      if (group) groups.add(group);
+    }
+    return SOURCE_GROUPS.filter((group) => groups.has(group));
+  }, [sourceOptions]);
+  const activeEventCategories = useMemo(() => {
+    const categories = new Set(availableEventCategories);
+    if (selectedEventCategory) categories.add(selectedEventCategory);
+    return EVENT_CATEGORIES.filter((value) => categories.has(value));
+  }, [availableEventCategories, selectedEventCategory]);
+  const normalizedSourceSearch = sourceSearchDraft.trim().toLowerCase();
+  const visibleSourceOptions = useMemo(() => {
+    if (!normalizedSourceSearch) return sourceOptions;
+    return sourceOptions.filter((option) => {
+      const haystack = [option.name, option.platform, option.sourceType, ...option.categories]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(normalizedSourceSearch);
+    });
+  }, [normalizedSourceSearch, sourceOptions]);
   const nativeSubmitParams = Array.from(params.entries()).filter(([key]) => key !== "q");
   const hasPanelFilters = Boolean(
     params.get("since") || fromParam || toParam || minScoreParam || sourcesParam,
@@ -181,11 +222,12 @@ export function SearchBar({
       mutate(next);
       const qs = next.toString();
       const href = qs ? `/?${qs}` : "/";
+      setOptimisticParams({ base: routeParamString, value: qs });
       startTransition(() => {
         router.push(href);
       });
     },
-    [params, router, startTransition],
+    [params, routeParamString, router, startTransition],
   );
 
   const setParam = (key: string, value: ChipValue) =>
@@ -279,6 +321,7 @@ export function SearchBar({
     setToDraft({ routeValue: toParam, value: "" });
     setMinScoreDraft({ routeValue: minScoreParam, value: "" });
     setSourcesDraft({ routeValue: sourcesParam, value: "" });
+    setOptimisticParams({ base: routeParamString, value: "" });
     startTransition(() => {
       router.push("/");
     });
@@ -331,7 +374,7 @@ export function SearchBar({
         <div className="search-filter-line">
           <div className="search-facet-row" role="group" aria-label={m.sourceGroupLabel}>
             <span className="filter-label">{m.sourceGroupLabel}</span>
-            {SOURCE_GROUPS.map((group) => {
+            {activeSourceGroups.map((group) => {
               const active = selectedSourceGroups.has(group);
               return (
                 <button
@@ -350,7 +393,7 @@ export function SearchBar({
           <div className="search-category-actions">
             <div className="search-facet-row" role="group" aria-label={m.eventCategoryLabel}>
               <span className="filter-label">{m.eventCategoryLabel}</span>
-              {EVENT_CATEGORIES.map((value) => {
+              {activeEventCategories.map((value) => {
                 const active = selectedEventCategory === value;
                 return (
                   <button
@@ -480,7 +523,7 @@ export function SearchBar({
                 <div className="search-filter-section search-filter-mobile-section" role="group" aria-label={m.sourceGroupLabel}>
                   <span className="filter-label">{m.sourceGroupLabel}</span>
                   <div className="search-filter-options">
-                    {SOURCE_GROUPS.map((group) => {
+                    {activeSourceGroups.map((group) => {
                       const active = selectedSourceGroups.has(group);
                       return (
                         <button
@@ -500,7 +543,7 @@ export function SearchBar({
                 <div className="search-filter-section search-filter-mobile-section" role="group" aria-label={m.eventCategoryLabel}>
                   <span className="filter-label">{m.eventCategoryLabel}</span>
                   <div className="search-filter-options">
-                    {EVENT_CATEGORIES.map((value) => {
+                    {activeEventCategories.map((value) => {
                       const active = selectedEventCategory === value;
                       return (
                         <button
@@ -523,8 +566,16 @@ export function SearchBar({
                       {m.sourcePickLabel}
                       {selectedSources.size > 0 ? `（已选 ${selectedSources.size}）` : ""}
                     </span>
+                    <input
+                      type="search"
+                      className="search-source-search"
+                      value={sourceSearchDraft}
+                      onChange={(e) => setSourceSearchDraft(e.target.value)}
+                      placeholder={m.sourcePickSearchPlaceholder}
+                      aria-label={m.sourcePickSearchPlaceholder}
+                    />
                     <div className="search-source-grid">
-                      {sourceOptions.map((option) => {
+                      {visibleSourceOptions.map((option) => {
                         const active = selectedSources.has(option.id);
                         return (
                           <button
@@ -536,10 +587,16 @@ export function SearchBar({
                             onClick={() => toggleSourceDraft(option.id)}
                           >
                             {option.name}
+                            <span className="source-count" aria-label={`${option.eventCount} 条动态`}>
+                              {option.eventCount}
+                            </span>
                           </button>
                         );
                       })}
                     </div>
+                    {visibleSourceOptions.length === 0 && (
+                      <p className="search-source-empty">{m.sourcePickEmpty}</p>
+                    )}
                     {selectedSources.size > 0 && (
                       <button
                         type="button"

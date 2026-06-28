@@ -62,11 +62,12 @@ export async function listPublicItems(
   now: Date = new Date(),
   db: DB = defaultDb,
 ): Promise<PublicItemsResponse> {
-  // Sort key: selected -> promoted_at; all -> effective publish time.
+  // Sort key mirrors the reader timeline: selected -> promoted_at; all ->
+  // published_at/promoted_at/created_at so realtime peeks match the homepage top row.
   const sortKey: SQL =
     q.mode === "selected"
       ? sql`${events.promotedAt}`
-      : sql`coalesce(${events.publishedAt}, ${events.createdAt})`;
+      : sql`coalesce(${events.publishedAt}, ${events.promotedAt}, ${events.createdAt})`;
 
   const conds: SQL[] = [];
   if (q.mode === "selected") {
@@ -156,7 +157,9 @@ export async function listPublicItems(
   let next_cursor: string | null = null;
   if (hasMore && page.length > 0) {
     const last = page[page.length - 1]!;
-    const t = q.mode === "selected" ? last.promotedAt : (last.publishedAt ?? last.createdAt);
+    const t = q.mode === "selected"
+      ? last.promotedAt
+      : (last.publishedAt ?? last.promotedAt ?? last.createdAt);
     if (t) next_cursor = encodeCursor({ t: t.toISOString(), id: last.id });
   }
 
