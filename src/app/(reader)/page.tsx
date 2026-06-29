@@ -23,7 +23,7 @@ import { getUserPreference } from "@/db/queries/user-preferences";
 import { messages } from "@/i18n";
 import { log } from "@/log";
 import { EVENT_CATEGORIES, parsePublicQuery, type EventCategory, type PublicQuery } from "@/public/query";
-import { formatDateTime, formatTimelineDate, toIsoAttr } from "@/app/_lib/format";
+import { formatDateTime, formatTimeOfDay, toIsoAttr } from "@/app/_lib/format";
 import { modelAccent } from "@/app/_lib/model-accent";
 import { buildTimelineTree } from "@/app/_lib/timeline-tree";
 import { CollapsibleGroup } from "./collapsible-group";
@@ -409,7 +409,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       <div className="reader-control-strip">
         <ReaderSidebar items={sidebarItems} />
       </div>
-      <FeedRefreshIndicator latestKey={latestKey} refreshQuery={refreshQuery} />
+      <Suspense fallback={null}>
+        <FeedRefreshIndicator latestKey={latestKey} refreshQuery={refreshQuery} />
+      </Suspense>
       <Suspense fallback={null}>
         <SearchBar
           sourceOptions={sourceOptions}
@@ -494,7 +496,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                                 style={{ "--card-accent": accent.rgb } as CSSProperties}
                               >
                                 <div className="tl-rail">
-                                  <time className="tl-date" dateTime={toIsoAttr(when)}>{formatTimelineDate(when)}</time>
+                                  <time className="tl-date" dateTime={toIsoAttr(when)}>{formatTimeOfDay(when)}</time>
                                 </div>
                                 <span className="tl-dot" aria-hidden="true" />
                                 <SpotlightCard

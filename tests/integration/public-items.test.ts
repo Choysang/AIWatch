@@ -58,6 +58,7 @@ afterAll(async () => {
 }, 60_000);
 
 beforeEach(async () => {
+  await getDb().delete(schema.ownerAnnotations);
   await getDb().delete(schema.events);
 });
 
@@ -116,6 +117,23 @@ describe("listPublicItems (real Postgres)", () => {
     const res = await listPublicItems(query("mode=selected&since=week"), NOW);
     expect(res.items.map((i) => i.id)).toEqual(["e_b", "e_a"]); // e_old outside 7d, e_none not selected
     expect(res.items[0]!.selected_label).toBe("B");
+  });
+
+  test("searchEvents hides owner not_useful annotations in selected and all modes", async () => {
+    await insertEvent({ id: "keep", title: "keep selected", level: "B", promotedAt: ago(0.5), publishedAt: ago(0.5) });
+    await insertEvent({ id: "hide", title: "hide selected", level: "B", promotedAt: ago(0.4), publishedAt: ago(0.4) });
+    await getDb().insert(schema.ownerAnnotations).values({
+      id: "ann_hide",
+      subjectType: "event",
+      subjectId: "hide",
+      verdict: "not_useful",
+    });
+
+    const selected = await searchEvents({ mode: "selected", since: "week" }, 30, NOW);
+    expect(selected.map((e) => e.id)).toEqual(["keep"]);
+
+    const all = await searchEvents({ mode: "all", since: "week" }, 30, NOW);
+    expect(all.map((e) => e.id)).toEqual(["keep"]);
   });
 
   test("level filter narrows to a single tier", async () => {

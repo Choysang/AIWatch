@@ -31,6 +31,9 @@ describe("report reader layout", () => {
     expect(cssSource).toContain(".report-page {");
     expect(cssSource).toContain("grid-template-columns: minmax(13rem, 18rem) minmax(0, 920px) minmax(0, 1fr);");
     expect(cssSource).toContain(".report-archive-shell {\n  grid-column: 1;");
+    expect(cssSource).toContain("align-self: start;");
+    expect(cssSource).toContain("position: sticky;");
+    expect(cssSource).toContain("height: fit-content;");
     expect(cssSource).toContain(".report-page-main {\n  grid-column: 2;");
   });
 });

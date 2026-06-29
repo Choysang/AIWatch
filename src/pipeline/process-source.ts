@@ -314,6 +314,7 @@ export async function processSource(
       post.id,
       raw,
       norm.canonicalUrl,
+      norm.canonicalReferenceUrls,
     );
     if (outcome.kind === "merged") {
       summary.merged++;
@@ -352,6 +353,7 @@ export async function judgeAndStorePost(
   postId: string,
   raw: RawPost,
   canonicalUrl: string | null,
+  canonicalReferenceUrls: readonly string[] = [],
 ): Promise<JudgeOutcome> {
   try {
     const judgment = await judge(raw);
@@ -414,8 +416,12 @@ export async function judgeAndStorePost(
     };
 
     const since = new Date(Date.now() - SEMANTIC_FOLD_LOOKBACK_HOURS * 60 * 60 * 1000);
+    const canonicalFoldUrls = [
+      ...new Set([canonicalUrl, ...canonicalReferenceUrls].filter((url): url is string => Boolean(url))),
+    ];
+    const existingByUrl = await findExistingEventByCanonicalUrls(canonicalFoldUrls, db);
     const existingEventId =
-      (canonicalUrl ? await findEventIdByCanonicalUrl(canonicalUrl, db) : null) ??
+      existingByUrl ??
       await findEventIdBySemanticFold(
         { foldKey: judgment.fold.foldKey, simhash: judgment.fold.simhash, since },
         db,
@@ -443,6 +449,17 @@ export async function judgeAndStorePost(
     log.error(`[pipeline] judge/score failed for post ${postId}:`, error);
     return { kind: "failed", reason };
   }
+}
+
+async function findExistingEventByCanonicalUrls(
+  canonicalUrls: readonly string[],
+  db: DB,
+): Promise<string | null> {
+  for (const canonicalUrl of canonicalUrls) {
+    const eventId = await findEventIdByCanonicalUrl(canonicalUrl, db);
+    if (eventId) return eventId;
+  }
+  return null;
 }
 
 function cursorForRaw(raw: RawPost): string | null {

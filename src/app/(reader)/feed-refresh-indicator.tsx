@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState, useTransition } from "react";
 
 interface PublicItemPeek {
   id?: string;
@@ -13,9 +13,20 @@ interface PublicItemsPeek {
   items?: PublicItemPeek[];
 }
 
+const LIVE_REFRESH_PARAM = "_live";
+const POLL_INTERVAL_MS = 30_000;
+
 function keyFor(item: PublicItemPeek | undefined): string | null {
   if (!item?.id) return null;
   return `${item.id}:${item.published_at ?? ""}:${item.promoted_at ?? ""}`;
+}
+
+function refreshedHref(pathname: string, searchParams: { toString(): string }): string {
+  const params = new URLSearchParams(searchParams.toString());
+  params.delete(LIVE_REFRESH_PARAM);
+  params.set(LIVE_REFRESH_PARAM, String(Date.now()));
+  const query = params.toString();
+  return query ? `${pathname}?${query}` : pathname;
 }
 
 export function FeedRefreshIndicator({
@@ -26,8 +37,17 @@ export function FeedRefreshIndicator({
   refreshQuery: string | null;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [hasNew, setHasNew] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  const loadFresh = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    startTransition(() => {
+      router.replace(refreshedHref(pathname, searchParams), { scroll: true });
+    });
+  }, [pathname, router, searchParams, startTransition]);
 
   useEffect(() => {
     if (!latestKey || !refreshQuery) return;
@@ -46,7 +66,7 @@ export function FeedRefreshIndicator({
         const nextKey = keyFor(data.items?.[0]);
         if (!nextKey || nextKey === latestKey) return;
         if (window.scrollY < 160) {
-          startTransition(() => router.refresh());
+          loadFresh();
         } else {
           setHasNew(true);
         }
@@ -55,7 +75,7 @@ export function FeedRefreshIndicator({
       }
     };
 
-    const timer = window.setInterval(check, 60_000);
+    const timer = window.setInterval(check, POLL_INTERVAL_MS);
     const onVisible = () => void check();
     document.addEventListener("visibilitychange", onVisible);
     return () => {
@@ -63,7 +83,7 @@ export function FeedRefreshIndicator({
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [latestKey, refreshQuery, router, startTransition]);
+  }, [latestKey, refreshQuery, loadFresh]);
 
   if (!hasNew) return null;
 
@@ -74,7 +94,7 @@ export function FeedRefreshIndicator({
       disabled={isPending}
       onClick={() => {
         setHasNew(false);
-        startTransition(() => router.refresh());
+        loadFresh();
       }}
     >
       {isPending ? "正在加载新动态…" : "有新动态，点击加载"}

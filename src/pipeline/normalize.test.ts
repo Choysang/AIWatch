@@ -34,6 +34,40 @@ describe("normalizePost", () => {
     expect(n.canonicalUrl).toBe("https://example.com/a?id=1");
   });
 
+  test("uses a single article-like reference URL as the canonical key for social reposts", () => {
+    const n = normalizePost({
+      url: "https://x.com/someone/status/123",
+      rawContent: "OpenAI 发布新模型 https://www.openai.com/index/gpt-5/?utm_source=x",
+    });
+    expect(n.canonicalUrl).toBe("https://openai.com/index/gpt-5");
+    expect(n.canonicalReferenceUrls).toEqual([]);
+  });
+
+  test("keeps the post URL when social text has multiple strong references", () => {
+    const n = normalizePost({
+      url: "https://x.com/someone/status/123",
+      rawContent: [
+        "相关链接",
+        "https://openai.com/index/gpt-5",
+        "https://github.com/openai/example/releases/tag/v1",
+      ].join("\n"),
+    });
+    expect(n.canonicalUrl).toBe("https://x.com/someone/status/123");
+    expect(n.canonicalReferenceUrls).toEqual([
+      "https://openai.com/index/gpt-5",
+      "https://github.com/openai/example/releases/tag/v1",
+    ]);
+  });
+
+  test("ignores social and shortener reference URLs", () => {
+    const n = normalizePost({
+      url: "https://x.com/someone/status/123",
+      rawContent: "转发 https://twitter.com/openai/status/9 https://t.co/abc https://openai.com/",
+    });
+    expect(n.canonicalUrl).toBe("https://x.com/someone/status/123");
+    expect(n.canonicalReferenceUrls).toEqual([]);
+  });
+
   test("content hash is stable and identical for identical content", () => {
     const a = normalizePost({ rawTitle: "t", rawContent: "c" });
     const b = normalizePost({ rawTitle: "t", rawContent: "c", url: "https://other.com" });

@@ -138,16 +138,15 @@ export async function searchEvents(
       : effectiveTime;
 
   const conds: SQL[] = [];
+  conds.push(sql`not exists (
+    select 1 from ${ownerAnnotations}
+    where ${ownerAnnotations.subjectType} = 'event'
+      and ${ownerAnnotations.subjectId} = ${events.id}
+      and ${ownerAnnotations.verdict} = 'not_useful'
+  )`);
   if (filter.mode === "selected") {
     conds.push(ne(events.selectedLevel, "none"));
     if (filter.level) conds.push(eq(events.selectedLevel, filter.level));
-  } else {
-    conds.push(sql`not exists (
-      select 1 from ${ownerAnnotations}
-      where ${ownerAnnotations.subjectType} = 'event'
-        and ${ownerAnnotations.subjectId} = ${events.id}
-        and ${ownerAnnotations.verdict} = 'not_useful'
-    )`);
   }
   // Custom range (explicit from/to) takes precedence over the rolling `since` window.
   const customRange = Boolean(filter.dateFrom || filter.dateTo);

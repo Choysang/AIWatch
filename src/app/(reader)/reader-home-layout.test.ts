@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 
 const pageSource = readFileSync(join(import.meta.dir, "page.tsx"), "utf8");
+const feedRefreshSource = readFileSync(join(import.meta.dir, "feed-refresh-indicator.tsx"), "utf8");
 const hotspotJumpSource = readFileSync(join(import.meta.dir, "current-hotspot-jump.tsx"), "utf8");
 const hotspotsSource = readFileSync(join(import.meta.dir, "current-hotspots.tsx"), "utf8");
 const cssSource = readFileSync(join(import.meta.dir, "..", "globals.css"), "utf8");
@@ -107,6 +108,15 @@ describe("reader home layout", () => {
     expect(pageSource).toContain("<FeedRefreshIndicator latestKey={latestKey} refreshQuery={refreshQuery} />");
   });
 
+  test("new-feed indicator reloads the current route and returns readers to the newest card", () => {
+    expect(feedRefreshSource).toContain('const LIVE_REFRESH_PARAM = "_live";');
+    expect(feedRefreshSource).toContain("const POLL_INTERVAL_MS = 30_000;");
+    expect(feedRefreshSource).toContain("usePathname");
+    expect(feedRefreshSource).toContain("useSearchParams");
+    expect(feedRefreshSource).toContain("window.scrollTo({ top: 0, behavior: \"smooth\" });");
+    expect(feedRefreshSource).toContain("router.replace(refreshedHref(pathname, searchParams), { scroll: true });");
+  });
+
   test("covers reader-home interaction surfaces in light theme", () => {
     expect(cssSource).toContain('html[data-reader-theme="light"] .reader-home .chip');
     expect(cssSource).toContain('html[data-reader-theme="light"] .reader-home .chip:hover');
@@ -124,7 +134,7 @@ describe("reader home layout", () => {
     const mobileStart = cssSource.lastIndexOf("@media (max-width: 760px)");
     const mobileCss = cssSource.slice(mobileStart);
     expect(pageSource).toContain('className="tl-date"');
-    expect(pageSource).toContain("formatTimelineDate(when)");
+    expect(pageSource).toContain("formatTimeOfDay(when)");
     expect(pageSource).not.toContain('className="tl-time"');
     expect(cssSource).toContain(".tl-date {");
     expect(cssSource).not.toContain(".tl-time");
