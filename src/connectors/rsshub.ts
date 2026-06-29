@@ -41,6 +41,8 @@ export interface RsshubConnectorOptions {
   fetchImpl?: FetchFn;
 }
 
+const RSSHUB_FETCH_TIMEOUT_MS = 30_000;
+
 export class RsshubConnector implements SourceConnector {
   readonly type = "rsshub" as const;
   private readonly baseUrlOverride: string | undefined;
@@ -76,7 +78,11 @@ export class RsshubConnector implements SourceConnector {
       ? await this.fetchImpl(target, { headers })
       : // Production path: safeFetch with the SSRF guard relaxed only for the operator's
         // configured RSSHub host (self-hosted RSSHub resolves to a Docker-private IP).
-        await safeFetch(target, { headers, allowHosts: rsshubAllowHosts(base) });
+        await safeFetch(target, {
+          headers,
+          allowHosts: rsshubAllowHosts(base),
+          timeoutMs: RSSHUB_FETCH_TIMEOUT_MS,
+        });
     if (!res.ok) {
       throw new Error(`[rsshub] fetch failed for ${target}: ${res.status} ${res.statusText}`);
     }

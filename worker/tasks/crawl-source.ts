@@ -26,6 +26,12 @@ export const crawlSource: Task = async (rawPayload, helpers) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await markSourceFailure(sourceId, message);
-    throw error; // surface to graphile-worker for retry/backoff bookkeeping
+    const sourceName = source.name ?? source.handle ?? source.id;
+    throw new Error(
+      `[crawl-source] ${sourceId} ${sourceName} ${source.connectorType} ${
+        source.connectorRef ?? source.url ?? "no-route"
+      }: ${message}`,
+      { cause: error },
+    );
   }
 };

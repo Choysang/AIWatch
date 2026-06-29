@@ -14,6 +14,7 @@ const DISABLE_AFTER = 20; // consecutive failures -> auto-disable + admin flag
 
 /** A due source carries the connector view plus metadata the pipeline needs. */
 export type DueSource = ConnectorSource & {
+  name?: string | null;
   level: SourceLevel;
   onboardedAt?: Date | null;
   lastSeenCursor?: string | null;
@@ -24,6 +25,7 @@ export async function getDueSources(limit = 50, db: DB = defaultDb): Promise<Due
   const rows = await db
     .select({
       id: sources.id,
+      name: sources.name,
       platform: sources.platform,
       connectorType: sources.connectorType,
       connectorRef: sources.connectorRef,
@@ -52,6 +54,7 @@ export async function getSourceById(id: string, db: DB = defaultDb): Promise<Due
   const rows = await db
     .select({
       id: sources.id,
+      name: sources.name,
       platform: sources.platform,
       connectorType: sources.connectorType,
       connectorRef: sources.connectorRef,
