@@ -314,6 +314,26 @@ describe("listPublicItems (real Postgres)", () => {
     expect(all.map((e) => e.id)).toContain("f4");
   });
 
+  test("searchEvents selected mode orders by promotion time, not original publish time", async () => {
+    await insertEvent({
+      id: "old_article_new_pick",
+      title: "old article promoted today",
+      level: "B",
+      promotedAt: ago(0.2),
+      publishedAt: ago(5),
+    });
+    await insertEvent({
+      id: "new_article_old_pick",
+      title: "new article promoted earlier",
+      level: "B",
+      promotedAt: ago(1),
+      publishedAt: ago(0.1),
+    });
+
+    const feed = await searchEvents({ mode: "selected", since: "week" }, 30, NOW);
+    expect(feed.map((e) => e.id)).toEqual(["old_article_new_pick", "new_article_old_pick"]);
+  });
+
   test("custom date range (from/to) filters by effective time and overrides the window", async () => {
     // Three selected events on distinct days relative to the fixed NOW (2026-05-24).
     await insertEvent({ id: "d_22", title: "May 22", level: "B", promotedAt: ago(2), publishedAt: ago(2) }); // 2026-05-22

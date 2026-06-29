@@ -201,7 +201,7 @@ export async function searchEvents(
     .leftJoin(sources, eq(sources.id, events.mainSourceId))
     .leftJoin(posts, eq(posts.id, events.mainPostId))
     .where(conds.length ? and(...conds) : undefined)
-    .orderBy(sql`${effectiveTime} desc`, desc(events.id))
+    .orderBy(sql`${sortKey} desc nulls last`, sql`${effectiveTime} desc`, desc(events.id))
     .limit(limit);
   return rows as EventCard[];
 }

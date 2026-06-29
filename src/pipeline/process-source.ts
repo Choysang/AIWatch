@@ -57,6 +57,7 @@ import { simhash } from "./simhash";
 // post (~80k chars) went to the triage call whole.
 const LIGHT_CONTENT_TOKEN_BUDGET = 1800;
 const DEEP_CONTENT_TOKEN_BUDGET = 3500;
+const SEMANTIC_FOLD_LOOKBACK_HOURS = 72;
 
 export interface ProcessSummary {
   fetched: number;
@@ -412,7 +413,7 @@ export async function judgeAndStorePost(
       },
     };
 
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const since = new Date(Date.now() - SEMANTIC_FOLD_LOOKBACK_HOURS * 60 * 60 * 1000);
     const existingEventId =
       (canonicalUrl ? await findEventIdByCanonicalUrl(canonicalUrl, db) : null) ??
       await findEventIdBySemanticFold(

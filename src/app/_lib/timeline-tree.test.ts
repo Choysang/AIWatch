@@ -121,6 +121,24 @@ describe("buildTimelineTree", () => {
     expect(day.heading).toContain("6月3日");
   });
 
+  test("调用方可以用 promotedAt 作为精选流分组时间", () => {
+    const events = [
+      mk("older-published-newly-selected", {
+        publishedAt: at("2026-06-01T04:00:00Z"),
+        promotedAt: at("2026-06-03T04:00:00Z"),
+      }),
+      mk("newer-published-earlier-selected", {
+        publishedAt: at("2026-06-02T04:00:00Z"),
+        promotedAt: at("2026-06-02T06:00:00Z"),
+      }),
+    ];
+    const tree = buildTimelineTree(events, (event) => event.promotedAt ?? event.publishedAt ?? event.createdAt);
+    const days = tree[0]!.months[0]!.weeks[0]!.days;
+
+    expect(days.map((d) => d.key)).toEqual(["2026-06-03", "2026-06-02"]);
+    expect(days[0]!.items[0]!.id).toBe("older-published-newly-selected");
+  });
+
   test("各层计数为后代事件数之和", () => {
     const events = [
       mk("e1", { publishedAt: at("2026-06-03T04:00:00Z") }),

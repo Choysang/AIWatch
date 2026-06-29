@@ -23,7 +23,7 @@ import { getUserPreference } from "@/db/queries/user-preferences";
 import { messages } from "@/i18n";
 import { log } from "@/log";
 import { EVENT_CATEGORIES, parsePublicQuery, type EventCategory, type PublicQuery } from "@/public/query";
-import { formatDateTime, formatTimelineDate, formatTimeOfDay, toIsoAttr } from "@/app/_lib/format";
+import { formatDateTime, formatTimelineDate, toIsoAttr } from "@/app/_lib/format";
 import { modelAccent } from "@/app/_lib/model-accent";
 import { buildTimelineTree } from "@/app/_lib/timeline-tree";
 import { CollapsibleGroup } from "./collapsible-group";
@@ -172,6 +172,11 @@ function toFeedFilter(query: PublicQuery): FeedFilter {
     dateFrom: query.dateFrom,
     dateTo: query.dateTo,
   };
+}
+
+function timelineTime(event: EventCardData, mode: PublicQuery["mode"]): Date {
+  if (mode === "selected") return event.promotedAt ?? event.publishedAt ?? event.createdAt;
+  return event.publishedAt ?? event.promotedAt ?? event.createdAt;
 }
 
 async function loadHomeData(query: PublicQuery, limit: number): Promise<EventCardData[]> {
@@ -441,7 +446,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <div className="empty">{isFiltered ? m.search.empty : m.home.empty}</div>
       ) : (
         <div className="feed">
-          {buildTimelineTree(events).map((year) => (
+          {buildTimelineTree(events, (event) => timelineTime(event, query.mode)).map((year) => (
             <CollapsibleGroup
               key={year.key}
               level="year"
@@ -481,8 +486,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                                 downed: false,
                               };
                             const accent = modelAccent(event);
-                            const when =
-                              event.publishedAt ?? event.promotedAt ?? event.createdAt;
+                            const when = timelineTime(event, query.mode);
                             return (
                               <div
                                 key={event.id}
@@ -491,7 +495,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                               >
                                 <div className="tl-rail">
                                   <time className="tl-date" dateTime={toIsoAttr(when)}>{formatTimelineDate(when)}</time>
-                                  <time className="tl-time" dateTime={toIsoAttr(when)}>{formatTimeOfDay(when)}</time>
                                 </div>
                                 <span className="tl-dot" aria-hidden="true" />
                                 <SpotlightCard

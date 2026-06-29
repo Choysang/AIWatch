@@ -60,6 +60,21 @@ export async function attachPostToEvent(
 
 const SIMHASH_HAMMING_THRESHOLD = 8;
 
+export function shouldReplaceMainPost(input: {
+  currentPipelineScore: number | null;
+  currentPublishedAt: Date | null;
+  nextPipelineScore: number;
+  nextPublishedAt: Date | null;
+}): boolean {
+  if (input.nextPublishedAt && !input.currentPublishedAt) return true;
+  if (input.nextPublishedAt && input.currentPublishedAt) {
+    if (input.nextPublishedAt.getTime() < input.currentPublishedAt.getTime()) return true;
+    if (input.nextPublishedAt.getTime() > input.currentPublishedAt.getTime()) return false;
+  }
+  if (!input.nextPublishedAt && input.currentPublishedAt) return false;
+  return input.nextPipelineScore > (input.currentPipelineScore ?? -1);
+}
+
 export async function findEventIdBySemanticFold(
   input: { foldKey: string; simhash: string; since: Date },
   db: DB = defaultDb,
@@ -248,11 +263,16 @@ export async function foldPostIntoEvent(
 
   await db.transaction(async (tx) => {
     const current = await tx
-      .select({ pipelineScore: events.pipelineScore })
+      .select({ pipelineScore: events.pipelineScore, publishedAt: events.publishedAt })
       .from(events)
       .where(eq(events.id, eventId))
       .limit(1);
-    const replaceMain = judgment.aiScore > (current[0]?.pipelineScore ?? -1);
+    const replaceMain = shouldReplaceMainPost({
+      currentPipelineScore: current[0]?.pipelineScore ?? null,
+      currentPublishedAt: current[0]?.publishedAt ?? null,
+      nextPipelineScore: judgment.aiScore,
+      nextPublishedAt: input.post.publishedAt,
+    });
 
     await tx
       .update(posts)

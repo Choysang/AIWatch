@@ -96,6 +96,8 @@ export function effectiveTime(event: EventCard): Date {
   return event.publishedAt ?? event.promotedAt ?? event.createdAt;
 }
 
+export type TimelineTimeGetter = (event: EventCard) => Date;
+
 interface Buckets {
   yearKey: string;
   yearHeading: string;
@@ -107,8 +109,8 @@ interface Buckets {
   dayHeading: string;
 }
 
-function buckets(event: EventCard): Buckets {
-  const when = effectiveTime(event);
+function buckets(event: EventCard, getTime: TimelineTimeGetter): Buckets {
+  const when = getTime(event);
   const dk = dayKey(when); // APP_TZ civil day "YYYY-MM-DD"
   const weekStart = isoWeekStart(dk); // Monday "YYYY-MM-DD"
   const { y: wy, m: wm } = parseYmd(weekStart);
@@ -202,13 +204,16 @@ function toYear(acc: YearAcc, expandFrom: string): TimelineYear {
  * a day, items keep their input order. The most recent EXPAND_RECENT_DAYS civil days are flagged
  * defaultExpanded (the rest collapse by default), anchored at the newest civil day in the feed.
  */
-export function buildTimelineTree(events: EventCard[]): TimelineYear[] {
+export function buildTimelineTree(
+  events: EventCard[],
+  getTime: TimelineTimeGetter = effectiveTime,
+): TimelineYear[] {
   if (events.length === 0) return [];
 
   const yearMap = new Map<string, YearAcc>();
   let newestDayKey = "";
   for (const event of events) {
-    const b = buckets(event);
+    const b = buckets(event, getTime);
     if (b.dayKey !== "unknown" && b.dayKey > newestDayKey) newestDayKey = b.dayKey;
 
     let year = yearMap.get(b.yearKey);

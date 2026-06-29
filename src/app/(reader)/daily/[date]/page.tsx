@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { isCalendarDate } from "@/core/time";
 import { messages } from "@/i18n";
-import { KindReportByDate, kindHeading } from "../../reports/kind-report-page";
+import { kindHeading } from "../../reports/report-kind-heading";
+import { KindReportByDate } from "../../reports/kind-report-page";
 
 export const dynamic = "force-dynamic";
 

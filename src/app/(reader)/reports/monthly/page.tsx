@@ -1,6 +1,7 @@
 // 读者「AI 月报」页（点11）。
 import { messages } from "@/i18n";
-import { KindReportPage, kindHeading } from "../kind-report-page";
+import { KindReportPage } from "../kind-report-page";
+import { kindHeading } from "../report-kind-heading";
 
 export const dynamic = "force-dynamic";
 

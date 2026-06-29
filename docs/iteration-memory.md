@@ -9,6 +9,8 @@ This file captures recurring operating lessons for future AIWatch updates. Read 
 3. Check database freshness separately for `posts` and `events`. If posts are fresh but events are stale, investigate LLM judging and run rejudge after fixing the provider.
 4. Review recent feedback and source recommendations in `/_admin` before changing UX or source policy.
 5. When adding a curated source, import it and immediately connector-smoke-test the latest item. Treat DB insertion and successful crawl as separate facts.
+6. Before every scoring/promotion update, inspect owner/admin `useful` / `not_useful` annotations. Confirm the owner-affinity profile is applied by both `recompute-rank-scores` and `check-promotion-v2`; useful patterns should lift similar cards, not-useful patterns should suppress selection and eventually flag sources for review rather than silently deleting sources.
+7. When many sources cover the same story, verify the fold/canonical-url path found the earliest original post where possible. Repeated reposts should attach as `same_event` sources and lift `source_count`, not create duplicate reader cards.
 
 ## 2026-06-28 findings
 
@@ -39,3 +41,4 @@ This file captures recurring operating lessons for future AIWatch updates. Read 
 - Configure `SOURCE_ALERT_EMAIL`, `RESEND_API_KEY`, and `AUTH_EMAIL_FROM` in production if operator email alerts should actually send.
 - After fixing RSSHub/X token, run `bun run scripts/reset-source-health.ts x`, then watch the next crawl and import/smoke-test any newly added X sources.
 - After fixing an LLM provider outage, run `bun run scripts/rejudge-failed-posts.ts --hours 168 --limit 200` and confirm new events are created.
+- If the reader says 精选 feels stale, check both `published_at` and `promoted_at`: selected cards are chosen at promotion time, while original articles may be older. The reader selected view should group by promotion time so today's curation is visible even when the original source date is earlier.

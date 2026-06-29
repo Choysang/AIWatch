@@ -4,6 +4,7 @@ import { describe, expect, test } from "bun:test";
 
 const pageSource = readFileSync(join(import.meta.dir, "page.tsx"), "utf8");
 const hotspotJumpSource = readFileSync(join(import.meta.dir, "current-hotspot-jump.tsx"), "utf8");
+const hotspotsSource = readFileSync(join(import.meta.dir, "current-hotspots.tsx"), "utf8");
 const cssSource = readFileSync(join(import.meta.dir, "..", "globals.css"), "utf8");
 
 describe("reader home layout", () => {
@@ -33,6 +34,7 @@ describe("reader home layout", () => {
     expect(searchIndex).toBeLessThan(hotspotsIndex);
     expect(hotspotsIndex).toBeLessThan(feedIndex);
     expect(cssSource).toContain(".current-hotspots {");
+    expect(hotspotsSource).toContain("current-hotspots-empty");
     expect(cssSource).toContain(".current-hotspots-source-trigger:hover .current-hotspots-source-list");
   });
 
@@ -123,7 +125,9 @@ describe("reader home layout", () => {
     const mobileCss = cssSource.slice(mobileStart);
     expect(pageSource).toContain('className="tl-date"');
     expect(pageSource).toContain("formatTimelineDate(when)");
+    expect(pageSource).not.toContain('className="tl-time"');
     expect(cssSource).toContain(".tl-date {");
+    expect(cssSource).not.toContain(".tl-time");
     expect(mobileCss).toContain("width: calc(100% - 0.75rem);");
     expect(mobileCss).toContain("--tl-rail-w: 2.6rem;");
     expect(mobileCss).toContain("grid-template-columns: var(--tl-rail-w) minmax(0, 1fr);");

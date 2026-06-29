@@ -13,15 +13,12 @@ import {
 } from "@/db/queries/public-reports";
 import { messages } from "@/i18n";
 import type { ReportKind } from "@/reports/types";
+import { kindHeading } from "./report-kind-heading";
 import { ReportKindTabs } from "./report-kind-tabs";
 import { ReportView } from "./report-view";
 
 const ARCHIVE_TAKE: Record<ReportKind, number> = { daily: 14, weekly: 12, monthly: 12 };
 const WEEKDAYS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"] as const;
-
-export function kindHeading(kind: ReportKind): string {
-  return `AI ${messages.report.kind[kind]}`;
-}
 
 async function load(
   kind: ReportKind,
@@ -159,7 +156,7 @@ export async function KindReportPage({
   const m = messages.report;
 
   return (
-    <main className="page">
+    <main className="page report-page">
       <header className="masthead">
         <div>
           <h1 style={{ fontFamily: "var(--font-serif)" }}>{kindHeading(kind)}</h1>
@@ -193,7 +190,7 @@ export async function KindReportByDate({
   const [report, archive] = await Promise.all([loadByDate(kind, date), loadArchive(kind)]);
 
   return (
-    <main className="page">
+    <main className="page report-page">
       <header className="masthead">
         <div>
           <h1 style={{ fontFamily: "var(--font-serif)" }}>{`${kindHeading(kind)} · ${date}`}</h1>
