@@ -5263,6 +5263,7 @@ html[data-reader-theme="light"] .reader-sidebar-actions a:hover {
 .reader-home,
 .admin-page,
 .report-page {
+  max-width: none;
   width: min(1440px, calc(100% - clamp(0.75rem, 5vw, 4rem)));
   padding-inline: 0;
 }
