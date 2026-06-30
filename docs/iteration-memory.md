@@ -53,6 +53,8 @@ This file captures recurring operating lessons for future AIWatch updates. Read 
 - Enqueue pacing must live in code, not runbook memory: keep `RSSHUB_X_ENQUEUE_LIMIT` low and stagger X jobs (`RSSHUB_X_STAGGER_MS`) so one token is not hit by parallel `/twitter/user/*` probes after deploy or source-health reset.
 - Some RSSHub routes are simply slow rather than dead (`/anthropic/research` ranged from ~42s to 60s+ in production on 2026-06-30). Keep the connector timeout comfortably above the observed p95 before disabling or replacing a source.
 - OPML/blog imports should land in a reviewable curated-source batch. Public RSS usually needs no API authorization, but full-text redistribution may be restricted; default new independent blogs to feed metadata/excerpt plus original links unless the source clearly permits full content reuse.
+- Owner preference learning must include cross dimensions when the product rule is cross-dimensional. Source-only and content-type-only affinity cannot express "this source is good, but this content type from it is repeatedly useless"; keep `source_content_type` parity between TS scoring, SQL recompute, and admin explanations.
+- A fault desk should show runtime configuration and reachability directly, not only infer problems from failed source rows. X token configured state, RSSHub configured/reachable state, and email-alert env completeness need to be visible before the operator starts retesting sources.
 
 ## Operational follow-ups
 

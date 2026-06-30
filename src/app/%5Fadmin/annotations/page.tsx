@@ -78,12 +78,22 @@ function preferenceImpact(row: OwnerAnnotationListRow, sourceName: Map<string, s
     : `直接 -${rankScoreConfig.owner.notUsefulPenalty}`;
   const dims = [
     row.sourceId ? `信源 ${sourceName.get(row.sourceId) ?? row.sourceId}` : null,
+    row.sourceId && row.contentType
+      ? `信源×内容 ${(sourceName.get(row.sourceId) ?? row.sourceId)} / ${row.contentType}`
+      : null,
     row.category ? `分类 ${row.category}` : null,
     row.contentType ? `内容 ${row.contentType}` : null,
     row.tags.length ? `标签 ${row.tags.slice(0, 4).join(" / ")}` : null,
   ].filter(Boolean);
   return `${direct}；写入画像：${dims.join("，") || "暂无可用维度"}`;
 }
+
+function sourceContentTypeLabel(key: string, sourceName: Map<string, string>): string {
+  const [sourceId, contentType] = key.split("::");
+  if (!sourceId || !contentType) return key;
+  return `${sourceName.get(sourceId) ?? sourceId} / ${contentType}`;
+}
+
 export default async function AnnotationsPage() {
   const session = await getSession();
   if (!session) redirect("/login?next=/_admin/annotations");
@@ -109,7 +119,7 @@ export default async function AnnotationsPage() {
         <h1 style={{ fontSize: "1.8rem" }}>主理人标注台</h1>
         <nav>
           <span className="tagline">
-            标注 → 偏好画像 → rank-v4 ownerBoost（直接判决 +{rankScoreConfig.owner.usefulBoost}/-
+            标注 → 偏好画像 → {rankScoreConfig.version} ownerBoost（直接判决 +{rankScoreConfig.owner.usefulBoost}/-
             {rankScoreConfig.owner.notUsefulPenalty}，亲和度 ±{rankScoreConfig.owner.affinityBoostMax}）
             · <Link href="/_admin">返回管理后台</Link>
           </span>
@@ -120,6 +130,11 @@ export default async function AnnotationsPage() {
         title="信源亲和度"
         table={profile.source}
         labelFor={(key) => sourceName.get(key) ?? key}
+      />
+      <AffinitySection
+        title="信源×内容类型亲和度"
+        table={profile.sourceContentType}
+        labelFor={(key) => sourceContentTypeLabel(key, sourceName)}
       />
       <AffinitySection title="分类亲和度" table={profile.category} />
       <AffinitySection title="内容类型亲和度" table={profile.contentType} />

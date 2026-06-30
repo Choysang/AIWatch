@@ -144,6 +144,44 @@ function AdminDashboard({ data }: { data: AdminDashboardData }) {
   );
 }
 
+interface RuntimeFaultStatus {
+  rsshubConfigured: boolean;
+  rsshubReachable: boolean | null;
+  rsshubStatus: number | null;
+  xTokenConfigured: boolean;
+  sourceAlertEmailConfigured: boolean;
+  resendConfigured: boolean;
+  authEmailFromConfigured: boolean;
+}
+
+async function loadRuntimeFaultStatus(): Promise<RuntimeFaultStatus> {
+  const rsshubBase = process.env.RSSHUB_BASE_URL?.trim() || process.env.RSSHUB_URL?.trim() || "";
+  let rsshubReachable: boolean | null = null;
+  let rsshubStatus: number | null = null;
+  if (rsshubBase) {
+    try {
+      const res = await fetch(rsshubBase, {
+        cache: "no-store",
+        signal: AbortSignal.timeout(3000),
+      });
+      rsshubReachable = res.ok || res.status < 500;
+      rsshubStatus = res.status;
+    } catch {
+      rsshubReachable = false;
+      rsshubStatus = null;
+    }
+  }
+  return {
+    rsshubConfigured: Boolean(rsshubBase),
+    rsshubReachable,
+    rsshubStatus,
+    xTokenConfigured: Boolean(process.env.TWITTER_AUTH_TOKEN?.trim()),
+    sourceAlertEmailConfigured: Boolean(process.env.SOURCE_ALERT_EMAIL?.trim()),
+    resendConfigured: Boolean(process.env.RESEND_API_KEY?.trim()),
+    authEmailFromConfigured: Boolean(process.env.AUTH_EMAIL_FROM?.trim()),
+  };
+}
+
 
 function isBadSource(row: ManagedSourceRow): boolean {
   return (
@@ -155,15 +193,18 @@ function isBadSource(row: ManagedSourceRow): boolean {
   );
 }
 
-function SourceFaultDesk({ rows }: { rows: ManagedSourceRow[] }) {
+function SourceFaultDesk({ rows, runtime }: { rows: ManagedSourceRow[]; runtime: RuntimeFaultStatus }) {
   const badRows = rows.filter(isBadSource);
   const xBad = badRows.filter((row) => row.platform === "x").length;
   const rsshubBad = badRows.filter((row) => row.connectorType === "rsshub").length;
-  const emailReady = Boolean(
-    process.env.SOURCE_ALERT_EMAIL?.trim() &&
-      process.env.RESEND_API_KEY?.trim() &&
-      process.env.AUTH_EMAIL_FROM?.trim(),
-  );
+  const emailReady =
+    runtime.sourceAlertEmailConfigured && runtime.resendConfigured && runtime.authEmailFromConfigured;
+  const rsshubLabel = !runtime.rsshubConfigured
+    ? "未配置"
+    : runtime.rsshubReachable
+      ? `可达${runtime.rsshubStatus ? ` ${runtime.rsshubStatus}` : ""}`
+      : "不可达";
+  const xTokenLabel = runtime.xTokenConfigured ? (xBad > 0 ? "需复核" : "已配置") : "未配置";
   const retryRows = badRows.slice(0, 12);
 
   return (
@@ -186,20 +227,38 @@ function SourceFaultDesk({ rows }: { rows: ManagedSourceRow[] }) {
         ) : null}
       </div>
       <div className="admin-metric-grid">
-        <article className={`admin-metric-card is-${xBad > 0 ? "warn" : "good"}`}>
-          <span>X / Twitter 异常</span>
-          <strong>{xBad}</strong>
-          <p>{xBad > 0 ? "优先检查 RSSHub 的 TWITTER_AUTH_TOKEN。" : "X 信源暂无集中异常。"}</p>
+        <article className={`admin-metric-card is-${!runtime.xTokenConfigured || xBad > 0 ? "warn" : "good"}`}>
+          <span>X token / 异常源</span>
+          <strong>{xTokenLabel} · {xBad}</strong>
+          <p>
+            {!runtime.xTokenConfigured
+              ? "TWITTER_AUTH_TOKEN 未配置，X 路由不会稳定。"
+              : xBad > 0
+                ? "token 已配置但 X 源异常，优先重测；仍失败再更换 token。"
+                : "X token 已配置，暂无集中异常。"}
+          </p>
         </article>
-        <article className={`admin-metric-card is-${rsshubBad > 0 ? "warn" : "good"}`}>
-          <span>RSSHub 异常</span>
-          <strong>{rsshubBad}</strong>
-          <p>{rsshubBad > 0 ? "先重测；仍失败再查 RSSHub 容器日志。" : "RSSHub 路由暂无集中异常。"}</p>
+        <article className={`admin-metric-card is-${!runtime.rsshubConfigured || runtime.rsshubReachable === false || rsshubBad > 0 ? "warn" : "good"}`}>
+          <span>RSSHub 状态 / 异常源</span>
+          <strong>{rsshubLabel} · {rsshubBad}</strong>
+          <p>
+            {!runtime.rsshubConfigured
+              ? "RSSHUB_BASE_URL 未配置，RSSHub 信源会失败关闭。"
+              : runtime.rsshubReachable === false
+                ? "RSSHub 当前不可达，先查容器和网络。"
+                : rsshubBad > 0
+                  ? "RSSHub 可达但部分路由失败，先重测再看具体 last_error。"
+                  : "RSSHub 可达，暂无集中异常。"}
+          </p>
         </article>
         <article className={`admin-metric-card is-${emailReady ? "good" : "warn"}`}>
           <span>邮件告警</span>
           <strong>{emailReady ? "已就绪" : "未就绪"}</strong>
-          <p>{emailReady ? "SOURCE_ALERT_EMAIL + Resend 已配置。" : "需配置 RESEND_API_KEY 与 AUTH_EMAIL_FROM 才能发信。"}</p>
+          <p>
+            {emailReady
+              ? "SOURCE_ALERT_EMAIL + Resend 已配置。"
+              : "需同时配置 SOURCE_ALERT_EMAIL、RESEND_API_KEY 与 AUTH_EMAIL_FROM 才能发信。"}
+          </p>
         </article>
       </div>
       {badRows.length === 0 ? (
@@ -283,13 +342,14 @@ export default async function AdminPage() {
     );
   }
 
-  const [dashboard, sourceRows, promoted, reports, feedback, contributions] = await Promise.all([
+  const [dashboard, sourceRows, promoted, reports, feedback, contributions, runtimeFaultStatus] = await Promise.all([
     loadAdminDashboard(),
     listManagedSources(),
     listPromotedEvents(),
     listRecentReports(),
     listFeedback(),
     listContributions(),
+    loadRuntimeFaultStatus(),
   ]);
   const sources = sourceRows;
 
@@ -329,7 +389,7 @@ export default async function AdminPage() {
       </header>
 
       <AdminDashboard data={dashboard} />
-      <SourceFaultDesk rows={sources} />
+      <SourceFaultDesk rows={sources} runtime={runtimeFaultStatus} />
 
       <SourceManagementSection
         rows={sources}

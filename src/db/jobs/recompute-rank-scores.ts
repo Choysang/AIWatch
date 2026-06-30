@@ -8,11 +8,11 @@
 // structurally identical (same log-saturation, same band breakpoints, same additive boost,
 // same direct/affinity owner boost) so the online and offline paths can never disagree.
 //
-// rank-v4: owner annotations are loaded first and aggregated in TS (buildAffinityProfile —
+// rank-v5: owner annotations are loaded first and aggregated in TS (buildAffinityProfile —
 // the annotation set is tiny), then injected into the single UPDATE as two VALUES tables:
 //   direct(event_id, boost)      — the event's own verdict (+useful / -not_useful)
-//   aff(dim, key, affinity)      — per-dimension affinity for source/category/content_type/tag
-// The SQL recomputes affinityBoost = clamp(max * mean(4 dims)) exactly like computeOwnerBoost.
+//   aff(dim, key, affinity)      — per-dimension affinity for source/source_content_type/category/content_type/tag
+// The SQL recomputes affinityBoost = clamp(max * mean(dims)) exactly like computeOwnerBoost.
 //
 // Runs on cron (every 15 minutes) so band transitions (0-6h → 6-24h → 24h-7d → 7d+) and
 // drifting feedback counts gradually re-rank events without a write storm: a single
@@ -69,6 +69,7 @@ function affinityValuesSql(profile: AffinityProfile): SQL {
   const rows: SQL[] = [sql`('', '', 0::float)`];
   const tables = [
     ["source", profile.source],
+    ["source_content_type", profile.sourceContentType],
     ["category", profile.category],
     ["content_type", profile.contentType],
     ["tag", profile.tag],
@@ -114,7 +115,7 @@ export async function recomputeRankScores(
   // age_hours = (now - coalesce(published_at, created_at)) in hours.
   // like_norm / star_norm = log1p saturation, clamped 0..1.
   // boosts picked by CASE on age_hours matching the band schedule.
-  // owner_boost = direct verdict boost + clamp(affMax * mean(4 dim affinities), ±affMax)
+  // owner_boost = direct verdict boost + clamp(affMax * mean(dim affinities), ±affMax)
   //   — structurally identical to computeOwnerBoost (missing key -> COALESCE 0).
   // new_rank = greatest(base + like + star + view + owner, 0). down_count is not read
   //   (public 👎 no longer penalizes rank; negative judgment flows via owner_boost).
@@ -140,15 +141,17 @@ export async function recomputeRankScores(
         COALESCE(d.boost, 0)
           + LEAST(GREATEST(
               ${affMax}::float * (
-                COALESCE(a_src.affinity, 0) + COALESCE(a_cat.affinity, 0) + COALESCE(a_ct.affinity, 0) +
-                COALESCE(a_tag.affinity, 0)
-              ) / (3.0 + CASE WHEN COALESCE(a_tag.affinity, 0) = 0 THEN 0 ELSE 1 END),
+                COALESCE(a_src.affinity, 0) + COALESCE(a_src_ct.affinity, 0) +
+                COALESCE(a_cat.affinity, 0) + COALESCE(a_ct.affinity, 0) + COALESCE(a_tag.affinity, 0)
+              ) / (4.0 + CASE WHEN COALESCE(a_tag.affinity, 0) = 0 THEN 0 ELSE 1 END),
               -${affMax}::float), ${affMax}::float)
           AS owner_boost
       FROM events e
       JOIN event_scores s ON s.id = e.current_score_id
       LEFT JOIN direct d ON d.event_id = e.id
       LEFT JOIN aff a_src ON a_src.dim = 'source' AND a_src.key = e.main_source_id
+      LEFT JOIN aff a_src_ct ON a_src_ct.dim = 'source_content_type'
+        AND a_src_ct.key = e.main_source_id || '::' || e.content_type::text
       LEFT JOIN aff a_cat ON a_cat.dim = 'category' AND a_cat.key = e.category
       LEFT JOIN aff a_ct ON a_ct.dim = 'content_type' AND a_ct.key = e.content_type::text
       LEFT JOIN LATERAL (

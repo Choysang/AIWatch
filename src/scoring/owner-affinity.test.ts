@@ -39,6 +39,9 @@ describe("buildAffinityProfile", () => {
     const src = profile.source.get("src_a");
     expect(src?.n).toBe(4);
     expect(src?.affinity).toBeCloseTo((3 - 1) / 4, 6);
+    const srcType = profile.sourceContentType.get("src_a::howto");
+    expect(srcType?.n).toBe(4);
+    expect(srcType?.affinity).toBeCloseTo((3 - 1) / 4, 6);
   });
 
   test("below minSamples the affinity is 0 (insufficient evidence)", () => {
@@ -67,6 +70,7 @@ describe("buildAffinityProfile", () => {
       config.minSamples,
     );
     expect(profile.source.size).toBe(0);
+    expect(profile.sourceContentType.size).toBe(0);
     expect(profile.tag.get("claude")?.n).toBe(3);
     expect(profile.tag.get("claude")?.affinity).toBeCloseTo(1 / 3, 6);
     expect(profile.tag.get("codex")?.affinity).toBe(0); // n=1 < minSamples
@@ -104,8 +108,8 @@ describe("computeOwnerBoost", () => {
     expect(r.ownerBoost).toBe(-20);
   });
 
-  test("affinity boost is affinityBoostMax * mean of the 3 dims, missing keys neutral", () => {
-    // All 3 dims at affinity +1 -> mean 1 -> +6.
+  test("affinity boost is affinityBoostMax * mean of source/source-type/category/content dims, missing keys neutral", () => {
+    // All 4 non-tag dims at affinity +1 -> mean 1 -> +6.
     const full = computeOwnerBoost(
       { directVerdict: null, sourceId: "src_a", category: "AI Coding", contentType: "howto" },
       profile,
@@ -113,14 +117,37 @@ describe("computeOwnerBoost", () => {
     );
     expect(full.affinityBoost).toBeCloseTo(6, 6);
 
-    // Only the source dim matches -> mean = (1 + 0 + 0) / 3 -> +2.
+    // Only the source dim matches -> mean = (1 + 0 + 0 + 0) / 4 -> +1.5.
     const partial = computeOwnerBoost(
       { directVerdict: null, sourceId: "src_a", category: "其他", contentType: null },
       profile,
       config,
     );
-    expect(partial.affinityBoost).toBeCloseTo(2, 6);
-    expect(partial.ownerBoost).toBeCloseTo(2, 6);
+    expect(partial.affinityBoost).toBeCloseTo(1.5, 6);
+    expect(partial.ownerBoost).toBeCloseTo(1.5, 6);
+  });
+
+  test("source x content type affinity can suppress one repeated useless pattern without demoting the whole source", () => {
+    const mixed = buildAffinityProfile(
+      [
+        ann({ verdict: "useful", sourceId: "src_a", contentType: "release", category: null }),
+        ann({ verdict: "useful", sourceId: "src_a", contentType: "release", category: null }),
+        ann({ verdict: "useful", sourceId: "src_a", contentType: "release", category: null }),
+        ann({ verdict: "not_useful", sourceId: "src_a", contentType: "opinion", category: null }),
+        ann({ verdict: "not_useful", sourceId: "src_a", contentType: "opinion", category: null }),
+        ann({ verdict: "not_useful", sourceId: "src_a", contentType: "opinion", category: null }),
+      ],
+      config.minSamples,
+    );
+
+    expect(mixed.source.get("src_a")?.affinity).toBe(0);
+    expect(mixed.sourceContentType.get("src_a::opinion")?.affinity).toBe(-1);
+    const r = computeOwnerBoost(
+      { directVerdict: null, sourceId: "src_a", category: null, contentType: "opinion" },
+      mixed,
+      config,
+    );
+    expect(r.affinityBoost).toBeLessThan(0);
   });
 
   test("tag affinity joins the owner boost when similar tags repeat", () => {
@@ -137,7 +164,7 @@ describe("computeOwnerBoost", () => {
       tagged,
       config,
     );
-    expect(r.affinityBoost).toBeCloseTo(1.5, 6);
+    expect(r.affinityBoost).toBeCloseTo(1.2, 6);
   });
   test("direct and affinity boosts compose additively", () => {
     const r = computeOwnerBoost(

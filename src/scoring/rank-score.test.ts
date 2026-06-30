@@ -18,7 +18,7 @@ describe("computeRankScore — pure rank-score with feedback bands", () => {
     }
   });
 
-  test("ownerBoost is additive and the rank floor still holds (rank-v4)", () => {
+  test("ownerBoost is additive and the rank floor still holds (rank-v5)", () => {
     const boosted = computeRankScore({
       baseScore: 50,
       likeCount: 0,

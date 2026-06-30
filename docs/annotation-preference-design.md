@@ -38,22 +38,28 @@ CREATE TABLE owner_annotations (
 affinity(dim, key) = (useful - not_useful) / (useful + not_useful)，n < 3 时记 0（样本不足）
 ```
 
-维度：`source`（主信源）、`category`（公共分类）、`content_type`、`tag`（取事件 tags）。
+维度：`source`（主信源）、`source_content_type`（同一信源下的内容类型交叉）、`category`
+（公共分类）、`content_type`、`tag`（取事件 tags）。
 聚合落在物化视图或 recompute 时实时算（30 源 × 数百事件，实时算足够快）。
 
-## 打分接入（rank-score v4）
+## 打分接入（rank-score v5）
 
 `computeRankScore` 增加一项 `ownerBoost`：
 
 ```
 ownerBoost = directBoost + affinityBoost
 directBoost   = +12（该事件被标 useful）/ -20（被标 not_useful）   # 直接判决最强
-affinityBoost = clamp(-6..+6, 6 × mean(affinity(source), affinity(category), affinity(content_type)))
+affinityBoost = clamp(
+  -6..+6,
+  6 × mean(affinity(source), affinity(source_content_type), affinity(category), affinity(content_type), affinity(best_tag))
+)
 ```
 
 - 有界、可解释、进 breakdown（卡片调试可见）。
-- 配置进 `rankScoreConfig`（版本 bump rank-v4），SQL 批量任务保持 TS↔SQL parity 测试。
+- 配置进 `rankScoreConfig`（当前 rank-v5），SQL 批量任务保持 TS↔SQL parity 测试。
 - not_useful 直接压分 20 分 ≈ 把误判资讯挤出首屏，等效"这类内容少来"。
+- `source_content_type` 专门处理"这个信源整体不错，但它的某类内容长期无用"：不必直接停用整个信源，
+  先限制该信源的重复低价值类型。
 
 ## 信源标注与晋降级
 
@@ -78,7 +84,7 @@ affinityBoost = clamp(-6..+6, 6 × mean(affinity(source), affinity(category), af
 |---|---|---|
 | A | migration + owner_annotations 查询层 + POST/GET API（owner 鉴权）| ✅ 完成（9989d86）|
 | B | 卡片标注按钮（owner-only client island）| ✅ 完成（9989d86）|
-| C | affinity 聚合纯函数 + rank-v4 ownerBoost + recompute SQL parity | ✅ 完成（2026-06-12，owner-affinity.ts + rank-v4 + VALUES 注入 SQL）|
+| C | affinity 聚合纯函数 + rank-v5 ownerBoost + recompute SQL parity | ✅ 完成（2026-07-01，新增 source×content_type 交叉亲和度）|
 | D | /_admin/annotations 意图画像页 + 来源健康两列 | ✅ 完成（2026-06-12，标注台 + 信源表「主理人标注」列）|
 | E | 信源行标注 + 晋降级建议规则 | ✅ 完成（2026-06-12，sourceAffinitySuggestion ±0.5/n≥5）|
 

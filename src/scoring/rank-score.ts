@@ -30,7 +30,7 @@ export interface RankScoreConfig {
   viewSaturation: number;
   /** Max points contributed by card/detail/source opens at saturation. */
   viewBoost: number;
-  /** rank-v4 (点6 切片C): owner annotation boost weights (see owner-affinity.ts). */
+  /** rank-v5 (点6 切片C): owner annotation boost weights (see owner-affinity.ts). */
   owner: OwnerBoostConfig;
   /** Time-banded boost weights. Bands are evaluated in order; the first whose
    *  `maxAgeHours` is strictly greater than `ageHours` wins. Last band must use
@@ -75,7 +75,7 @@ export interface RankScoreInputs {
   viewCount?: number;
   /** Hours since event.publishedAt. Negative inputs are treated as 0. */
   ageHours: number;
-  /** rank-v4: precomputed owner boost (directBoost + affinityBoost from owner-affinity.ts).
+  /** rank-v5: precomputed owner boost (directBoost + affinityBoost from owner-affinity.ts).
    *  Already bounded by config; may be negative. Defaults to 0 (no annotations). */
   ownerBoost?: number;
 }

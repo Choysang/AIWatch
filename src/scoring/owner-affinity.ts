@@ -1,16 +1,19 @@
 // 点6 切片C：主理人偏好画像（确定性聚合）+ ownerBoost 纯函数。
 //
 // 标注是不可变输入（owner_annotations 行）；本模块把事件标注按维度聚合成亲和度
-// affinity ∈ [-1, +1]，并推导 rank-v4 的 ownerBoost：
+// affinity ∈ [-1, +1]，并推导 rank-v5 的 ownerBoost：
 //   affinity(dim, key) = (useful - not_useful) / (useful + not_useful)，n < minSamples 记 0
 //   directBoost   = +usefulBoost（事件被标 useful）/ -notUsefulPenalty（被标 not_useful）
-//   affinityBoost = clamp(±affinityBoostMax, affinityBoostMax × mean(source, category, content_type, best_tag))
+//   affinityBoost = clamp(
+//     ±affinityBoostMax,
+//     affinityBoostMax × mean(source, source_content_type, category, content_type, best_tag),
+//   )
 // 设计文档：docs/annotation-preference-design.md。SQL 批量任务（recompute-rank-scores）
 // 以结构等价的 SQL 复刻 directBoost/affinityBoost，由 reactions 集成测试保证 parity。
 
 import type { AnnotationVerdict } from "@/db/queries/owner-annotations";
 
-export type AffinityDimension = "source" | "category" | "contentType" | "tag";
+export type AffinityDimension = "source" | "sourceContentType" | "category" | "contentType" | "tag";
 
 export interface AnnotatedEventDims {
   verdict: AnnotationVerdict;
@@ -33,15 +36,16 @@ export type AffinityTable = ReadonlyMap<string, AffinityEntry>;
 
 export interface AffinityProfile {
   source: AffinityTable;
+  sourceContentType: AffinityTable;
   category: AffinityTable;
   contentType: AffinityTable;
   tag: AffinityTable;
 }
 
 export interface OwnerBoostConfig {
-  /** rank-v4: points added when the event itself is annotated useful. */
+  /** rank-v5: points added when the event itself is annotated useful. */
   usefulBoost: number;
-  /** rank-v4: points subtracted when the event itself is annotated not_useful. */
+  /** rank-v5: points subtracted when the event itself is annotated not_useful. */
   notUsefulPenalty: number;
   /** Max |points| the dimension-affinity mean can contribute. */
   affinityBoostMax: number;
@@ -69,6 +73,11 @@ function tally(
   table.set(key, next);
 }
 
+export function sourceContentTypeKey(sourceId: string | null | undefined, contentType: string | null | undefined): string | null {
+  if (!sourceId || !contentType) return null;
+  return `${sourceId}::${contentType}`;
+}
+
 function finalize(
   table: Map<string, { useful: number; notUseful: number }>,
   minSamples: number,
@@ -88,12 +97,14 @@ export function buildAffinityProfile(
   minSamples: number,
 ): AffinityProfile {
   const source = new Map<string, { useful: number; notUseful: number }>();
+  const sourceContentType = new Map<string, { useful: number; notUseful: number }>();
   const category = new Map<string, { useful: number; notUseful: number }>();
   const contentType = new Map<string, { useful: number; notUseful: number }>();
   const tag = new Map<string, { useful: number; notUseful: number }>();
 
   for (const row of rows) {
     tally(source, row.sourceId, row.verdict);
+    tally(sourceContentType, sourceContentTypeKey(row.sourceId, row.contentType), row.verdict);
     tally(category, row.category, row.verdict);
     tally(contentType, row.contentType, row.verdict);
     for (const t of row.tags ?? []) tally(tag, t, row.verdict);
@@ -101,6 +112,7 @@ export function buildAffinityProfile(
 
   return {
     source: finalize(source, minSamples),
+    sourceContentType: finalize(sourceContentType, minSamples),
     category: finalize(category, minSamples),
     contentType: finalize(contentType, minSamples),
     tag: finalize(tag, minSamples),
@@ -130,8 +142,10 @@ function strongestTagAffinity(table: AffinityTable, tags: readonly string[] | nu
 
 /**
  * rank-v5 ownerBoost for one event. Missing/unknown dimension keys contribute a neutral 0
- * to the mean. Tag affinity uses the strongest matching tag so repeated owner labels can
- * raise or suppress similar content, not only whole sources/categories.
+ * to the mean. The source×content_type dimension handles "this source is useful, but this
+ * specific kind of item from it is repeatedly not useful". Tag affinity uses the strongest
+ * matching tag so repeated owner labels can raise or suppress similar content, not only
+ * whole sources/categories.
  */
 export function computeOwnerBoost(
   input: {
@@ -152,12 +166,17 @@ export function computeOwnerBoost(
         : 0;
 
   const tagAffinity = strongestTagAffinity(profile.tag, input.tags);
+  const sourceContentTypeAffinity = affinityFor(
+    profile.sourceContentType,
+    sourceContentTypeKey(input.sourceId, input.contentType),
+  );
   const mean =
     (affinityFor(profile.source, input.sourceId) +
+      sourceContentTypeAffinity +
       affinityFor(profile.category, input.category) +
       affinityFor(profile.contentType, input.contentType) +
       tagAffinity) /
-    (tagAffinity === 0 ? 3 : 4);
+    (tagAffinity === 0 ? 4 : 5);
   const affinityBoost = clamp(
     config.affinityBoostMax * mean,
     -config.affinityBoostMax,
