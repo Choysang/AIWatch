@@ -10,7 +10,9 @@ import { useCallback, useMemo, useState, useTransition } from "react";
 import { messages } from "@/i18n";
 import {
   EVENT_CATEGORIES,
+  SOURCE_CATEGORIES,
   type EventCategory,
+  type SourceCategory,
 } from "@/public/query";
 import {
   expandGroups,
@@ -59,6 +61,18 @@ function parseSourcesParam(raw: string | null): Set<string> {
   for (const part of raw.split(",")) {
     const id = part.trim();
     if (id) set.add(id);
+  }
+  return set;
+}
+
+const SOURCE_CATEGORY_SET: ReadonlySet<string> = new Set(SOURCE_CATEGORIES);
+
+function parseSourceCategoryParam(raw: string | null): Set<SourceCategory> {
+  const set = new Set<SourceCategory>();
+  if (!raw) return set;
+  for (const part of raw.split(",")) {
+    const value = part.trim();
+    if (SOURCE_CATEGORY_SET.has(value)) set.add(value as SourceCategory);
   }
   return set;
 }
@@ -187,6 +201,7 @@ export function SearchBar({
     ? SEARCH_MODES
     : SEARCH_MODES.filter((value) => value !== "personalized");
   const selectedSourceGroups = parseSourceGroupParam(params.get("sourceTypes"));
+  const selectedSourceCategories = parseSourceCategoryParam(params.get("sourceCategories"));
   const selectedEventCategory = params.get("category") as EventCategory | null;
   const activeSourceGroups = useMemo(() => {
     const groups = new Set<SourceGroup>();
@@ -196,6 +211,15 @@ export function SearchBar({
     }
     return SOURCE_GROUPS.filter((group) => groups.has(group));
   }, [sourceOptions]);
+  const activeSourceCategories = useMemo(() => {
+    const categories = new Set<SourceCategory>(selectedSourceCategories);
+    for (const option of sourceOptions) {
+      for (const category of option.categories) {
+        if (SOURCE_CATEGORY_SET.has(category)) categories.add(category as SourceCategory);
+      }
+    }
+    return SOURCE_CATEGORIES.filter((category) => categories.has(category));
+  }, [selectedSourceCategories, sourceOptions]);
   const activeEventCategories = useMemo(() => {
     const categories = new Set(availableEventCategories);
     if (selectedEventCategory) categories.add(selectedEventCategory);
@@ -213,7 +237,14 @@ export function SearchBar({
   }, [normalizedSourceSearch, sourceOptions]);
   const nativeSubmitParams = Array.from(params.entries()).filter(([key]) => key !== "q");
   const hasPanelFilters = Boolean(
-    params.get("since") || fromParam || toParam || minScoreParam || sourcesParam,
+    params.get("since") ||
+      fromParam ||
+      toParam ||
+      minScoreParam ||
+      params.get("sourceTypes") ||
+      params.get("sourceCategories") ||
+      params.get("category") ||
+      sourcesParam,
   );
 
   const navigate = useCallback(
@@ -259,6 +290,19 @@ export function SearchBar({
         next.delete("sourceTypes");
       } else {
         next.set("sourceTypes", expandGroups([group]).join(","));
+      }
+    });
+
+  const toggleSourceCategory = (value: SourceCategory) =>
+    navigate((next) => {
+      const current = parseSourceCategoryParam(next.get("sourceCategories"));
+      if (current.has(value)) current.delete(value);
+      else current.add(value);
+      if (current.size) {
+        const nextCategories = SOURCE_CATEGORIES.filter((category) => current.has(category)).join(",");
+        next.set("sourceCategories", nextCategories);
+      } else {
+        next.delete("sourceCategories");
       }
     });
 
@@ -310,6 +354,9 @@ export function SearchBar({
       next.delete("from");
       next.delete("to");
       next.delete("minScore");
+      next.delete("sourceTypes");
+      next.delete("sourceCategories");
+      next.delete("category");
       next.delete("sources");
     });
   };
@@ -539,6 +586,29 @@ export function SearchBar({
                     })}
                   </div>
                 </div>
+
+                {activeSourceCategories.length > 0 && (
+                  <div className="search-filter-section" role="group" aria-label={m.sourceCategoryLabel}>
+                    <span className="filter-label">{m.sourceCategoryLabel}</span>
+                    <div className="search-filter-options">
+                      {activeSourceCategories.map((value) => {
+                        const active = selectedSourceCategories.has(value);
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            className={`chip ${active ? "is-active" : ""}`}
+                            aria-pressed={active}
+                            data-tooltip={`只看${m.sourceCategory[value]}类信源`}
+                            onClick={() => toggleSourceCategory(value)}
+                          >
+                            {m.sourceCategory[value]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 <div className="search-filter-section search-filter-mobile-section" role="group" aria-label={m.eventCategoryLabel}>
                   <span className="filter-label">{m.eventCategoryLabel}</span>

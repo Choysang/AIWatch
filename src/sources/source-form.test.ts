@@ -17,6 +17,18 @@ describe("sourceMetaFromProfile", () => {
       sourceType: "official",
       level: "L1",
     });
+    expect(sourceMetaFromProfile({ sourceProfile: "media" })).toEqual({
+      sourceType: "media",
+      level: "L4",
+    });
+    expect(sourceMetaFromProfile({ sourceProfile: "community" })).toEqual({
+      sourceType: "community",
+      level: "L3",
+    });
+    expect(sourceMetaFromProfile({ sourceProfile: "open_source" })).toEqual({
+      sourceType: "open_source_project",
+      level: "L3",
+    });
   });
 
   test("treats blank source type and level form values as profile defaults", () => {

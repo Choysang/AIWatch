@@ -25,6 +25,7 @@ This file captures recurring operating lessons for future AIWatch updates. Read 
 - Real-time feed refresh should preserve chronological ordering. New items should surface at the top when they are newer; avoid arbitrary re-ranking on refresh.
 - Timeline dates must be rendered in `APP_TZ` (production: Asia/Shanghai), not server local time or browser guesses.
 - Dynamic filters should only show source groups, categories, and source options that have content, while preserving an active selected filter so users can clear it.
+- Source filtering has two axes: reader-facing source groups (official/expert/media/community) and source taxonomy categories (official/industry_leader/technical_share/media/community/open_source). Keep the UI, `SOURCE_CATEGORIES`, import form, and about/README wording in sync.
 - Button/card feedback should be subtle: immediate hover/pressed/focus states, no distracting motion.
 - Tooltips should explain the effect of a button, not repeat the visible label. For feedback buttons, name the ranking/folding consequence.
 

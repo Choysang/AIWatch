@@ -140,11 +140,14 @@ export const zh = {
     sourcePrefApplied: "已应用你保存的默认信源筛选",
     // Reader-facing source taxonomy. Stored on sources.categories; single posts still use
     // contentType for their own event classification.
-    sourceCategoryLabel: "信源",
+    sourceCategoryLabel: "信源分类",
     sourceCategory: {
       official: "官方",
       industry_leader: "行业领袖",
       technical_share: "技术分享",
+      media: "媒体",
+      community: "社区",
+      open_source: "开源项目",
     },
     // Kept for legacy components/tests that still import the old grouping module.
     sourceGroupLabel: "来源",

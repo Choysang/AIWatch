@@ -129,6 +129,10 @@ describe("search bar responsiveness", () => {
 
     expect(searchSource).toContain("search-filter-mobile-section");
     expect(searchSource).toContain("activeSourceGroups.map((group)");
+    expect(searchSource).toContain("activeSourceCategories.map((value)");
+    expect(searchSource).toContain('next.set("sourceCategories"');
+    expect(searchSource).toContain('next.delete("sourceCategories")');
+    expect(searchSource).toContain('aria-label={m.sourceCategoryLabel}');
     expect(searchSource).toContain("search-filter-source-section");
     expect(sourcePickIndex).toBeGreaterThan(-1);
     expect(scoreIndex).toBeGreaterThan(-1);

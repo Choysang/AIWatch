@@ -36,6 +36,9 @@ export const SOURCE_PROFILE_LABEL: Record<(typeof SOURCE_PROFILES)[number], stri
   official: AI_SOURCE_CATEGORY_DESCRIPTION.official,
   industry_leader: AI_SOURCE_CATEGORY_DESCRIPTION.industry_leader,
   technical_share: AI_SOURCE_CATEGORY_DESCRIPTION.technical_share,
+  media: AI_SOURCE_CATEGORY_DESCRIPTION.media,
+  community: AI_SOURCE_CATEGORY_DESCRIPTION.community,
+  open_source: AI_SOURCE_CATEGORY_DESCRIPTION.open_source,
 };
 
 export const PLATFORM_LABEL: Record<(typeof PLATFORMS)[number], string> = {
@@ -97,6 +100,9 @@ export function sourceMetaFromProfile(input: {
     case "official":
     case "industry_leader":
     case "technical_share":
+    case "media":
+    case "community":
+    case "open_source":
       return AI_SOURCE_CATEGORY_META[input.sourceProfile];
     case "official_first_party":
       return { sourceType: "official", level: "L1" };

@@ -5,6 +5,9 @@ export const AI_SOURCE_CATEGORIES = [
   "official",
   "industry_leader",
   "technical_share",
+  "media",
+  "community",
+  "open_source",
 ] as const;
 
 export type AiSourceCategory = (typeof AI_SOURCE_CATEGORIES)[number];
@@ -13,18 +16,27 @@ export const AI_SOURCE_CATEGORY_LABEL: Record<AiSourceCategory, string> = {
   official: "官方",
   industry_leader: "行业领袖",
   technical_share: "技术分享",
+  media: "媒体",
+  community: "社区",
+  open_source: "开源项目",
 };
 
 export const AI_SOURCE_CATEGORY_SHORT_LABEL: Record<AiSourceCategory, string> = {
   official: "官方",
   industry_leader: "行业领袖",
   technical_share: "技术分享",
+  media: "媒体",
+  community: "社区",
+  open_source: "开源",
 };
 
 export const AI_SOURCE_CATEGORY_DESCRIPTION: Record<AiSourceCategory, string> = {
   official: "官方账号、官网、产品公告与一手发布源",
   industry_leader: "创始人、研究/产品/工程负责人、行业关键人物",
-  technical_share: "开发工具、开源项目、教程实践、研究者与高质量技术分享",
+  technical_share: "开发工具、教程实践、研究者与高质量技术分享",
+  media: "媒体、Newsletter、资讯聚合与高信噪比行业报道",
+  community: "社区讨论、实践反馈、用户案例复盘与一线观察",
+  open_source: "开源项目、模型仓库、框架与工程基础设施",
 };
 
 export const AI_SOURCE_CATEGORY_META: Record<
@@ -34,6 +46,9 @@ export const AI_SOURCE_CATEGORY_META: Record<
   official: { sourceType: "official", level: "L1" },
   industry_leader: { sourceType: "employee", level: "L2" },
   technical_share: { sourceType: "expert", level: "L3" },
+  media: { sourceType: "media", level: "L4" },
+  community: { sourceType: "community", level: "L3" },
+  open_source: { sourceType: "open_source_project", level: "L3" },
 };
 
 const CATEGORY_SET: ReadonlySet<string> = new Set(AI_SOURCE_CATEGORIES);
@@ -66,24 +81,25 @@ const CATEGORY_ALIASES: Record<string, AiSourceCategory> = {
 
   devtool_infra: "technical_share",
   research_hacker: "technical_share",
-  global_media_aggregator: "technical_share",
-  community_practice: "technical_share",
-  media_info: "technical_share",
+  global_media_aggregator: "media",
+  community_practice: "community",
+  media_info: "media",
   technical_supplement: "technical_share",
   platform: "technical_share",
   开发工具: "technical_share",
   基础设施: "technical_share",
-  开源项目: "technical_share",
+  开源项目: "open_source",
   产品: "official",
   垂直产品: "official",
   研究员: "technical_share",
   极客: "technical_share",
   技术实践: "technical_share",
   技术分享: "technical_share",
-  媒体: "technical_share",
-  资讯: "technical_share",
-  聚合: "technical_share",
-  社区: "technical_share",
+  媒体: "media",
+  资讯: "media",
+  聚合: "media",
+  社区: "community",
+  开源: "open_source",
 };
 
 export function isAiSourceCategory(value: string): value is AiSourceCategory {
@@ -146,14 +162,14 @@ export function inferAiSourceCategory(input: {
     return "industry_leader";
   }
   if (/\b(news|daily|digest|rundown|decoder|ben's bites|bensbites|breakfast|newsletter|media|ai engineer|aidotengineer)\b/.test(text)) {
-    return "technical_share";
+    return "media";
   }
 
-  if (input.platform === "news" || input.platform === "rss") return "technical_share";
-  if (input.platform === "github" || input.platform === "huggingface") return "technical_share";
-  if (input.sourceType === "open_source_project" || input.sourceType === "community" || input.sourceType === "media") {
-    return "technical_share";
-  }
+  if (input.platform === "news") return "media";
+  if (input.platform === "github" || input.platform === "huggingface") return "open_source";
+  if (input.sourceType === "open_source_project") return "open_source";
+  if (input.sourceType === "community") return "community";
+  if (input.sourceType === "media") return "media";
   if (input.sourceType === "employee" || input.sourceType === "expert" || input.sourceType === "kol" || input.level === "L2") {
     return "industry_leader";
   }

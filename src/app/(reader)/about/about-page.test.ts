@@ -11,7 +11,9 @@ describe("about page", () => {
     expect(aboutSource).toContain("主要功能");
     expect(aboutSource).toContain("组件思路");
     expect(aboutSource).toContain("README");
+    expect(aboutSource).toContain("开源项目等信源分类");
     expect(aboutSource).toContain("https://github.com/Choysang/AIWatch");
+    expect(aboutSource).not.toContain("三类高信号来源");
     expect(aboutSource).not.toContain("反馈与贡献");
     expect(aboutSource).not.toContain("播报 Skill");
     expect(aboutSource).not.toContain('href="/feedback"');
