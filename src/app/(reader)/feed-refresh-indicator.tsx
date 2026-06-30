@@ -46,6 +46,7 @@ export function FeedRefreshIndicator({
     window.scrollTo({ top: 0, behavior: "smooth" });
     startTransition(() => {
       router.replace(refreshedHref(pathname, searchParams), { scroll: true });
+      router.refresh();
     });
   }, [pathname, router, searchParams, startTransition]);
 

@@ -17,7 +17,7 @@ import { listContributions, type ContributionRow } from "@/db/queries/contributi
 import { listFeedback, type FeedbackRow } from "@/db/queries/feedback";
 import { listPromotedEvents, type PromotedEventRow } from "@/db/queries/promotions";
 import { listRecentReports, type AdminReportRow } from "@/db/queries/public-reports";
-import { listManagedSources } from "@/db/queries/sources";
+import { listManagedSources, type ManagedSourceRow } from "@/db/queries/sources";
 import { messages } from "@/i18n";
 import { DEFAULT_SOURCE_PROFILE } from "@/sources/source-form";
 import { inferAiSourceCategory } from "@/sources/ai-source-categories";
@@ -144,6 +144,81 @@ function AdminDashboard({ data }: { data: AdminDashboardData }) {
   );
 }
 
+
+function isBadSource(row: ManagedSourceRow): boolean {
+  return !row.enabled || row.healthStatus === "degraded" || row.healthStatus === "disabled" || Boolean(row.lastError);
+}
+
+function SourceFaultDesk({ rows }: { rows: ManagedSourceRow[] }) {
+  const badRows = rows.filter(isBadSource);
+  const xBad = badRows.filter((row) => row.platform === "x").length;
+  const rsshubBad = badRows.filter((row) => row.connectorType === "rsshub").length;
+  const emailReady = Boolean(
+    process.env.SOURCE_ALERT_EMAIL?.trim() &&
+      process.env.RESEND_API_KEY?.trim() &&
+      process.env.AUTH_EMAIL_FROM?.trim(),
+  );
+  const retryRows = badRows.slice(0, 12);
+
+  return (
+    <section className="admin-section admin-fault-desk">
+      <div className="admin-section-head">
+        <div>
+          <h2>信源故障处理台</h2>
+          <p>X token、RSSHub、失败信源和告警通道集中看；先重测，再决定是否换 token 或停用。</p>
+        </div>
+        {retryRows.length > 0 ? (
+          <form method="post" action="/api/_admin/sources">
+            <input name="_action" type="hidden" value="retry" />
+            {retryRows.map((row) => (
+              <input key={row.id} name="sourceIds" type="hidden" value={row.id} />
+            ))}
+            <button className="admin-link-button" type="submit" title="立即重测当前最紧急的失败信源">
+              一键重测 {retryRows.length} 个
+            </button>
+          </form>
+        ) : null}
+      </div>
+      <div className="admin-metric-grid">
+        <article className={`admin-metric-card is-${xBad > 0 ? "warn" : "good"}`}>
+          <span>X / Twitter 异常</span>
+          <strong>{xBad}</strong>
+          <p>{xBad > 0 ? "优先检查 RSSHub 的 TWITTER_AUTH_TOKEN。" : "X 信源暂无集中异常。"}</p>
+        </article>
+        <article className={`admin-metric-card is-${rsshubBad > 0 ? "warn" : "good"}`}>
+          <span>RSSHub 异常</span>
+          <strong>{rsshubBad}</strong>
+          <p>{rsshubBad > 0 ? "先重测；仍失败再查 RSSHub 容器日志。" : "RSSHub 路由暂无集中异常。"}</p>
+        </article>
+        <article className={`admin-metric-card is-${emailReady ? "good" : "warn"}`}>
+          <span>邮件告警</span>
+          <strong>{emailReady ? "已就绪" : "未就绪"}</strong>
+          <p>{emailReady ? "SOURCE_ALERT_EMAIL + Resend 已配置。" : "需配置 RESEND_API_KEY 与 AUTH_EMAIL_FROM 才能发信。"}</p>
+        </article>
+      </div>
+      {badRows.length === 0 ? (
+        <div className="empty">暂无失败信源。</div>
+      ) : (
+        <table className="admin-table admin-mini-table">
+          <thead>
+            <tr><th>信源</th><th>平台</th><th>状态</th><th>建议动作</th><th>错误</th></tr>
+          </thead>
+          <tbody>
+            {badRows.slice(0, 10).map((row) => (
+              <tr key={row.id}>
+                <td>{row.name}</td>
+                <td>{row.platform}</td>
+                <td>{row.healthStatus}</td>
+                <td>{row.connectorType === "rsshub" ? "重测；失败则检查 RSSHub/token" : "重测；失败则检查 feed URL"}</td>
+                <td className="admin-soft">{row.lastError ?? "未启用或暂无错误详情"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
+}
 function selectedScore(ev: PromotedEventRow): number | null {
   return ev.breakdown?.selectionScore ?? ev.breakdown?.promotionScore ?? null;
 }
@@ -242,6 +317,7 @@ export default async function AdminPage() {
       </header>
 
       <AdminDashboard data={dashboard} />
+      <SourceFaultDesk rows={sources} />
 
       <SourceManagementSection
         rows={sources}

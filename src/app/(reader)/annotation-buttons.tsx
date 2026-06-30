@@ -53,6 +53,8 @@ export function AnnotationButtons({
         type="button"
         className={`annotation-btn ${verdict === "useful" ? "is-active" : ""}`}
         aria-pressed={verdict === "useful"}
+        title="主理人标记有用：进入偏好画像并提升类似内容"
+        data-tooltip="进入偏好画像并提升类似内容"
         disabled={saving}
         onClick={() => toggle("useful")}
       >
@@ -62,6 +64,8 @@ export function AnnotationButtons({
         type="button"
         className={`annotation-btn is-negative ${verdict === "not_useful" ? "is-active" : ""}`}
         aria-pressed={verdict === "not_useful"}
+        title="主理人标记没用：进入偏好画像并压低类似内容"
+        data-tooltip="进入偏好画像并压低类似内容"
         disabled={saving}
         onClick={() => toggle("not_useful")}
       >

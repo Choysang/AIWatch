@@ -141,7 +141,8 @@ export function ReactionButtons({
         className={`reaction reaction-like ${state.liked ? "on" : ""}`}
         aria-pressed={state.liked}
         aria-label={state.liked ? m.liked : m.like}
-        title={state.liked ? m.liked : m.like}
+        title={state.liked ? "取消有用反馈" : "标记有用，帮助提高类似内容权重"}
+        data-tooltip={state.liked ? "取消有用反馈" : "标记有用，帮助提高类似内容权重"}
         disabled={isSaving}
         onClick={() => toggle("like")}
       >
@@ -154,7 +155,8 @@ export function ReactionButtons({
         className={`reaction reaction-star ${state.starred ? "on" : ""}`}
         aria-pressed={state.starred}
         aria-label={state.starred ? m.starred : m.star}
-        title={state.starred ? m.starred : m.star}
+        title={state.starred ? "取消收藏" : "收藏到深读列表"}
+        data-tooltip={state.starred ? "取消收藏" : "收藏到深读列表"}
         disabled={isSaving}
         onClick={() => toggle("star")}
       >
@@ -167,7 +169,8 @@ export function ReactionButtons({
         className={`reaction reaction-down ${state.downed ? "on" : ""}`}
         aria-pressed={state.downed}
         aria-label={state.downed ? m.downed : m.down}
-        title={state.downed ? m.downed : m.down}
+        title={state.downed ? "取消无用反馈" : "标记无用，折叠并减少类似内容"}
+        data-tooltip={state.downed ? "取消无用反馈" : "标记无用，折叠并减少类似内容"}
         disabled={isSaving}
         onClick={() => toggle("down")}
       >

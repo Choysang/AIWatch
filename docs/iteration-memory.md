@@ -26,6 +26,7 @@ This file captures recurring operating lessons for future AIWatch updates. Read 
 - Timeline dates must be rendered in `APP_TZ` (production: Asia/Shanghai), not server local time or browser guesses.
 - Dynamic filters should only show source groups, categories, and source options that have content, while preserving an active selected filter so users can clear it.
 - Button/card feedback should be subtle: immediate hover/pressed/focus states, no distracting motion.
+- Tooltips should explain the effect of a button, not repeat the visible label. For feedback buttons, name the ranking/folding consequence.
 
 ## Engineering notes
 
@@ -39,6 +40,10 @@ This file captures recurring operating lessons for future AIWatch updates. Read 
 - `crawl-source` jobs must use a stable per-source job key plus a short retry cap. If the job key includes a time bucket, one slow RSSHub/X source can stack many retry jobs and make the site look like it stopped updating.
 - Do not perform live source fetch probes during admin page SSR. The console should render from stored DB health and provide explicit audit/retest actions; fetching every managed source on page load makes navigation feel broken and can amplify upstream outages.
 - Owner/admin triage is a reader-only workflow: hide all already annotated cards for owner/admin feeds, but public feeds should only suppress owner `not_useful` events so useful content remains visible to ordinary readers.
+- Admin dashboard queries must pre-aggregate recent windows before joining to `sources`; joining all historical posts/events and then filtering inside aggregates makes `/_admin` feel like a broken link as the database grows.
+- If `metadata.icons` points to `/icon.svg`, verify the file exists in `public/`; otherwise mobile browsers can fall back to unreadable placeholder icons.
+- Curated-source import smoke tests must change source state, not only print logs: empty/error fetch means disable the newly created source and store `[import-smoke] ...` in `last_error`.
+- Markdown export should keep the built-in Obsidian/frontmatter path but also offer a local template with simple `{{field}}` placeholders for readers who maintain their own vault conventions.
 
 ## Operational follow-ups
 

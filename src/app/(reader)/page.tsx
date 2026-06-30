@@ -26,6 +26,7 @@ import { EVENT_CATEGORIES, parsePublicQuery, type EventCategory, type PublicQuer
 import { formatDateTime, formatTimeOfDay, toIsoAttr } from "@/app/_lib/format";
 import { modelAccent } from "@/app/_lib/model-accent";
 import { buildTimelineTree } from "@/app/_lib/timeline-tree";
+import { AiWatchAssistant } from "./aiwatch-assistant";
 import { CollapsibleGroup } from "./collapsible-group";
 import { CurrentHotspots } from "./current-hotspots";
 import { EventCard } from "./event-card";
@@ -429,6 +430,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       <ParticleBackground />
       <ReaderNavSidebar />
       <div className="reader-control-strip">
+        <AiWatchAssistant />
         <ReaderSidebar items={sidebarItems} />
       </div>
       <Suspense fallback={null}>

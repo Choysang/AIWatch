@@ -11,13 +11,15 @@ interface SourceHealthCheckDeps {
   getConnector?: (type: ConnectorType) => SourceConnector;
   markHealthCheckSuccess?: (sourceId: string) => Promise<void>;
   markHealthCheckFailure?: (sourceId: string, error: string) => Promise<void>;
+  force?: boolean;
 }
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function isFetchable(row: ManagedSourceRow): boolean {
+function isFetchable(row: ManagedSourceRow, force = false): boolean {
+  if (force) return true;
   return row.enabled && row.healthStatus !== "paused" && row.healthStatus !== "disabled";
 }
 
@@ -25,7 +27,7 @@ export async function checkManagedSourceFetchHealth(
   row: ManagedSourceRow,
   deps: SourceHealthCheckDeps = {},
 ): Promise<ManagedSourceRow> {
-  if (!isFetchable(row)) return row;
+  if (!isFetchable(row, deps.force)) return row;
 
   const getConnector = deps.getConnector ?? defaultGetConnector;
   const markSuccess = deps.markHealthCheckSuccess ?? markSourceHealthCheckSuccess;
@@ -33,7 +35,7 @@ export async function checkManagedSourceFetchHealth(
 
   try {
     const connector = getConnector(row.connectorType as ConnectorType);
-    await connector.fetch({
+    const items = await connector.fetch({
       id: row.id,
       platform: row.platform as Platform,
       connectorType: row.connectorType as ConnectorType,
@@ -41,6 +43,9 @@ export async function checkManagedSourceFetchHealth(
       url: row.url,
       handle: row.handle,
     });
+    if (row.connectorType !== "manual" && items.length === 0) {
+      throw new Error("[source-health] fetch returned 0 items");
+    }
     await markSuccess(row.id);
     return { ...row, healthStatus: "healthy", lastError: null };
   } catch (error) {

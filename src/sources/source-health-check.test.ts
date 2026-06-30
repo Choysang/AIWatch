@@ -62,7 +62,7 @@ describe("checkManagedSourceFetchHealth", () => {
 
   test("clears stale health errors after a successful connector fetch", async () => {
     const successes: string[] = [];
-    const posts: RawPost[] = [];
+    const posts: RawPost[] = [{ externalId: "tweet-1", rawTitle: "latest item" }];
 
     const checked = await checkManagedSourceFetchHealth(
       source({ healthStatus: "degraded", lastError: "old error" }),
@@ -80,6 +80,29 @@ describe("checkManagedSourceFetchHealth", () => {
     expect(checked.healthStatus).toBe("healthy");
     expect(checked.lastError).toBeNull();
     expect(successes).toEqual(["src_tencent_hunyuan"]);
+  });
+
+  test("treats an empty automatic feed as an import-smoke failure", async () => {
+    const writes: Array<{ id: string; error: string }> = [];
+
+    const checked = await checkManagedSourceFetchHealth(source(), {
+      getConnector: (_type: ConnectorType) => connector(async () => []),
+      markHealthCheckFailure: async (id, error) => {
+        writes.push({ id, error });
+      },
+      markHealthCheckSuccess: async () => {
+        throw new Error("success writer should not run");
+      },
+    });
+
+    expect(checked.healthStatus).toBe("degraded");
+    expect(checked.lastError).toContain("fetch returned 0 items");
+    expect(writes).toEqual([
+      {
+        id: "src_tencent_hunyuan",
+        error: "[source-health] fetch returned 0 items",
+      },
+    ]);
   });
 
   test("does not fetch disabled sources from the admin status check", async () => {

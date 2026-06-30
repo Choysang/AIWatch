@@ -4,7 +4,7 @@
 // affinity ∈ [-1, +1]，并推导 rank-v4 的 ownerBoost：
 //   affinity(dim, key) = (useful - not_useful) / (useful + not_useful)，n < minSamples 记 0
 //   directBoost   = +usefulBoost（事件被标 useful）/ -notUsefulPenalty（被标 not_useful）
-//   affinityBoost = clamp(±affinityBoostMax, affinityBoostMax × mean(source, category, content_type))
+//   affinityBoost = clamp(±affinityBoostMax, affinityBoostMax × mean(source, category, content_type, best_tag))
 // 设计文档：docs/annotation-preference-design.md。SQL 批量任务（recompute-rank-scores）
 // 以结构等价的 SQL 复刻 directBoost/affinityBoost，由 reactions 集成测试保证 parity。
 
@@ -118,9 +118,20 @@ function affinityFor(table: AffinityTable, key: string | null | undefined): numb
   return table.get(key)?.affinity ?? 0;
 }
 
+function strongestTagAffinity(table: AffinityTable, tags: readonly string[] | null | undefined): number {
+  if (!tags?.length) return 0;
+  let strongest = 0;
+  for (const tag of tags) {
+    const affinity = table.get(tag)?.affinity ?? 0;
+    if (Math.abs(affinity) > Math.abs(strongest)) strongest = affinity;
+  }
+  return strongest;
+}
+
 /**
- * rank-v4 ownerBoost for one event. Missing/unknown dimension keys contribute a neutral 0
- * to the mean (always over the 3 boost dimensions; tag affinity is profile-only).
+ * rank-v5 ownerBoost for one event. Missing/unknown dimension keys contribute a neutral 0
+ * to the mean. Tag affinity uses the strongest matching tag so repeated owner labels can
+ * raise or suppress similar content, not only whole sources/categories.
  */
 export function computeOwnerBoost(
   input: {
@@ -128,6 +139,7 @@ export function computeOwnerBoost(
     sourceId: string | null;
     category: string | null;
     contentType: string | null;
+    tags?: readonly string[];
   },
   profile: AffinityProfile,
   config: OwnerBoostConfig,
@@ -139,11 +151,13 @@ export function computeOwnerBoost(
         ? -config.notUsefulPenalty
         : 0;
 
+  const tagAffinity = strongestTagAffinity(profile.tag, input.tags);
   const mean =
     (affinityFor(profile.source, input.sourceId) +
       affinityFor(profile.category, input.category) +
-      affinityFor(profile.contentType, input.contentType)) /
-    3;
+      affinityFor(profile.contentType, input.contentType) +
+      tagAffinity) /
+    (tagAffinity === 0 ? 3 : 4);
   const affinityBoost = clamp(
     config.affinityBoostMax * mean,
     -config.affinityBoostMax,

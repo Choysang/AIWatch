@@ -10,7 +10,7 @@ import { htmlToReadableText } from "@/app/_lib/html-text";
 import { extractCardMedia, extractCardMediaGallery, proxiedImageUrl } from "@/app/_lib/media";
 import { SubpageNav } from "@/app/subpage-nav";
 import { READER_ID_COOKIE, verifyReaderId } from "@/auth/reader-id";
-import { getEventDetail } from "@/db/queries/event-detail";
+import { getEventDetail, listEventSourcePerspectives } from "@/db/queries/event-detail";
 import { listEventComments, type CommentSections } from "@/db/queries/comments";
 import { getViewerCommentReactions } from "@/db/queries/comment-reactions";
 import { getViewerReactions, type ViewerReactionState } from "@/db/queries/reactions";
@@ -85,11 +85,12 @@ export default async function EventDetailPage({
   if (!event) notFound();
 
   const identity = await loadViewerIdentity();
-  const [reactionMap, sections] = await Promise.all([
+  const [reactionMap, sections, perspectives] = await Promise.all([
     identity.userId || identity.fingerprint
       ? getViewerReactions([event.id], identity)
       : Promise.resolve(new Map<string, ViewerReactionState>()),
     listEventComments(event.id),
+    listEventSourcePerspectives(event.id),
   ]);
   const viewerReaction = reactionMap.get(event.id) ?? {
     liked: false,
@@ -195,6 +196,26 @@ export default async function EventDetailPage({
           </figure>
         )}
 
+
+        {perspectives.length > 1 && (
+          <section className="event-perspectives" aria-label="事件多源视角">
+            <h3>多源视角</h3>
+            <div className="event-perspective-list">
+              {perspectives.map((item) => (
+                <article key={item.postId} className="event-perspective-item">
+                  <div className="event-perspective-meta">
+                    <span>{item.sourceName ?? item.authorName ?? item.platform}</span>
+                    <span>{item.sourceType ?? item.platform}</span>
+                    {item.publishedAt ? <time>{formatDateTime(item.publishedAt)}</time> : null}
+                  </div>
+                  <strong>{item.title ?? item.sourceName ?? "同事件报道"}</strong>
+                  {item.excerpt ? <p>{item.excerpt}</p> : null}
+                  {item.url ? <TrackableOriginalLink eventId={event.id} href={item.url}>查看这条来源</TrackableOriginalLink> : null}
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
         {/* B1 (v0.5, merged): AI 摘要 / 原文。默认 AI（保持原行为）；原文先显示已转纯文本的原帖
             内容，有源链接时按需经 readability 抽取完整全文并在原地升级。 */}
         <ContentLayers

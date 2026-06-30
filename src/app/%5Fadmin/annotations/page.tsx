@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { formatDateTime } from "@/app/_lib/format";
 import { getSession, isAdminRole } from "@/app/_lib/session";
 import { loadOwnerAffinityProfile } from "@/db/jobs/recompute-rank-scores";
-import { listRecentOwnerAnnotations } from "@/db/queries/owner-annotations";
+import { listRecentOwnerAnnotations, type OwnerAnnotationListRow } from "@/db/queries/owner-annotations";
 import { db } from "@/db/client";
 import { sources } from "@/db/schema";
 import { messages } from "@/i18n";
@@ -68,6 +68,22 @@ function AffinitySection(props: {
   );
 }
 
+
+function preferenceImpact(row: OwnerAnnotationListRow, sourceName: Map<string, string>): string {
+  if (row.subjectType === "source") {
+    return "信源级判决：进入信源晋级/降级建议；事件排序仍以事件标注画像为准。";
+  }
+  const direct = row.verdict === "useful"
+    ? `直接 +${rankScoreConfig.owner.usefulBoost}`
+    : `直接 -${rankScoreConfig.owner.notUsefulPenalty}`;
+  const dims = [
+    row.sourceId ? `信源 ${sourceName.get(row.sourceId) ?? row.sourceId}` : null,
+    row.category ? `分类 ${row.category}` : null,
+    row.contentType ? `内容 ${row.contentType}` : null,
+    row.tags.length ? `标签 ${row.tags.slice(0, 4).join(" / ")}` : null,
+  ].filter(Boolean);
+  return `${direct}；写入画像：${dims.join("，") || "暂无可用维度"}`;
+}
 export default async function AnnotationsPage() {
   const session = await getSession();
   if (!session) redirect("/login?next=/_admin/annotations");
@@ -121,6 +137,7 @@ export default async function AnnotationsPage() {
                 <th>类型</th>
                 <th>判决</th>
                 <th>备注</th>
+                <th>影响说明</th>
                 <th>更新时间</th>
               </tr>
             </thead>
@@ -137,6 +154,7 @@ export default async function AnnotationsPage() {
                     </span>
                   </td>
                   <td data-label="备注" className="admin-soft">{row.note ?? ""}</td>
+                  <td data-label="影响说明" className="admin-soft">{preferenceImpact(row, sourceName)}</td>
                   <td data-label="更新时间">{formatDateTime(row.updatedAt)}</td>
                 </tr>
               ))}

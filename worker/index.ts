@@ -19,6 +19,7 @@ import { recomputeScoresV2Task } from "./tasks/recompute-scores-v2";
 import { recomputeRankScoresTask } from "./tasks/recompute-rank-scores";
 import { refreshRoutingOverrides, refreshRoutingOverridesTask } from "./tasks/refresh-routing-overrides";
 import { rejudgeFailedPostsTask } from "./tasks/rejudge-failed-posts";
+import { repairReportsTask } from "./tasks/repair-reports";
 import { suggestSourceReviewTask } from "./tasks/suggest-source-review";
 
 // Fail-fast on a misconfigured environment before opening the worker runtime (E1).
@@ -54,7 +55,9 @@ async function main(): Promise<void> {
     // for owner/admin hourly at :20 (信源推荐收集); alert the operator hourly at :40 when
     // the X source pool fails en masse (TWITTER_AUTH_TOKEN-expired signature); re-judge posts
     // stuck in judge_failed for infra-transient reasons hourly at :50 (auto-heal after an LLM
-    // gateway outage — bounded to the last 168h, 50/run; full sweep stays the manual script).
+    // gateway outage — bounded to the last 168h, 50/run; full sweep stays the manual script);
+    // repair missed daily reports hourly and remove legacy weekly/monthly rows that violate
+    // the Monday/month-end publication schedule.
     crontab: [
       "* * * * * enqueue-due-sources",
       "*/10 * * * * recompute-scores-v2",
@@ -67,6 +70,7 @@ async function main(): Promise<void> {
       "20 * * * * digest-pending-contributions",
       "40 * * * * alert-source-health",
       "45 * * * * alert-pipeline-health",
+      "47 * * * * repair-reports",
       "* * * * * refresh-routing-overrides",
       "50 * * * * rejudge-failed-posts",
     ].join("\n"),
@@ -83,6 +87,7 @@ async function main(): Promise<void> {
       "digest-pending-contributions": digestPendingContributionsTask,
       "alert-source-health": alertSourceHealthTask,
       "alert-pipeline-health": alertPipelineHealthTask,
+      "repair-reports": repairReportsTask,
       "refresh-routing-overrides": refreshRoutingOverridesTask,
       "rejudge-failed-posts": rejudgeFailedPostsTask,
     },

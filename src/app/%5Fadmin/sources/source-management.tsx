@@ -245,6 +245,13 @@ export function SourceManagementSection(props: {
                       <td data-label="操作">
                         <div className="admin-row-actions">
                           <form method="post" action="/api/_admin/sources">
+                            <input name="_action" type="hidden" value="retry" />
+                            <input name="sourceIds" type="hidden" value={row.id} />
+                            <button className="admin-link-button" type="submit" title="立即抓取最新一条内容，成功后恢复启用">
+                              重测
+                            </button>
+                          </form>
+                          <form method="post" action="/api/_admin/sources">
                             <input name="_action" type="hidden" value="delete" />
                             <input name="sourceIds" type="hidden" value={row.id} />
                             <button className="admin-danger-link" type="submit">

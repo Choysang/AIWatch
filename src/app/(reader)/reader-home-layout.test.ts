@@ -137,8 +137,9 @@ describe("reader home layout", () => {
   });
 
   test("keeps the mobile timeline visible while shrinking card density and gutters", () => {
-    const mobileStart = cssSource.lastIndexOf("@media (max-width: 760px)");
-    const mobileCss = cssSource.slice(mobileStart);
+    const mobileStart = cssSource.indexOf("/* 手机：保留窄时间轴，缩小卡片密度，速览栏仍为全宽浮层 */");
+    const mobileEnd = cssSource.indexOf("/* admin dashboard responsive */", mobileStart);
+    const mobileCss = cssSource.slice(mobileStart, mobileEnd);
     expect(pageSource).toContain('className="tl-date"');
     expect(pageSource).toContain("formatTimeOfDay(when)");
     expect(pageSource).not.toContain('className="tl-time"');

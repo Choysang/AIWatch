@@ -11,7 +11,7 @@ function read(path: string): string {
 }
 
 describe("markdown export button", () => {
-  test("defines requested frontmatter fields and browser download flow", () => {
+  test("defines requested frontmatter fields and multi-format browser download flow", () => {
     expect(existsSync(buttonPath)).toBe(true);
     const source = read(buttonPath);
     expect(source).toContain("title:");
@@ -25,7 +25,7 @@ describe("markdown export button", () => {
     expect(source).toContain("aiwatch_url:");
     expect(source).toContain("Blob");
     expect(source).toContain("URL.createObjectURL");
-    expect(source).toContain('download = `${slugify(title)}.md`');
+    expect(source).toContain("download.download = `${slugify(props.title)}.${info.ext}`");
   });
 
   test("is wired into the event detail original actions row", () => {

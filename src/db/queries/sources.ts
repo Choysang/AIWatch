@@ -112,7 +112,9 @@ export async function markSourceHealthCheckSuccess(sourceId: string, db: DB = de
   await db
     .update(sources)
     .set({
+      enabled: true,
       healthStatus: "healthy",
+      failureCount: 0,
       lastError: null,
       updatedAt: sql`now()`,
     })
@@ -134,6 +136,24 @@ export async function markSourceHealthCheckFailure(
     .where(eq(sources.id, sourceId));
 }
 
+
+export async function markSourceImportFailure(
+  sourceId: string,
+  error: string,
+  db: DB = defaultDb,
+): Promise<void> {
+  await db
+    .update(sources)
+    .set({
+      enabled: false,
+      healthStatus: "disabled",
+      failureCount: 1,
+      nextFetchAt: null,
+      lastError: `[import-smoke] ${error.slice(0, 980)}`,
+      updatedAt: sql`now()`,
+    })
+    .where(eq(sources.id, sourceId));
+}
 export interface SourceHealthRow {
   id: string;
   name: string;
@@ -223,6 +243,33 @@ export interface ArchivedSourceRow {
   connectorRef: string | null;
 }
 
+
+export async function getManagedSourceById(id: string, db: DB = defaultDb): Promise<ManagedSourceRow | null> {
+  const rows = await db
+    .select({
+      id: sources.id,
+      name: sources.name,
+      platform: sources.platform,
+      handle: sources.handle,
+      url: sources.url,
+      level: sources.level,
+      sourceType: sources.sourceType,
+      connectorType: sources.connectorType,
+      connectorRef: sources.connectorRef,
+      categories: sources.categories,
+      brandTag: sources.brandTag,
+      recommendedBy: sources.recommendedBy,
+      recommendReason: sources.recommendReason,
+      onboardedAt: sources.onboardedAt,
+      enabled: sources.enabled,
+      healthStatus: sources.healthStatus,
+      lastError: sources.lastError,
+    })
+    .from(sources)
+    .where(and(eq(sources.id, id), isNull(sources.archivedAt)))
+    .limit(1);
+  return rows[0] ?? null;
+}
 /** Soft-delete sources from the management console. We archive instead of hard-deleting
  *  because posts/events keep foreign-key references to their originating source. */
 export async function archiveSources(ids: string[], db: DB | Tx = defaultDb): Promise<ArchivedSourceRow[]> {

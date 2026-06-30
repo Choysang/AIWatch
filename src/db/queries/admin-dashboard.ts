@@ -169,25 +169,38 @@ export async function loadAdminDashboard(db: DB = defaultDb): Promise<AdminDashb
         ORDER BY count DESC, platform ASC
       `),
       db.execute(sql<SourceOutputRow>`
+        WITH post_recent AS (
+          SELECT
+            ${posts.sourceId} AS source_id,
+            count(*)::int AS posts,
+            count(*) FILTER (WHERE ${posts.judgeError} IS NOT NULL)::int AS failed
+          FROM ${posts}
+          WHERE ${posts.createdAt} >= now() - interval '7 days'
+          GROUP BY ${posts.sourceId}
+        ),
+        event_recent AS (
+          SELECT
+            ${events.mainSourceId} AS source_id,
+            count(*)::int AS events,
+            count(*) FILTER (WHERE ${events.selectedLevel} <> 'none')::int AS selected
+          FROM ${events}
+          WHERE ${events.createdAt} >= now() - interval '7 days'
+          GROUP BY ${events.mainSourceId}
+        )
         SELECT
           ${sources.id} AS id,
           ${sources.name} AS name,
           ${sources.platform} AS platform,
           ${sources.healthStatus} AS "healthStatus",
-          count(distinct ${posts.id}) FILTER (WHERE ${posts.createdAt} >= now() - interval '7 days')::int AS posts,
-          count(distinct ${events.id}) FILTER (WHERE ${events.createdAt} >= now() - interval '7 days')::int AS events,
-          count(distinct ${events.id}) FILTER (
-            WHERE ${events.createdAt} >= now() - interval '7 days' AND ${events.selectedLevel} <> 'none'
-          )::int AS selected,
-          count(distinct ${posts.id}) FILTER (
-            WHERE ${posts.createdAt} >= now() - interval '7 days' AND ${posts.judgeError} IS NOT NULL
-          )::int AS failed,
+          coalesce(post_recent.posts, 0)::int AS posts,
+          coalesce(event_recent.events, 0)::int AS events,
+          coalesce(event_recent.selected, 0)::int AS selected,
+          coalesce(post_recent.failed, 0)::int AS failed,
           ${sources.lastFetchAt} AS "lastFetchAt"
         FROM ${sources}
-        LEFT JOIN ${posts} ON ${posts.sourceId} = ${sources.id}
-        LEFT JOIN ${events} ON ${events.mainSourceId} = ${sources.id}
+        LEFT JOIN post_recent ON post_recent.source_id = ${sources.id}
+        LEFT JOIN event_recent ON event_recent.source_id = ${sources.id}
         WHERE ${sources.archivedAt} IS NULL
-        GROUP BY ${sources.id}
         ORDER BY selected DESC, events DESC, posts DESC, failed DESC, ${sources.name} ASC
         LIMIT 12
       `),

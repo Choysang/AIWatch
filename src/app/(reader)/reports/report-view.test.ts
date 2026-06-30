@@ -29,11 +29,11 @@ describe("report reader layout", () => {
 
   test("keeps the archive in the left rail without stealing the report body width", () => {
     expect(cssSource).toContain(".report-page {");
-    expect(cssSource).toContain("grid-template-columns: minmax(13rem, 18rem) minmax(0, 920px) minmax(0, 1fr);");
-    expect(cssSource).toContain(".report-archive-shell {\n  grid-column: 1;");
-    expect(cssSource).toContain("align-self: start;");
-    expect(cssSource).toContain("position: sticky;");
-    expect(cssSource).toContain("height: fit-content;");
-    expect(cssSource).toContain(".report-page-main {\n  grid-column: 2;");
+    expect(cssSource).toContain(".report-page-layout {\n  position: relative;");
+    expect(cssSource).toContain("max-width: 920px;");
+    expect(cssSource).toContain("@media (min-width: 1180px) {\n  .report-archive-shell {");
+    expect(cssSource).toContain("position: fixed;");
+    expect(cssSource).toContain("left: max(1rem, calc((100vw - 1440px) / 2 + 1.25rem));");
+    expect(cssSource).toContain(".report-page-main {\n  min-width: 0;\n  width: 100%;");
   });
 });

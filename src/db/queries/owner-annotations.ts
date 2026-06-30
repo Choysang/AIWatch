@@ -75,6 +75,10 @@ export interface OwnerAnnotationListRow {
   updatedAt: Date;
   /** Event title or source name, resolved by subject type ("已删除" subjects -> null). */
   subjectLabel: string | null;
+  sourceId: string | null;
+  category: string | null;
+  contentType: string | null;
+  tags: string[];
 }
 
 /** 点6 切片D：最近标注列表（标注台），事件取标题、信源取名称。 */
@@ -91,6 +95,10 @@ export async function listRecentOwnerAnnotations(
       note: ownerAnnotations.note,
       updatedAt: ownerAnnotations.updatedAt,
       subjectLabel: sql<string | null>`coalesce(${events.title}, ${sources.name})`,
+      sourceId: events.mainSourceId,
+      category: events.category,
+      contentType: events.contentType,
+      tags: events.tags,
     })
     .from(ownerAnnotations)
     .leftJoin(
@@ -103,5 +111,5 @@ export async function listRecentOwnerAnnotations(
     )
     .orderBy(desc(ownerAnnotations.updatedAt))
     .limit(limit);
-  return rows;
+  return rows.map((row) => ({ ...row, tags: row.tags ?? [] }));
 }

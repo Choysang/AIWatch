@@ -3,10 +3,10 @@
 // list, source URL). Returns null when the event doesn't exist so the route can hand
 // off to Next's notFound() instead of throwing.
 
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db as defaultDb, type DB } from "@/db/client";
 import type { EventCard } from "@/db/queries/feed";
-import { events, posts, sources } from "@/db/schema";
+import { eventPosts, events, posts, sources } from "@/db/schema";
 
 export interface EventDetail extends EventCard {
   sourceUrl: string | null;
@@ -57,4 +57,61 @@ export async function getEventDetail(
     .where(eq(events.id, eventId))
     .limit(1);
   return (rows[0] as EventDetail | undefined) ?? null;
+}
+export interface EventSourcePerspective {
+  postId: string;
+  sourceName: string | null;
+  sourceType: string | null;
+  platform: string;
+  authorName: string | null;
+  authorHandle: string | null;
+  url: string | null;
+  title: string | null;
+  excerpt: string | null;
+  publishedAt: Date | null;
+}
+
+function excerpt(raw: string | null, max = 180): string | null {
+  if (!raw) return null;
+  const cleaned = raw.replace(/\s+/g, " ").trim();
+  return cleaned.length > max ? `${cleaned.slice(0, max)}…` : cleaned;
+}
+
+export async function listEventSourcePerspectives(
+  eventId: string,
+  db: DB = defaultDb,
+): Promise<EventSourcePerspective[]> {
+  const rows = await db
+    .select({
+      postId: posts.id,
+      sourceName: sources.name,
+      sourceType: sources.sourceType,
+      platform: posts.platform,
+      authorName: posts.authorName,
+      authorHandle: posts.authorHandle,
+      url: posts.url,
+      rawTitle: posts.rawTitle,
+      displayTitle: posts.displayTitle,
+      rawContent: posts.rawContent,
+      publishedAt: posts.publishedAt,
+    })
+    .from(eventPosts)
+    .innerJoin(posts, eq(posts.id, eventPosts.postId))
+    .leftJoin(sources, eq(sources.id, posts.sourceId))
+    .where(eq(eventPosts.eventId, eventId))
+    .orderBy(desc(posts.publishedAt), desc(posts.createdAt))
+    .limit(12);
+
+  return rows.map((row) => ({
+    postId: row.postId,
+    sourceName: row.sourceName,
+    sourceType: row.sourceType,
+    platform: row.platform,
+    authorName: row.authorName,
+    authorHandle: row.authorHandle,
+    url: row.url,
+    title: row.displayTitle ?? row.rawTitle,
+    excerpt: excerpt(row.rawContent),
+    publishedAt: row.publishedAt,
+  }));
 }

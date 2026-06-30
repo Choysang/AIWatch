@@ -123,6 +123,22 @@ describe("computeOwnerBoost", () => {
     expect(partial.ownerBoost).toBeCloseTo(2, 6);
   });
 
+  test("tag affinity joins the owner boost when similar tags repeat", () => {
+    const tagged = buildAffinityProfile(
+      [
+        ann({ verdict: "useful", sourceId: null, category: null, contentType: null, tags: ["agent"] }),
+        ann({ verdict: "useful", sourceId: null, category: null, contentType: null, tags: ["agent"] }),
+        ann({ verdict: "useful", sourceId: null, category: null, contentType: null, tags: ["agent"] }),
+      ],
+      config.minSamples,
+    );
+    const r = computeOwnerBoost(
+      { directVerdict: null, sourceId: null, category: null, contentType: null, tags: ["agent"] },
+      tagged,
+      config,
+    );
+    expect(r.affinityBoost).toBeCloseTo(1.5, 6);
+  });
   test("direct and affinity boosts compose additively", () => {
     const r = computeOwnerBoost(
       { directVerdict: "not_useful", sourceId: "src_a", category: "AI Coding", contentType: "howto" },

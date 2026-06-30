@@ -5,7 +5,12 @@ import { asc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getConnector } from "@/connectors/registry";
 import { db } from "@/db/client";
-import { archiveSources, createSource } from "@/db/queries/sources";
+import {
+  archiveSources,
+  createSource,
+  markSourceHealthCheckSuccess,
+  markSourceImportFailure,
+} from "@/db/queries/sources";
 import { sources } from "@/db/schema";
 import type { ConnectorType } from "@/connectors/types";
 import type { SourceTypeValue } from "@/db/queries/sources";
@@ -146,15 +151,19 @@ async function smokeTestCreatedSources(createdSources: CreatedSource[]): Promise
       const latest = posts[0];
       if (!latest) {
         failed += 1;
+        await markSourceImportFailure(source.id, "no_items", db);
         console.warn(`[curated-import:test] ${source.name} no_items`);
       } else {
+        await markSourceHealthCheckSuccess(source.id, db);
         console.log(
           `[curated-import:test] ${source.name} ok items=${posts.length} latest=${JSON.stringify(latest.rawTitle ?? latest.url ?? latest.externalId ?? "untitled").slice(0, 160)}`,
         );
       }
     } catch (error) {
       failed += 1;
-      console.warn(`[curated-import:test] ${source.name} error=${error instanceof Error ? error.message : String(error)}`);
+      const message = error instanceof Error ? error.message : String(error);
+      await markSourceImportFailure(source.id, message, db);
+      console.warn(`[curated-import:test] ${source.name} error=${message}`);
     }
   }
   return failed;
