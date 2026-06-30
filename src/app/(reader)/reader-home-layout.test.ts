@@ -105,7 +105,8 @@ describe("reader home layout", () => {
     expect(pageSource).toContain('if (query.mode === "personalized") return null;');
     expect(pageSource).toContain('params.set("mode", query.mode === "selected" ? "selected" : "all");');
     expect(pageSource).toContain('params.set("take", "1");');
-    expect(pageSource).toContain("<FeedRefreshIndicator latestKey={latestKey} refreshQuery={refreshQuery} />");
+    expect(pageSource).toContain('refreshEndpoint={canReviewAnnotations ? "/api/reader/feed-peek" : "/api/public/items"}');
+    expect(feedRefreshSource).toContain('refreshEndpoint = "/api/public/items"');
   });
 
   test("hides already owner-reviewed events only for owner/admin triage", () => {

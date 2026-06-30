@@ -2397,10 +2397,10 @@ canvas {
 @media (min-width: 1240px) {
   .report-archive-shell {
     position: fixed;
-    top: 5rem;
-    left: clamp(0.75rem, 1.4vw, 1.25rem);
-    width: clamp(8rem, calc((100vw - 920px) / 2 - 2rem), 18rem);
-    max-height: calc(100vh - 6rem);
+    top: 7rem;
+    left: clamp(1rem, 1.8vw, 1.75rem);
+    width: clamp(7.5rem, calc((100vw - 920px) / 2 - 2.75rem), 14rem);
+    max-height: calc(100vh - 8rem);
     overflow-y: auto;
     padding-right: 0.35rem;
     overscroll-behavior: contain;
@@ -5890,10 +5890,8 @@ html[data-reader-theme="light"] .reader-sidebar-actions a:hover {
   color: var(--ink);
 }
 .aiwatch-assistant {
-  position: fixed;
-  right: clamp(0.75rem, 2vw, 1.5rem);
-  top: 0.9rem;
-  z-index: 50;
+  position: relative;
+  z-index: 58;
   display: grid;
   justify-items: end;
   gap: 0.5rem;
@@ -5911,6 +5909,9 @@ html[data-reader-theme="light"] .reader-sidebar-actions a:hover {
   box-shadow: var(--shadow);
 }
 .aiwatch-assistant-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
   width: min(22rem, calc(100vw - 1.5rem));
   display: grid;
   gap: 0.55rem;
@@ -5951,9 +5952,7 @@ html[data-reader-theme="light"] .reader-sidebar-actions a:hover {
   line-height: 1.6;
 }
 @media (max-width: 760px) {
-  .aiwatch-assistant {
-    top: auto;
-    right: 0.75rem;
-    bottom: 4.2rem;
+  .aiwatch-assistant-panel {
+    width: min(21rem, calc(100vw - 1rem));
   }
 }

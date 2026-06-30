@@ -33,9 +33,11 @@ function refreshedHref(pathname: string, searchParams: { toString(): string }): 
 export function FeedRefreshIndicator({
   latestKey,
   refreshQuery,
+  refreshEndpoint = "/api/public/items",
 }: {
   latestKey: string | null;
   refreshQuery: string | null;
+  refreshEndpoint?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -77,7 +79,7 @@ export function FeedRefreshIndicator({
       if (cancelled || inFlight || document.hidden) return;
       inFlight = true;
       try {
-        const res = await fetch(`/api/public/items?${refreshQuery}`, {
+        const res = await fetch(`${refreshEndpoint}?${refreshQuery}`, {
           cache: "no-store",
         });
         if (!res.ok) return;
@@ -102,7 +104,7 @@ export function FeedRefreshIndicator({
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [latestKey, refreshQuery, loadFresh]);
+  }, [latestKey, refreshQuery, refreshEndpoint, loadFresh]);
 
   const loading = isPending || isReloading;
 

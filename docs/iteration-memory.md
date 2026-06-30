@@ -32,6 +32,7 @@ This file captures recurring operating lessons for future AIWatch updates. Read 
 ## Engineering notes
 
 - React Doctor findings are hypotheses. Fix high-confidence, behavior-preserving items first; do not blindly turn filter `role="group"` containers into `<address>`, and keep plain `<a>` for API/download links such as OPML export.
+- Before deleting sources/posts/events in production, check FK maintenance indexes and table sizes. On 2026-06-30, disabling 19 noisy sources required deleting 1.42M historical `event_scores` rows; missing FK indexes turned a normal cleanup into multi-minute IO. Keep indexes on FK child columns and prefer re-runnable, dependency-ordered cleanup scripts over one giant cascading transaction.
 - Large `SearchBar` / `useReducer` refactors should be handled as a focused follow-up, not bundled into production incident fixes.
 - Cursor pagination must use the exact same effective timestamp as the SQL ordering. If `mode=all` sorts by `published_at/promoted_at/created_at`, its cursor must also use that fallback order or older promoted-only events can disappear behind the cursor.
 - Reader feed window filters must use the same effective timestamp as the reader ordering. A post created days ago but promoted today should not disappear from `mode=all&since=week`.
@@ -51,6 +52,7 @@ This file captures recurring operating lessons for future AIWatch updates. Read 
 - X/RSSHub crawling must be paced. With one `TWITTER_AUTH_TOKEN`, a restart that enqueues dozens of X sources at once can turn into widespread `Twitter API error: 401`; keep worker concurrency and enqueue limits conservative unless multiple healthy tokens exist.
 - Enqueue pacing must live in code, not runbook memory: keep `RSSHUB_X_ENQUEUE_LIMIT` low and stagger X jobs (`RSSHUB_X_STAGGER_MS`) so one token is not hit by parallel `/twitter/user/*` probes after deploy or source-health reset.
 - Some RSSHub routes are simply slow rather than dead (`/anthropic/research` ranged from ~42s to 60s+ in production on 2026-06-30). Keep the connector timeout comfortably above the observed p95 before disabling or replacing a source.
+- OPML/blog imports should land in a reviewable curated-source batch. Public RSS usually needs no API authorization, but full-text redistribution may be restricted; default new independent blogs to feed metadata/excerpt plus original links unless the source clearly permits full content reuse.
 
 ## Operational follow-ups
 

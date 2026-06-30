@@ -167,6 +167,7 @@ function toFeedFilter(query: PublicQuery, hideOwnerAnnotated = false): FeedFilte
     sourceCategories: query.sourceCategories,
     sourceIds: query.sourceIds,
     interests: query.interests,
+    contentTypes: query.contentTypes,
     level: query.level,
     minScore: query.minScore,
     category: query.category,
@@ -434,7 +435,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <ReaderSidebar items={sidebarItems} />
       </div>
       <Suspense fallback={null}>
-        <FeedRefreshIndicator latestKey={latestKey} refreshQuery={refreshQuery} />
+        <FeedRefreshIndicator
+          latestKey={latestKey}
+          refreshQuery={refreshQuery}
+          refreshEndpoint={canReviewAnnotations ? "/api/reader/feed-peek" : "/api/public/items"}
+        />
       </Suspense>
       <Suspense fallback={null}>
         <SearchBar

@@ -109,6 +109,28 @@ describe("rankCurrentHotspots", () => {
     expect(ranked[0]!.sourceCount).toBe(2);
   });
 
+  test("does not require an official source for a fresh two-source story", () => {
+    const ranked = rankCurrentHotspots(
+      [
+        candidate({
+          id: "two_independent_sources",
+          title: "Builders converge on the same release",
+          sourceCount: 2,
+          officialSourceCount: 0,
+          qualityScore: 60,
+          publishedAt: hoursAgo(8),
+          sources: [
+            { name: "Builder Notes", type: "expert" },
+            { name: "AI Engineer", type: "media" },
+          ],
+        }),
+      ],
+      NOW,
+    );
+
+    expect(ranked.map((item) => item.id)).toEqual(["two_independent_sources"]);
+  });
+
   test("does not let repeated posts from the same account inflate heat", () => {
     const ranked = rankCurrentHotspots(
       [

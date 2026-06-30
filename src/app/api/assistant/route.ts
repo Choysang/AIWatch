@@ -28,6 +28,27 @@ function contextLine(event: Awaited<ReturnType<typeof searchEvents>>[number]): s
     .join(" | ");
 }
 
+function fallbackAnswer(
+  question: string,
+  events: Awaited<ReturnType<typeof searchEvents>>,
+): string {
+  const top = events.slice(0, 5);
+  if (top.length === 0) {
+    return [
+      "AI 管家目前先给你站内导航建议：先看「最新」确认今天是否有新动态，再看「热点榜」找多信源同时报道的事件，最后进入「日报」读编辑好的阅读路径。",
+      `你的问题是：「${question}」。如果要查公司或主题，可以在顶部搜索框输入关键词。`,
+    ].join("\n\n");
+  }
+  const items = top
+    .map((event, index) => `${index + 1}. ${event.title}${event.sourceName ? `（${event.sourceName}）` : ""}`)
+    .join("\n");
+  return [
+    "模型通道暂时不可用，我先按 AIWatch 最近资讯给你一个保守读法：",
+    items,
+    "建议先点开多信源/高分条目看详情；如果你问的是某家公司，继续用搜索框按公司名过滤会更准。",
+  ].join("\n\n");
+}
+
 export async function POST(req: Request): Promise<Response> {
   const ip = clientIp(req);
   const rl = publicLimiter.check(`assistant:${ip}`);
@@ -38,17 +59,25 @@ export async function POST(req: Request): Promise<Response> {
   const parsed = requestSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return jsonError(400, "invalid_question");
 
+  const events = await searchEvents({ mode: "all", since: "week" }, 20);
   const route = getRouteConfig("translation");
   const provider = resolveProvider("translation");
-  if (!provider) return jsonError(503, "no_assistant_provider");
+  if (!provider) {
+    return Response.json({ answer: fallbackAnswer(parsed.data.question, events) }, {
+      headers: { "cache-control": "private, no-store" },
+    });
+  }
 
   const isStub = provider.name === "stub";
   if (!isStub) {
     const budget = await checkLlmBudget(readBudgetCaps().llmUsd);
-    if (budget.status === "block") return jsonError(429, "llm_budget_exhausted");
+    if (budget.status === "block") {
+      return Response.json({ answer: fallbackAnswer(parsed.data.question, events) }, {
+        headers: { "cache-control": "private, no-store" },
+      });
+    }
   }
 
-  const events = await searchEvents({ mode: "all", since: "week" }, 20);
   const context = events.map(contextLine).join("\n").slice(0, 8000);
 
   try {
@@ -74,6 +103,8 @@ export async function POST(req: Request): Promise<Response> {
     }
     return Response.json(result.value, { headers: { "cache-control": "private, no-store" } });
   } catch {
-    return jsonError(500, "assistant_failed");
+    return Response.json({ answer: fallbackAnswer(parsed.data.question, events) }, {
+      headers: { "cache-control": "private, no-store" },
+    });
   }
 }
