@@ -42,7 +42,7 @@ async function main(): Promise<void> {
 
   const runner = await run({
     connectionString,
-    concurrency: Number(process.env.WORKER_CONCURRENCY ?? 4),
+    concurrency: Number(process.env.WORKER_CONCURRENCY ?? 2),
     // Coarse cron (worker runs with TZ=APP_TZ, decision E): enqueue due sources every
     // minute (per-source frequency is enforced by getDueSources, not crontab lines); run
     // the B/A/S tournament every 5 minutes; recompute the scoring-v2 layers (quality /

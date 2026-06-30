@@ -5,7 +5,7 @@
 import type { Task } from "graphile-worker";
 import { getDueSources } from "@/db/queries/sources";
 
-const ENQUEUE_LIMIT = 100;
+const ENQUEUE_LIMIT = Number(process.env.SOURCE_ENQUEUE_LIMIT ?? 20);
 export const CRAWL_SOURCE_MAX_ATTEMPTS = 3;
 
 export function crawlSourceJobKey(sourceId: string): string {

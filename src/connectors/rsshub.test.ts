@@ -106,7 +106,11 @@ describe("RsshubConnector", () => {
   test("throws on a non-ok HTTP response (so the crawl breaker trips)", async () => {
     const connector = new RsshubConnector({
       baseUrl: "https://rsshub.app",
-      fetchImpl: async () => new Response("nope", { status: 503, statusText: "Service Unavailable" }),
+      fetchImpl: async () =>
+        new Response(
+          "<html><body>Error Message: Error: Twitter API error: 401 Route: /twitter/user/OpenAI</body></html>",
+          { status: 503, statusText: "Service Unavailable" },
+        ),
     });
     let message = "";
     try {
@@ -115,5 +119,6 @@ describe("RsshubConnector", () => {
       message = error instanceof Error ? error.message : String(error);
     }
     expect(message).toContain("503");
+    expect(message).toContain("Twitter API error: 401");
   });
 });

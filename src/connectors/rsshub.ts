@@ -83,9 +83,21 @@ export class RsshubConnector implements SourceConnector {
           allowHosts: rsshubAllowHosts(base),
           timeoutMs: RSSHUB_FETCH_TIMEOUT_MS,
         });
+    const body = await res.text();
     if (!res.ok) {
-      throw new Error(`[rsshub] fetch failed for ${target}: ${res.status} ${res.statusText}`);
+      const detail = summarizeRsshubError(body);
+      throw new Error(
+        `[rsshub] fetch failed for ${target}: ${res.status} ${res.statusText}${
+          detail ? ` — ${detail}` : ""
+        }`,
+      );
     }
-    return parseFeed(await res.text());
+    return parseFeed(body);
   }
+}
+
+function summarizeRsshubError(body: string): string {
+  const text = body.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const match = text.match(/Error Message:\s*(.*?)(?:\s+Route:|\s+Full Route:|\s+Node Version:|$)/i);
+  return (match?.[1] ?? text).slice(0, 240);
 }
