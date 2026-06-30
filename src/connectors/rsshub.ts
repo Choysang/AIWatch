@@ -42,9 +42,9 @@ export interface RsshubConnectorOptions {
 }
 
 // Some RSSHub routes (notably /anthropic/research) are valid but slow because they scrape
-// rich article listings. Keep this above 40s, while worker concurrency/enqueue caps protect
+// rich article listings. Keep this above 60s, while worker concurrency/enqueue caps protect
 // the shared RSSHub instance from request storms.
-export const RSSHUB_FETCH_TIMEOUT_MS = 60_000;
+export const RSSHUB_FETCH_TIMEOUT_MS = 90_000;
 
 export class RsshubConnector implements SourceConnector {
   readonly type = "rsshub" as const;

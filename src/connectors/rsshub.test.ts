@@ -64,7 +64,7 @@ describe("rsshubAllowHosts", () => {
 
 describe("RsshubConnector", () => {
   test("allows slow but valid RSSHub routes enough time to finish", () => {
-    expect(RSSHUB_FETCH_TIMEOUT_MS).toBeGreaterThanOrEqual(60_000);
+    expect(RSSHUB_FETCH_TIMEOUT_MS).toBeGreaterThanOrEqual(90_000);
   });
 
   test("fails closed with a clear message when no base URL is configured", async () => {
