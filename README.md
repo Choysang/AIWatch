@@ -100,6 +100,7 @@ curl 'https://aiwatch.icu/api/public/dailies?take=10'
 - **多类型信源**：官方、员工、行业专家、KOL、媒体、社区、开源项目等都可纳入。
 - **RSS / RSSHub / 手动源**：支持标准 RSS、GitHub release feed、RSSHub X 路由和人工维护源。
 - **导入即验证**：新增信源会立即抓最新一条；成功才启用，失败写入原因。
+- **X 信源错峰抓取**：RSSHub 的 X 路由会限量入队并错峰执行，避免单个 `TWITTER_AUTH_TOKEN` 被并发打爆导致整站停止更新。
 - **信源故障处理台**：后台显示 RSSHub、X token、失败信源、失败原因、建议动作和一键重测。
 - **运营看板**：管理员可看信源输出、健康状态、LLM token 消耗、网站访问、资讯点击、日报生成和用户反馈。
 - **LLM 失败预警**：LLM judge 失败会进入管道健康检查，不静默吞掉。
