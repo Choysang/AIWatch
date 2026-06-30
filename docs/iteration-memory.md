@@ -44,6 +44,7 @@ This file captures recurring operating lessons for future AIWatch updates. Read 
 - If `metadata.icons` points to `/icon.svg`, verify the file exists in `public/`; otherwise mobile browsers can fall back to unreadable placeholder icons.
 - Curated-source import smoke tests must change source state, not only print logs: empty/error fetch means disable the newly created source and store `[import-smoke] ...` in `last_error`.
 - Markdown export should keep the built-in Obsidian/frontmatter path but also offer a local template with simple `{{field}}` placeholders for readers who maintain their own vault conventions.
+- Source connectivity audits should be gentle on RSSHub: use low concurrency plus longer timeout/retry, then probe a known-good X route before blaming `TWITTER_AUTH_TOKEN`; route-level 503 is different from global token failure.
 
 ## Operational follow-ups
 

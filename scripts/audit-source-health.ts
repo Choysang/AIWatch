@@ -20,8 +20,9 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DATA_PATH = join(ROOT, "data", "sources", "curated_ai_sources.json");
 const REPORT_PATH = join(ROOT, "data", "sources", "source_connectivity_report.csv");
 
-const DEFAULT_TIMEOUT_MS = 20_000;
-const DEFAULT_CONCURRENCY = 6;
+const DEFAULT_TIMEOUT_MS = 45_000;
+const DEFAULT_CONCURRENCY = 3;
+const RSSHUB_TIMEOUT_RETRY_MULTIPLIER = 2;
 
 interface CuratedSource {
   name: string;
@@ -87,11 +88,19 @@ async function auditOne(
     };
   }
   try {
-    const res = await fetch(target, {
-      headers: { "user-agent": "AIWatch/0.1 source-health-audit" },
-      signal: AbortSignal.timeout(timeoutMs),
-      redirect: "follow",
-    });
+    const fetchTarget = (ms: number) =>
+      fetch(target, {
+        headers: { "user-agent": "AIWatch/0.1 source-health-audit" },
+        signal: AbortSignal.timeout(ms),
+        redirect: "follow",
+      });
+    let res: Response;
+    try {
+      res = await fetchTarget(timeoutMs);
+    } catch (error) {
+      if (source.connectorType !== "rsshub" || !isTimeoutError(error)) throw error;
+      res = await fetchTarget(timeoutMs * RSSHUB_TIMEOUT_RETRY_MULTIPLIER);
+    }
     const contentType = res.headers.get("content-type") ?? "-";
     if (!res.ok) {
       return {
@@ -153,6 +162,11 @@ async function auditOne(
       error: error instanceof Error ? error.message : String(error),
     };
   }
+}
+
+function isTimeoutError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return error.name === "TimeoutError" || /timed out|timeout/i.test(error.message);
 }
 
 function csvEscape(value: string | number): string {
