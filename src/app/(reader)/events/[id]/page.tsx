@@ -22,6 +22,7 @@ import { CopyLinkButton } from "../../copy-link-button";
 import { TrackableOriginalLink } from "../../event-view-tracker";
 import { ReactionButtons } from "../../reaction-buttons";
 import { ImageLightbox } from "../../image-lightbox";
+import { MarkdownExportButton } from "../../markdown-export-button";
 
 export const dynamic = "force-dynamic";
 
@@ -178,6 +179,12 @@ export default async function EventDetailPage({
                 poster={cardMedia.poster}
               >
                 <source src={cardMedia.url} />
+                <track
+                  kind="captions"
+                  src="/captions-empty.vtt"
+                  srcLang="zh"
+                  label="原视频未提供字幕"
+                />
               </video>
             ) : (
               <ImageLightbox
@@ -198,14 +205,32 @@ export default async function EventDetailPage({
           canFetchFull={Boolean(event.url)}
         />
 
-        {event.url && (
-          <div className="original-actions">
-            <TrackableOriginalLink eventId={event.id} href={event.url}>
-              {m.detail.openOriginal} ↗
-            </TrackableOriginalLink>
-            <CopyLinkButton url={event.url} />
-          </div>
-        )}
+        <div className="original-actions">
+          {event.url && (
+            <>
+              <TrackableOriginalLink eventId={event.id} href={event.url}>
+                {m.detail.openOriginal} ↗
+              </TrackableOriginalLink>
+              <CopyLinkButton url={event.url} />
+            </>
+          )}
+          <MarkdownExportButton
+            title={event.title}
+            publishedAt={event.publishedAt?.toISOString() ?? null}
+            promotedAt={event.promotedAt?.toISOString() ?? null}
+            sourceName={event.sourceName}
+            category={event.category}
+            tags={event.tags}
+            qualityScore={event.qualityScore}
+            selectedLevel={event.selectedLevel}
+            selectedLabel={event.selectedLabel}
+            sourceUrl={event.sourceUrl}
+            originalUrl={event.url}
+            aiwatchPath={`/events/${event.id}`}
+            summary={event.summary}
+            recommendationReason={event.recommendationReason}
+          />
+        </div>
 
         <div className="card-bottom">
           {event.tags.slice(0, MAX_TAGS_DETAIL).map((tag) => (

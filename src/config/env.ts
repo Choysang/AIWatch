@@ -31,6 +31,9 @@ const LLM_PROVIDER_KEYS: Record<Exclude<(typeof LLM_PROVIDERS)[number], "stub">,
   qwen: "QWEN_API_KEY",
   openai_compatible: "OPENAI_COMPATIBLE_API_KEY",
 };
+const LLM_PROVIDER_BASE_URLS: Partial<Record<Exclude<(typeof LLM_PROVIDERS)[number], "stub">, string>> = {
+  openai_compatible: "OPENAI_COMPATIBLE_BASE_URL",
+};
 
 export interface EnvCheckResult {
   /** True when there are no hard errors for the given NODE_ENV. */
@@ -58,7 +61,7 @@ function configuredProviderChain(
 
 function requireLlmProviderKey(
   source: EnvSource,
-  task: "light_judge" | "deep_extract",
+  task: string,
   provider: LlmProvider,
   fail: (msg: string) => void,
 ): void {
@@ -66,6 +69,10 @@ function requireLlmProviderKey(
   const keyName = LLM_PROVIDER_KEYS[provider];
   if (!source[keyName]?.trim()) {
     fail(`${keyName} is not set; ${task} routes to ${provider} and will accumulate judge_failed`);
+  }
+  const baseUrlName = LLM_PROVIDER_BASE_URLS[provider];
+  if (baseUrlName && !source[baseUrlName]?.trim()) {
+    fail(`${baseUrlName} is not set; ${task} routes to ${provider} and has no default base URL`);
   }
 }
 
@@ -156,18 +163,35 @@ export function checkEnv(source: EnvSource = process.env): EnvCheckResult {
     fail("PUBLIC_BASE_URL must be an absolute http(s) URL");
   }
 
+  const unifiedProvider = configuredProviderChain(
+    source,
+    ["LLM_PROVIDER", "LLM_NEWS_PROVIDER"],
+    "openai_compatible",
+  );
   const lightProvider = configuredProviderChain(
     source,
     ["LLM_PROVIDER", "LLM_LIGHT_PROVIDER", "LLM_NEWS_PROVIDER"],
-    "deepseek",
+    "openai_compatible",
   );
   const deepProvider = configuredProviderChain(
     source,
     ["LLM_PROVIDER", "LLM_DEEP_PROVIDER", "LLM_NEWS_PROVIDER"],
-    "deepseek",
+    "openai_compatible",
   );
-  requireLlmProviderKey(source, "light_judge", lightProvider, fail);
-  requireLlmProviderKey(source, "deep_extract", deepProvider, fail);
+
+  const taskProviders: Array<[string, LlmProvider]> = [
+    ["prefilter", unifiedProvider],
+    ["light_judge", lightProvider],
+    ["deep_extract", deepProvider],
+    ["cold_judge", unifiedProvider],
+    ["comment_classification", unifiedProvider],
+    ["merge_detection", unifiedProvider],
+    ["s_level_review", unifiedProvider],
+    ["translation", deepProvider],
+  ];
+  for (const [task, provider] of taskProviders) {
+    requireLlmProviderKey(source, task, provider, fail);
+  }
 
   return { ok: errors.length === 0, errors, warnings };
 }

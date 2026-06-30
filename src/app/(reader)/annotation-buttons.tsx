@@ -4,7 +4,7 @@
 // 乐观切换，再点同一判决撤销。失败回滚并提示。事件卡片与信源行共用
 // （subjectType 默认 event；信源行传 source）。
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export type OwnerVerdict = "useful" | "not_useful";
 
@@ -17,14 +17,18 @@ export function AnnotationButtons({
   subjectType?: "event" | "source";
   initialVerdict: OwnerVerdict | null;
 }) {
+  const rootRef = useRef<HTMLSpanElement>(null);
   const [verdict, setVerdict] = useState<OwnerVerdict | null>(initialVerdict);
   const [error, setError] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const toggle = async (next: OwnerVerdict) => {
+    if (saving) return;
     const target = verdict === next ? null : next;
     const prev = verdict;
     setVerdict(target);
     setError(false);
+    setSaving(true);
     try {
       const res = await fetch("/api/annotations", {
         method: "POST",
@@ -32,18 +36,24 @@ export function AnnotationButtons({
         body: JSON.stringify({ subjectType, subjectId, verdict: target }),
       });
       if (!res.ok) throw new Error(`annotation failed: ${res.status}`);
+      if (subjectType === "event" && target) {
+        rootRef.current?.closest(".card:not(.card-detail)")?.classList.add("is-owner-reviewed");
+      }
     } catch {
       setVerdict(prev);
       setError(true);
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <span className="annotation-buttons" title="主理人标注：训练打分偏好">
+    <span ref={rootRef} className="annotation-buttons" title="主理人标注：训练打分偏好">
       <button
         type="button"
         className={`annotation-btn ${verdict === "useful" ? "is-active" : ""}`}
         aria-pressed={verdict === "useful"}
+        disabled={saving}
         onClick={() => toggle("useful")}
       >
         ✓ 有用
@@ -52,6 +62,7 @@ export function AnnotationButtons({
         type="button"
         className={`annotation-btn is-negative ${verdict === "not_useful" ? "is-active" : ""}`}
         aria-pressed={verdict === "not_useful"}
+        disabled={saving}
         onClick={() => toggle("not_useful")}
       >
         ✗ 没用

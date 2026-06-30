@@ -27,7 +27,7 @@ describe("reader home layout", () => {
     const feedIndex = pageSource.indexOf('className="feed"');
 
     expect(pageSource).toContain('import { CurrentHotspots } from "./current-hotspots"');
-    expect(pageSource).toContain("loadHomeData(query, limit)");
+    expect(pageSource).toContain("loadHomeData(query, limit, canReviewAnnotations)");
     expect(pageSource).toContain("listCurrentHotspots(recent.map((event) => event.id))");
     expect(searchIndex).toBeGreaterThan(-1);
     expect(hotspotsIndex).toBeGreaterThan(-1);
@@ -108,6 +108,12 @@ describe("reader home layout", () => {
     expect(pageSource).toContain("<FeedRefreshIndicator latestKey={latestKey} refreshQuery={refreshQuery} />");
   });
 
+  test("hides already owner-reviewed events only for owner/admin triage", () => {
+    expect(pageSource).toContain("canReviewOwnerAnnotations()");
+    expect(pageSource).toContain("loadHomeData(query, limit, canReviewAnnotations)");
+    expect(pageSource).toContain("loadOwnerAnnotations(eventIds, canReviewAnnotations)");
+  });
+
   test("new-feed indicator reloads the current route and returns readers to the newest card", () => {
     expect(feedRefreshSource).toContain('const LIVE_REFRESH_PARAM = "_live";');
     expect(feedRefreshSource).toContain("const POLL_INTERVAL_MS = 30_000;");
@@ -121,7 +127,7 @@ describe("reader home layout", () => {
     expect(cssSource).toContain('html[data-reader-theme="light"] .reader-home .chip');
     expect(cssSource).toContain('html[data-reader-theme="light"] .reader-home .chip:hover');
     expect(cssSource).toContain('html[data-reader-theme="light"] .bento-cell:hover .card');
-    expect(cssSource).toContain('html[data-reader-theme="light"] .quick-feedback');
+    expect(cssSource).toContain('html[data-reader-theme="light"] .reader-home .reaction-down.on');
     expect(cssSource).toContain(
       'html[data-reader-theme="light"] .reader-home .reaction:hover:not(:disabled)',
     );

@@ -156,7 +156,7 @@ function availableCategories(events: EventCardData[]): EventCategory[] {
   return EVENT_CATEGORIES.filter((category) => seen.has(category));
 }
 
-function toFeedFilter(query: PublicQuery): FeedFilter {
+function toFeedFilter(query: PublicQuery, hideOwnerAnnotated = false): FeedFilter {
   return {
     mode: query.mode,
     since: query.since,
@@ -171,6 +171,7 @@ function toFeedFilter(query: PublicQuery): FeedFilter {
     category: query.category,
     dateFrom: query.dateFrom,
     dateTo: query.dateTo,
+    hideOwnerAnnotated,
   };
 }
 
@@ -179,9 +180,13 @@ function timelineTime(event: EventCardData, mode: PublicQuery["mode"]): Date {
   return event.publishedAt ?? event.promotedAt ?? event.createdAt;
 }
 
-async function loadHomeData(query: PublicQuery, limit: number): Promise<EventCardData[]> {
+async function loadHomeData(
+  query: PublicQuery,
+  limit: number,
+  hideOwnerAnnotated = false,
+): Promise<EventCardData[]> {
   try {
-    const candidates = await searchEvents(toFeedFilter(query), limit);
+    const candidates = await searchEvents(toFeedFilter(query, hideOwnerAnnotated), limit);
     return candidates.slice(0, limit);
   } catch (error) {
     // No DB yet (fresh clone before migrate/seed) → show the setup hint, don't crash.
@@ -241,11 +246,12 @@ async function loadPersonalizedData(
   query: PublicQuery,
   limit: number,
   reader: ReaderInterestState,
+  hideOwnerAnnotated = false,
 ): Promise<EventCardData[]> {
   const personalized: PublicQuery = reader.hasBoards
     ? { ...query, mode: "all", interests: reader.interests }
     : { ...query, mode: "all" };
-  return loadHomeData(personalized, limit);
+  return loadHomeData(personalized, limit, hideOwnerAnnotated);
 }
 
 async function loadViewerReactions(
@@ -275,14 +281,23 @@ async function loadViewerReactions(
 }
 
 // 点6：主理人（owner/admin）在信息流上直接标注；非主理人返回 null（卡片不渲染按钮）。
-async function loadOwnerAnnotations(
-  eventIds: string[],
-): Promise<Map<string, AnnotationVerdict> | null> {
-  if (eventIds.length === 0) return null;
+async function canReviewOwnerAnnotations(): Promise<boolean> {
   try {
     const session = await getSession();
     const role = (session?.user as { role?: string } | undefined)?.role ?? "user";
-    if (role !== "owner" && role !== "admin") return null;
+    return role === "owner" || role === "admin";
+  } catch (error) {
+    log.warn("[reader] loadOwnerReviewCapability failed", handledErrorDetails(error));
+    return false;
+  }
+}
+
+async function loadOwnerAnnotations(
+  eventIds: string[],
+  canReview: boolean,
+): Promise<Map<string, AnnotationVerdict> | null> {
+  if (!canReview || eventIds.length === 0) return null;
+  try {
     return await getOwnerAnnotations("event", eventIds);
   } catch (error) {
     log.warn("[reader] loadOwnerAnnotations failed", handledErrorDetails(error));
@@ -342,17 +357,24 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const sp = await searchParams;
   const parsedQuery = toQuery(sp);
   const limit = parseHomeLimit(sp);
-  const [{ query, defaultApplied, isLoggedIn }, sourceOptions, readerInterests, hotspots] =
+  const [
+    { query, defaultApplied, isLoggedIn },
+    sourceOptions,
+    readerInterests,
+    hotspots,
+    canReviewAnnotations,
+  ] =
     await Promise.all([
       applySavedSourceDefaults(sp, parsedQuery),
       loadSourceOptions(),
       loadReaderInterests(),
       loadGlobalHotspots(),
+      canReviewOwnerAnnotations(),
     ]);
   const events =
     query.mode === "personalized"
-      ? await loadPersonalizedData(query, limit, readerInterests)
-      : await loadHomeData(query, limit);
+      ? await loadPersonalizedData(query, limit, readerInterests, canReviewAnnotations)
+      : await loadHomeData(query, limit, canReviewAnnotations);
   const latestEvent = events[0];
   const latestKey = latestEvent
     ? `${latestEvent.id}:${latestEvent.publishedAt?.toISOString() ?? ""}:${latestEvent.promotedAt?.toISOString() ?? ""}`
@@ -375,7 +397,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const [reactions, topComments, ownerAnnotations] = await Promise.all([
     loadViewerReactions(eventIds),
     loadTopComments(commentEventIds),
-    loadOwnerAnnotations(eventIds),
+    loadOwnerAnnotations(eventIds, canReviewAnnotations),
   ]);
   const m = messages;
   const isFiltered = Boolean(

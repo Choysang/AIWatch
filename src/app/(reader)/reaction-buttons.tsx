@@ -1,13 +1,11 @@
-// Reaction buttons (Slice 8, reworked 方案B): positive feedback lives ONLY in the bottom
-// ♥ like / ★ star row; the hover-revealed top-right corner keeps a single 👎 "不感兴趣"
-// that visibly collapses the card (see .card:has(.quick-feedback-button.is-negative.on)
-// in globals.css) and offers an undo banner. Down still feeds the rank-v4 penalty.
+// Reaction buttons (Slice 8): public reader feedback lives in the bottom card row.
+// "无用" visibly collapses feed cards while still keeping the undo affordance available.
 // Optimistic updates with rollback on failure. Calls POST /api/events/[id]/reactions.
 // Identity comes from the request cookie/session — this component just sends ops.
 
 "use client";
 
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useState } from "react";
 import { messages } from "@/i18n";
 
 interface ReactionButtonsProps {
@@ -72,11 +70,12 @@ export function ReactionButtons({
     downed: initialDowned,
   });
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isSaving, setIsSaving] = useState(false);
   const m = messages.card;
 
   const toggle = useCallback(
     (kind: Kind) => {
+      if (isSaving) return;
       // Snapshot the pre-toggle state so we can roll back on failure.
       const prev = state;
       const isOn = kind === "like" ? prev.liked : kind === "star" ? prev.starred : prev.downed;
@@ -105,47 +104,34 @@ export function ReactionButtons({
         downed: nextDowned,
       });
       setError(null);
+      setIsSaving(true);
 
-      startTransition(() => {
-        postReaction(eventId, kind, op)
-          .then((result) => {
-            // Reconcile counts with server truth; keep our local toggle.
-            setState((cur) => ({
-              ...cur,
-              likeCount: result.likeCount,
-              starCount: result.starCount,
-              downCount: result.downCount,
-            }));
-          })
-          .catch(() => {
-            // Roll back the optimistic toggle + count.
-            setState(prev);
-            setError(m.reactionError);
-          });
-      });
+      postReaction(eventId, kind, op)
+        .then((result) => {
+          // Reconcile counts with server truth; keep our local toggle.
+          setState((cur) => ({
+            ...cur,
+            likeCount: result.likeCount,
+            starCount: result.starCount,
+            downCount: result.downCount,
+          }));
+        })
+        .catch(() => {
+          // Roll back the optimistic toggle + count.
+          setState(prev);
+          setError(m.reactionError);
+        })
+        .finally(() => setIsSaving(false));
     },
-    [eventId, m.reactionError, state],
+    [eventId, isSaving, m.reactionError, state],
   );
 
   return (
     <div className="reactions" aria-live="polite">
-      <div className="quick-feedback" aria-label={m.quickFeedback}>
-        <button
-          type="button"
-          className={`quick-feedback-button is-negative ${state.downed ? "on" : ""}`}
-          aria-pressed={state.downed}
-          aria-label={state.downed ? m.downed : m.down}
-          title={state.downed ? m.downed : m.down}
-          disabled={isPending}
-          onClick={() => toggle("down")}
-        >
-          <span aria-hidden="true">👎</span>
-        </button>
-      </div>
       {state.downed && (
         <div className="downed-banner">
           <span>{m.downedNotice}</span>
-          <button type="button" disabled={isPending} onClick={() => toggle("down")}>
+          <button type="button" disabled={isSaving} onClick={() => toggle("down")}>
             {m.undo}
           </button>
         </div>
@@ -155,10 +141,12 @@ export function ReactionButtons({
         className={`reaction reaction-like ${state.liked ? "on" : ""}`}
         aria-pressed={state.liked}
         aria-label={state.liked ? m.liked : m.like}
-        disabled={isPending}
+        title={state.liked ? m.liked : m.like}
+        disabled={isSaving}
         onClick={() => toggle("like")}
       >
         <span aria-hidden="true">{state.liked ? "♥" : "♡"}</span>
+        <span>{m.like}</span>
         <span className="count">{state.likeCount}</span>
       </button>
       <button
@@ -166,11 +154,26 @@ export function ReactionButtons({
         className={`reaction reaction-star ${state.starred ? "on" : ""}`}
         aria-pressed={state.starred}
         aria-label={state.starred ? m.starred : m.star}
-        disabled={isPending}
+        title={state.starred ? m.starred : m.star}
+        disabled={isSaving}
         onClick={() => toggle("star")}
       >
         <span aria-hidden="true">{state.starred ? "★" : "☆"}</span>
+        <span>{m.star}</span>
         <span className="count">{state.starCount}</span>
+      </button>
+      <button
+        type="button"
+        className={`reaction reaction-down ${state.downed ? "on" : ""}`}
+        aria-pressed={state.downed}
+        aria-label={state.downed ? m.downed : m.down}
+        title={state.downed ? m.downed : m.down}
+        disabled={isSaving}
+        onClick={() => toggle("down")}
+      >
+        <span aria-hidden="true">−</span>
+        <span>{m.down}</span>
+        <span className="count">{state.downCount}</span>
       </button>
       {error && <output className="reaction-error">{error}</output>}
     </div>

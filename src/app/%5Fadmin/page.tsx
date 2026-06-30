@@ -21,7 +21,6 @@ import { listManagedSources } from "@/db/queries/sources";
 import { messages } from "@/i18n";
 import { DEFAULT_SOURCE_PROFILE } from "@/sources/source-form";
 import { inferAiSourceCategory } from "@/sources/ai-source-categories";
-import { checkManagedSourcesFetchHealth } from "@/sources/source-health-check";
 import { SourceManagementSection, type SourceAnnotationCell } from "./sources/source-management";
 import type { SourceRecommendationReviewItem } from "./sources/source-review-dialog";
 
@@ -205,7 +204,7 @@ export default async function AdminPage() {
     listFeedback(),
     listContributions(),
   ]);
-  const sources = await checkManagedSourcesFetchHealth(sourceRows);
+  const sources = sourceRows;
 
   // 点6 切片E：每信源的主理人判决 + 事件标注聚合（亲和度/晋降级建议）。
   const [sourceVerdicts, { profile }] = await Promise.all([

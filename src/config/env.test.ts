@@ -15,7 +15,8 @@ function prodEnv(overrides: Record<string, string | undefined> = {}): Record<str
     BETTER_AUTH_SECRET: STRONG_SECRET,
     READER_ID_SECRET: STRONG_READER_SECRET,
     CONTRIBUTION_SALT: STRONG_SALT,
-    DEEPSEEK_API_KEY: "ds-test",
+    OPENAI_COMPATIBLE_API_KEY: "sk-test",
+    OPENAI_COMPATIBLE_BASE_URL: "https://example.test/v1",
     RSSHUB_BASE_URL: "http://rsshub:1200",
     ...overrides,
   };
@@ -111,15 +112,21 @@ describe("checkEnv", () => {
     expect(result.errors.join(" ")).toContain("PUBLIC_BASE_URL");
   });
 
-  test("fails when default light and deep LLM routes have no DeepSeek key in production", () => {
-    const result = checkEnv(prodEnv({ DEEPSEEK_API_KEY: undefined }));
+  test("fails when default light and deep LLM routes have no OpenAI-compatible key in production", () => {
+    const result = checkEnv(prodEnv({ OPENAI_COMPATIBLE_API_KEY: undefined }));
     expect(result.ok).toBe(false);
-    expect(result.errors.join(" ")).toContain("DEEPSEEK_API_KEY");
+    expect(result.errors.join(" ")).toContain("OPENAI_COMPATIBLE_API_KEY");
   });
 
-  test("allows replacing the default DeepSeek light and deep routes with another keyed provider", () => {
+  test("fails when default OpenAI-compatible routes have no base URL in production", () => {
+    const result = checkEnv(prodEnv({ OPENAI_COMPATIBLE_BASE_URL: undefined }));
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(" ")).toContain("OPENAI_COMPATIBLE_BASE_URL");
+  });
+
+  test("allows replacing the default OpenAI-compatible light and deep routes with another keyed provider", () => {
     const result = checkEnv(prodEnv({
-      DEEPSEEK_API_KEY: undefined,
+      OPENAI_COMPATIBLE_API_KEY: undefined,
       LLM_PROVIDER: "openai",
       OPENAI_API_KEY: "sk-test",
     }));

@@ -7,6 +7,7 @@
 
 | 版本 | 变更 | 必需 | 破坏性 | 备注 |
 |------|------|------|--------|------|
+| v0.5.x | 默认 LLM 路由统一为 `openai_compatible` + `deepseek-ai/deepseek-v4-flash` | 是 | 否 | 生产需同时设置 `OPENAI_COMPATIBLE_API_KEY` 与 `OPENAI_COMPATIBLE_BASE_URL`；`LLM_PROVIDER/LLM_MODEL` 可显式改回其他 keyed provider |
 | v0.5.x | `OPENAI_COMPATIBLE_BASE_URL` → `https://newapi.ccspcservices.com/v1` | 是 | 否 | 旧网关 `119.29.65.250:4001` 曾因 FortiGate 自签证 TLS 报错 |
 | v0.4.4 | 新增 `SOURCE_ALERT_EMAIL`（X 源失效邮件告警） | 否 | 否 | 需配 `RESEND_API_KEY` + `AUTH_EMAIL_FROM` 才生效 |
 | v0.4.2 | 价目表新增 DeepSeek-V4-Flash 条目 | 是 | 否 | 镜像换模型必须同步 `pricing`，否则 spend_guard ledger 失明 |

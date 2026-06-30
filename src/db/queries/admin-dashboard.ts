@@ -159,7 +159,7 @@ export async function loadAdminDashboard(db: DB = defaultDb): Promise<AdminDashb
         LEFT JOIN event_counts ON event_counts.day = days.day
         LEFT JOIN view_counts ON view_counts.day = days.day
         LEFT JOIN spend_counts ON spend_counts.day = days.day
-        ORDER BY days.day ASC
+        ORDER BY days.day DESC
       `),
       db.execute(sql<SourceHealthRow>`
         SELECT ${sources.healthStatus} AS "healthStatus", ${sources.platform} AS platform, count(*)::int AS count

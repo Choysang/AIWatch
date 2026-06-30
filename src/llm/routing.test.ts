@@ -50,6 +50,14 @@ async function freshRouting(): Promise<typeof import("./routing")> {
 }
 
 describe("resolveProvider — fail-closed semantics", () => {
+  test("default routes use one OpenAI-compatible DeepSeek gateway model", async () => {
+    const { llmRouting, LLM_TASKS } = await freshRouting();
+    for (const task of LLM_TASKS) {
+      expect(llmRouting[task].provider).toBe("openai_compatible");
+      expect(llmRouting[task].model).toBe("deepseek-ai/deepseek-v4-flash");
+    }
+  });
+
   test("returns null when the route's key is missing and stub fallback is off", async () => {
     const { resolveProvider } = await freshRouting();
     expect(resolveProvider("cold_judge")).toBeNull();
@@ -64,11 +72,12 @@ describe("resolveProvider — fail-closed semantics", () => {
   });
 
   test("returns the real provider when the route's key is configured", async () => {
-    process.env.OPENAI_API_KEY = "sk-test";
+    process.env.OPENAI_COMPATIBLE_API_KEY = "sk-test";
+    process.env.OPENAI_COMPATIBLE_BASE_URL = "http://localhost:4001/v1";
     const { resolveProvider } = await freshRouting();
     const p = resolveProvider("cold_judge");
     expect(p).not.toBeNull();
-    expect(p?.name).toBe("openai");
+    expect(p?.name).toBe("openai_compatible");
   });
 
   test("anthropic + google adapters still fail closed even with key configured", async () => {
@@ -84,16 +93,15 @@ describe("resolveProvider — fail-closed semantics", () => {
   });
 
   test("default routes for s_level_review + merge_detection resolve to a real provider", async () => {
-    // Guards against silently re-routing back to anthropic/google before adapters ship.
-    process.env.OPENAI_API_KEY = "sk-test";
-    process.env.DEEPSEEK_API_KEY = "ds-test";
+    // Guards against silently re-routing away from the unified OpenAI-compatible gateway.
+    process.env.OPENAI_COMPATIBLE_API_KEY = "sk-test";
+    process.env.OPENAI_COMPATIBLE_BASE_URL = "http://localhost:4001/v1";
     const { resolveProvider } = await freshRouting();
     const sLevel = resolveProvider("s_level_review");
     const merge = resolveProvider("merge_detection");
     if (!sLevel || !merge) throw new Error("expected both routes to resolve to a provider");
-    // Both names live in the OpenAI-shape adapter family.
-    expect(["openai", "deepseek", "qwen", "openai_compatible"]).toContain(sLevel.name);
-    expect(["openai", "deepseek", "qwen", "openai_compatible"]).toContain(merge.name);
+    expect(sLevel.name).toBe("openai_compatible");
+    expect(merge.name).toBe("openai_compatible");
   });
 
   test("providerConfigured reflects env presence", async () => {
@@ -127,5 +135,17 @@ describe("resolveProvider — fail-closed semantics", () => {
     expect(llmRouting.deep_extract.model).toBe("Pro/moonshotai/Kimi-K2.6");
     expect(resolveProvider("light_judge")?.name).toBe("openai_compatible");
     expect(resolveProvider("deep_extract")?.name).toBe("openai_compatible");
+  });
+
+  test("LLM_PROVIDER and LLM_MODEL act as the global route override", async () => {
+    process.env.LLM_PROVIDER = "openai";
+    process.env.LLM_MODEL = "gpt-4.1-mini";
+    process.env.OPENAI_API_KEY = "sk-test";
+    const { llmRouting, LLM_TASKS, resolveProvider } = await freshRouting();
+    for (const task of LLM_TASKS) {
+      expect(llmRouting[task].provider).toBe("openai");
+      expect(llmRouting[task].model).toBe("gpt-4.1-mini");
+      expect(resolveProvider(task)?.name).toBe("openai");
+    }
   });
 });

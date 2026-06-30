@@ -918,78 +918,16 @@ canvas {
   gap: 0.25rem;
   margin-left: 0.4rem;
 }
-.quick-feedback {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  z-index: 4;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.28rem;
-  padding: 0.18rem;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: color-mix(in oklch, var(--paper-raised) 86%, transparent);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(-4px);
-  transition:
-    opacity 140ms ease,
-    transform 140ms ease,
-    border-color 140ms ease;
-}
-.card:hover .quick-feedback,
-.card:focus-within .quick-feedback {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
-}
-.quick-feedback-button {
-  width: 2rem;
-  height: 2rem;
-  display: inline-grid;
-  place-items: center;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--ink-soft);
-  font: inherit;
-  font-size: 1rem;
-  line-height: 1;
-  cursor: pointer;
-  transition:
-    background 140ms ease,
-    color 140ms ease,
-    transform 120ms ease;
-}
-.quick-feedback-button:hover:not(:disabled),
-.quick-feedback-button:focus-visible {
-  background: var(--accent-weak);
-  color: var(--ink);
-  outline: none;
-}
-.quick-feedback-button:active:not(:disabled) {
-  transform: translateY(1px);
-}
-.quick-feedback-button:disabled {
-  cursor: progress;
-  opacity: 0.55;
-}
-.quick-feedback-button.on.is-negative {
-  background: oklch(30% 0.055 25);
-  color: oklch(76% 0.14 28);
-}
-/* 方案B: a downed card collapses to a quiet semi-transparent stub. The banner
-   (rendered by ReactionButtons when downed) sits inside the visible stub and
-   carries the undo affordance; the corner 👎 stays reachable as a second undo. */
-.card:not(.card-detail):has(.quick-feedback-button.is-negative.on) {
+/* A downed card collapses to a quiet semi-transparent stub. The banner
+   (rendered by ReactionButtons when downed) sits inside the visible stub
+   and carries the undo affordance. */
+.card:not(.card-detail):has(.reaction-down.on) {
   max-height: 4.6rem;
   overflow: hidden;
   opacity: 0.55;
 }
-.card:not(.card-detail):has(.quick-feedback-button.is-negative.on):hover,
-.card:not(.card-detail):has(.quick-feedback-button.is-negative.on):focus-within {
+.card:not(.card-detail):has(.reaction-down.on):hover,
+.card:not(.card-detail):has(.reaction-down.on):focus-within {
   opacity: 0.85;
 }
 /* On the detail page the banner reads as plain inline feedback, not an overlay. */
@@ -1071,6 +1009,11 @@ canvas {
   color: var(--gold);
   border-color: var(--gold);
   background: oklch(96% 0.06 85);
+}
+.reaction.reaction-down.on {
+  color: oklch(63% 0.16 28);
+  border-color: oklch(63% 0.16 28);
+  background: color-mix(in oklch, oklch(63% 0.16 28) 12%, transparent);
 }
 .reaction .count {
   min-width: 1ch;
@@ -1384,6 +1327,9 @@ canvas {
 .copy-link-btn.is-copied {
   color: var(--accent);
   border-color: var(--accent);
+}
+.markdown-export-btn {
+  min-width: 8.75rem;
 }
 
 /* comments section */
@@ -5026,16 +4972,11 @@ html[data-reader-theme="light"] .bento-cell:hover .card {
     rgba(255, 255, 255, 0.92);
   border-color: rgb(var(--card-accent) / 0.35);
 }
-html[data-reader-theme="light"] .quick-feedback {
-  background: rgba(255, 255, 255, 0.92);
-  border-color: rgba(22, 31, 48, 0.12);
-  box-shadow: 0 10px 28px rgba(30, 38, 58, 0.14);
-}
 html[data-reader-theme="light"] .reader-home .reaction:hover:not(:disabled) {
   border-color: rgba(22, 31, 48, 0.24);
   color: var(--rh-text);
 }
-html[data-reader-theme="light"] .quick-feedback-button.on.is-negative {
+html[data-reader-theme="light"] .reader-home .reaction-down.on {
   background: rgba(207, 63, 63, 0.12);
   color: rgb(174, 39, 39);
 }
@@ -5718,9 +5659,13 @@ html[data-reader-theme="light"] .reader-sidebar-actions a:hover {
   padding: 0.15rem 0.55rem;
   cursor: pointer;
 }
-.annotation-btn:hover {
+.annotation-btn:hover:not(:disabled) {
   border-color: rgb(92 163 255 / 0.6);
   color: var(--rh-text, var(--ink));
+}
+.annotation-btn:disabled {
+  cursor: progress;
+  opacity: 0.58;
 }
 .annotation-btn.is-active {
   color: #7ee2a8;
@@ -5735,6 +5680,9 @@ html[data-reader-theme="light"] .reader-sidebar-actions a:hover {
 .annotation-error {
   font-size: 0.7rem;
   color: #ff9d9d;
+}
+.card:not(.card-detail).is-owner-reviewed {
+  display: none;
 }
 
 /* 手机：保留窄时间轴，缩小卡片密度，速览栏仍为全宽浮层 */

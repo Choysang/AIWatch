@@ -45,7 +45,8 @@ to manage on the build side.
    (already present under `/srv/aiwatch/current` from the existing checkout; a `git pull`
    refreshes them). `.env` must keep `DATABASE_SSL=disable`, `PUBLIC_BASE_URL` set to the
    canonical public origin, `TRUSTED_PROXY_HOPS` set to the real CDN/proxy hop count,
-   `CSP_ENFORCE=1`, `DEEPSEEK_API_KEY` (unless `LLM_PROVIDER` points at another keyed provider), `CONTRIBUTION_SALT`,
+   `CSP_ENFORCE=1`, `OPENAI_COMPATIBLE_API_KEY`, `OPENAI_COMPATIBLE_BASE_URL`
+   (unless `LLM_PROVIDER` points at another keyed provider), `CONTRIBUTION_SALT`,
    `POSTGRES_PASSWORD`, `BETTER_AUTH_SECRET`, `RSSHUB_BASE_URL=http://rsshub:1200`, etc.
 
 ## Deploying a release

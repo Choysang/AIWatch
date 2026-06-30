@@ -1,122 +1,188 @@
 # AIWatch
 
-中文 AI 热点精选。流水线:爬取 → LLM 结构化判断 → 确定性评分/晋级 → reader / admin / 公共 Skill。
-完整设计与决策见 `docs/superpowers/specs/2026-05-23-aiwatch-hot-design.md`(含 `Resolved Implementation Decisions` 与 `Build & Delivery Decisions`)。
+> AI 圈一天发太多东西，等我反应过来已经过气了。AIWatch 把高信号 AI 动态、每日精编日报和可编程接口放在一起，让人和 Agent 都能更快知道今天真正值得看的事。
 
-## 前置依赖:Bun(必装)
+[在线体验](https://aiwatch.icu/) · [Agent 接入](https://aiwatch.icu/aiwatch-skill/) · [SKILL.md](https://aiwatch.icu/aiwatch-skill/SKILL.md) · [OpenAPI 3.1](https://aiwatch.icu/openapi.yaml)
 
-**Bun 是必装前置依赖**,用于安装 / 开发 / CI。Node 仅作为 web 的兼容运行时,不用于装依赖。`bun.lock` 是唯一锁文件;`package-lock.json` / `pnpm-lock.yaml` / `yarn.lock` 禁止提交。
+AIWatch 是一个中文优先的 AI 信息雷达：从官方博客、研究团队、产品账号、技术分享者和行业信源抓取内容，经过去重归组、LLM 结构化判断、确定性评分和主理人偏好校准，输出精选动态、全部动态、日报/周报/月报、RSS、匿名 REST API 和 Agent Skill。
 
-- 安装 Bun:<https://bun.sh>(Windows PowerShell:`irm bun.sh/install.ps1 | iex`)
-- `package.json` 钉了 `packageManager: "bun@1.2.21"`。装好后用 `bun --version` 核对,如不同请更新该字段。
+## 它能做什么
 
-## 快速开始(Docker,推荐自托管路径)
+- **低噪 AI 信息流**：精选模式会压低官方 PR、客户案例、营销软文和低价值转发；全部动态仍按时间线保留，方便追溯。
+- **中文站内阅读**：外文内容自动整理为中文标题、摘要、推荐理由和正文；详情页保留原文入口、富文本正文、图片、代码块和表格。
+- **重复报道归组**：同一事件的官方原文、中文报道、X 转发和二次解读会合并到一个事件里，优先保留最早来源并展示多信源覆盖。
+- **每日/每周/每月报告**：日报帮助快速读完一天，周报/月报沉淀趋势；历史归档可按日期回看。
+- **偏好学习**：管理员的“有用 / 无用”标注会进入长期偏好，影响精选权重、信源复核和降噪规则。
+- **读者工作台**：支持搜索、分类、信源筛选、主题板、点赞、收藏、评论、反馈和推荐信源。
+- **RSS / API / Skill 三轨接入**：阅读器、脚本和 Agent 都能匿名读取公开内容，无需 API Key、无需 MCP server。
+- **管理员看板**：查看信源输出、健康状态、LLM 成本、站点阅读行为、精选晋级和用户反馈。
+
+## Agent 一句话接入
+
+让支持 `SKILL.md` 的 Agent 用最自然的中文一句话拿到 AIWatch 每天的 AI 动态和日报。
+
+在 Claude Code、Codex CLI、Cursor、Gemini CLI、GitHub Copilot、OpenCode、Cline、Windsurf 等 Agent 里直接发送：
+
+```text
+帮我安装这个 skill：https://aiwatch.icu/aiwatch-skill/
+```
+
+安装后可以这样问：
+
+```text
+今天 AI 圈有什么新东西
+看一下今天的 AI 日报
+最近 OpenAI 有什么发布
+最近一周的 AI 论文
+看下精选条目
+AI 模型发布列表
+最近 3 天 AI 行业动态
+AI 圈昨天发生了什么
+```
+
+Skill 会按意图自动分流：
+
+| 用户意图 | 端点 |
+| --- | --- |
+| 默认宽问题，例如“今天 AI 圈” | `GET /api/public/items?mode=selected&since=...` |
+| 明确说“日报” | `GET /api/public/daily` 或 `GET /api/public/daily/{date}` |
+| 明确说“全部 / 完整 / 全量” | `GET /api/public/items?mode=all&since=all` |
+| 模型 / 产品 / 论文 / 技巧等分类问题 | `GET /api/public/items?mode=selected&category=...` |
+| 公司、产品、关键词搜索 | `GET /api/public/items?q=OpenAI` |
+| 查询有哪些日报日期 | `GET /api/public/dailies?take=N` |
+
+> 搜索在服务端完成，不需要 Agent 先拉全量再本地 grep。
+
+## RSS 订阅
+
+所有主流 RSS reader 都可以直接订阅：
+
+| Feed | 适合谁 | URL |
+| --- | --- | --- |
+| AIWatch 精选 | 大多数人，只想看每天最值得读的内容 | `https://aiwatch.icu/feed.xml` |
+| 全部 AI 动态 | 想自己筛选、追更一手信息的人 | `https://aiwatch.icu/feed/all.xml` |
+| AIWatch 日报 | 想在阅读器里每天读一篇精编日报的人 | `https://aiwatch.icu/feed/daily.xml` |
+
+RSS 2.0，UTF-8。条目链接指向站内阅读页，正文尽量内联，原文链接保留在条目末尾。
+
+## 公共 API
+
+公开端点匿名只读，只暴露浏览器里也能看到的最终内容字段；完整 schema 见 [OpenAPI 3.1](https://aiwatch.icu/openapi.yaml)。
 
 ```bash
-cp .env.example .env             # 设好 BETTER_AUTH_SECRET;LLM/连接器 key 可留空
-docker compose up --build        # Postgres + web + worker;web 启动时自动迁移
-docker compose run --rm web bun run db:seed:demo            # 可选:灌 mock 演示数据
+curl 'https://aiwatch.icu/api/public/items?mode=selected&since=today'
+curl 'https://aiwatch.icu/api/public/items?q=OpenAI'
+curl 'https://aiwatch.icu/api/public/daily'
+curl 'https://aiwatch.icu/api/public/dailies?take=10'
+```
+
+常用参数：
+
+- `mode`: `selected`（精选，默认）或 `all`（全部动态）
+- `since`: `today`、`week`、`month`、`all`
+- `category`: `product`、`technology`、`tips`、`discussion`
+- `contentTypes`: `release`、`research`、`howto`、`opinion`、`news`
+- `sourceTypes`: `official`、`employee`、`expert`、`kol`、`media`、`community`、`open_source_project`
+- `q`: 服务端搜索标题、摘要、来源和标签
+- `take`: 默认 20，最大 50，使用 `next_cursor` 翻页
+
+## 工作流
+
+```mermaid
+flowchart LR
+  A["信源抓取<br/>RSS / RSSHub / 手动源"] --> B["确定性门控<br/>AI 相关性 / 噪音过滤"]
+  B --> C["去重归组<br/>URL / 事件签名 / 原始来源"]
+  C --> D["LLM 结构化判断<br/>摘要 / 分类 / 推荐理由"]
+  D --> E["确定性评分<br/>质量分 / 时间衰减 / 偏好权重"]
+  E --> F["阅读端<br/>精选 / 最新 / 详情页"]
+  E --> G["报告<br/>日报 / 周报 / 月报"]
+  F --> H["RSS / API / Skill"]
+  G --> H
+```
+
+核心原则：
+
+- **LLM 只给结构化判断**，最终评分、晋级、归组、预算和展示规则尽量由确定性代码完成。
+- **精选宁缺毋滥**，全部动态保留时间线；“有用 / 无用”标注长期影响权重，而不是一次性手调。
+- **信源是数据，连接器是代码**。生产信源和事件库是运营资产，开源仓库只包含代码、schema、工具和示例数据。
+- **失败闭合**。LLM、RSSHub、抓取器或预算异常时会记录失败状态，不用假数据静默兜底。
+
+## Loop Engineering（持续进行中）
+
+AIWatch 会按“发现问题 → 调研竞品 → 小步实现 → 验证上线 → 复盘沉淀”的循环持续迭代。以下方向不是一次性完成项，而是每轮更新都会回看的长期轨道：
+
+- **信源故障处理台**：集中显示 X token、RSSHub、失败信源、失败原因、建议动作和一键重测。
+- **偏好影响说明**：解释一次“有用 / 无用”标注如何改变分类、信源、关键词和精选权重。
+- **事件多源视角**：同一热点下展示官方、中文媒体、英文原文、开发者和 X 讨论的共同点与差异。
+- **信源导入向导**：导入后立即抓取最新一条，成功才启用，失败给出可行动原因。
+- **运维清理任务**：把磁盘、旧镜像、日志、RSSHub token、LLM token 预算纳入后台看板。
+- **知识库导出与 AI 管家**：详情页输出 Markdown / Obsidian frontmatter，站内 AI 助手回答当前内容和功能使用问题。
+
+## 自托管快速开始
+
+### Docker
+
+```bash
+cp .env.example .env
+docker compose up --build
+docker compose run --rm web bun run db:seed:demo
 docker compose run --rm web bun run setup:owner you@example.com 'your-password'
-# 打开 http://localhost:3000  (后台:/_admin,先 /login 登录 owner)
 ```
 
-## 快速开始(本地开发)
+打开 `http://localhost:3000`。后台为 `/_admin`，需要先登录 owner 账号。
+
+### 本地开发
 
 ```bash
-docker compose up -d db          # 本地 Postgres(或自备 DATABASE_URL)
-cp .env.example .env             # 至少填 DATABASE_URL;无任何 API key 也能跑 demo
+docker compose up -d db
+cp .env.example .env
 bun install
-bun run db:migrate               # 应用迁移(改 schema 后先 bun run db:generate)
-bun run db:seed:demo             # 灌少量 mock 数据(无需凭据)
-bun run setup:owner you@example.com 'your-password'   # 创建 owner 账号
-bun run dev                      # 终端 1: web (Next.js)
-bun run worker                   # 终端 2: 长驻 Bun worker (graphile-worker)
+bun run db:migrate
+bun run db:seed:demo
+bun run setup:owner you@example.com 'your-password'
+bun run dev
 ```
 
-## 拓扑(单仓库,两个进程)
-
-- `src/app` — Next.js:reader 站 + `/_admin`(不挂导航) + `/api/public`
-- `worker/` — 长驻 Bun 进程:爬取 / 判断 / 评分 / 晋级 / 日报 cron
-- 共享 framework-agnostic 模块:`src/{db,scoring,llm,connectors,core,auth}`
-
-## 关键原则
-
-- **确定性优先**:LLM 只产出不可变结构化输入;确定性代码/SQL 算出所有派生分。调权重 = 重跑,不重新推理。
-- 评分由两个独立信号合成:`base_score`(LLM 维度 → 确定性合成,代表“内容质量”)与 `promotion_score`(`base_score` × 时间衰减 + 来源等级 + 读者强信号 like/star/expert-comment + 专家加权)。`base_score` 不被读者信号污染;`promotion_score` 是 A/S 晋级的唯一闸口,且每 `RECOMPUTE_PROMOTION_SCORE_INTERVAL`(默认 5 分钟)由 `recompute-promotion-scores` 重算。
-- 评分权重在 `src/scoring/config.ts`(config-as-code,`scoring_config_version` 版本戳)。每条 score 盖 config/prompt/model 版本 + breakdown 快照;LLM 路由版本戳为 `routing-v2`(`src/llm/routing.ts`)。
-- **LLM 失败闭合(fail-closed)**:`cold_judge` 走真实 provider(`OpenAICompatibleProvider`,默认路由 OpenAI/DeepSeek);缺 key 或响应不合 schema 时,事件标记 `judge_failed`(原因 `no_key` / `bad_payload` / `provider_error`),不沉默降级到 stub。要在开发期使用 stub,显式设 `LLM_STUB_FALLBACK=1`。Anthropic / Google 适配器尚未实现,instantiate 时也会失败闭合。
-- **专家直推**(`expert direct-push`):专家身份用户可以直接将事件推为 B 级,绕过门槛但仍写入 `selected_breakdown.reason="direct_push"` 与审计记录。A / S 仍走 `promotion_score` 闸口。
-- **Source 是数据**(DB 行,后台 CRUD/启停);**Connector 是代码**;订阅控制启用。已落地连接器:`mock` / `rss` / `rsshub`(硬层);其余硬层连接器(github / hn / youtube / huggingface / reddit)注册表里失败闭合,等后续 slice。
-- **信源严选**:唯一正典是 `data/sources/curated_ai_sources.json`(自研严选池,宁缺毋滥);`bun run sources:import:curated --archive-non-curated` 幂等同步,`bun run sources:audit` 做连通性体检。筛选标准与去留记录见 `docs/source_selection_report.md`。
-- **数据边界**:开源仓库只含代码 + schema + mock 样例;真实信源库 / 事件库 / 评分库是运营资产,不随仓库分发。
-- 时间:DB 存 UTC;`APP_TZ`(默认 `Asia/Shanghai`)管报表/显示/语义解析。
-
-## 测试
+另开一个终端运行 worker：
 
 ```bash
-bun test src                     # 单元(确定性核心,tests-first)
-bun run test:integration         # 集成:真实 Postgres 跑通整条脊柱
-                                 #   无 DATABASE_URL 时自动起内嵌 Postgres(免 docker);
-                                 #   设了 DATABASE_URL 则用该库(CI 用 pg service)。
+bun run worker
 ```
 
-集成测试覆盖整条 Slice 0 脊柱:source → MockConnector → `$0 gate` → dedup → cold_judge(stub)→ 确定性 `base_score` → append-only event/judgment/score → reader feed 查询,并校验 provenance 版本戳与幂等/append-only 行为。
+## 技术栈
 
-## 当前状态
+- **Web**：Next.js App Router、React、TypeScript
+- **Runtime**：Bun
+- **Database**：PostgreSQL、Drizzle ORM
+- **Worker**：graphile-worker
+- **Auth**：better-auth
+- **Feeds**：RSS / Atom / RSSHub
+- **LLM**：OpenAI-compatible provider，带成本预算和失败闭合
 
-**Slice 0(walking skeleton)已完成并验证。** 整条脊柱跑通:Bun worker(graphile-worker)→ Postgres → LLM 判断(stub/真实)→ 确定性评分 → web 渲染 → admin 健康视图。
+## 常用命令
 
-已落地并验证:
-- Drizzle schema + 迁移(`sources/posts/events/event_posts/event_judgments/event_scores` + better-auth 表)
-- 确定性核心:`base_score` / `external_heat` / `$0 gate` / dedup / 前缀 ULID(单元测试)
-- `SourceConnector`(Mock + RSS/Atom 解析)、事件成形流水线(gate→归一化→去重→事件归并→判断→评分)
-- worker:graphile-worker + `enqueue-due-sources`(分钟级 cron)+ `crawl-source`(含熔断)
-- Next:reader 首页(事件卡片)、`/_admin` 来源健康(登录 + console 角色保护)、`/login`、better-auth 路由
-- 脚本:`db:seed:demo`(复用真实流水线)、`setup:owner`;Docker(web/worker)+ compose + CI
+```bash
+bun run typecheck
+bun run lint
+bun test src
+bun run build
+bun run verify
+bun run verify:full
+bun run sources:audit
+```
 
-校验:`bun test src`(单元)、`bun run test:integration`(真实 Postgres)、`bun run typecheck`、`bun run build` 均通过。
+## 数据与安全边界
 
-**Slice 1(B/A/S 晋级锦标赛)已完成并验证。** 确定性晋级跑通,只用 Slice 0 信号(`promotion_score = base_score`;专家/评论/引用等留待后续 slice):
+- 仓库不包含生产数据库、真实用户数据、真实 API Key、cookies、访问 token 或生产 `.env`。
+- 公开 API 只读、限流、分页，不提供全量导出。
+- 摘要和推荐理由由 LLM 生成，重要引用请以原文为准。
+- X/Twitter 类信源依赖自托管 RSSHub 和有效 token；详见 `docs/deploy-ghcr.md`。
 
-- `src/scoring/promotion.ts` 纯函数锦标赛(门槛 + 滚动窗口 + slot 上限 + S→A→B 级联),golden 测试覆盖
-- `src/db/jobs/check-promotion.ts`:加载候选 → 跑锦标赛 → 写 `selected_level/label/promoted_at/selected_breakdown`(只此一处写,绝不降级)
-- worker 每 5 分钟跑 `check-promotion`;`db:seed:demo` 也会跑一次,首页直接看到精选标签
-- `/_admin` 显示晋级 breakdown(等级/分数/门槛/窗口/排名,可解释、可追溯)
-- 校验:10 条 golden 单测 + 6 条真实 Postgres 集成测试
+## 文档
 
-**Slice 2(公共只读 API + Agent Skill)已完成并验证。** 无需 API key 的只读端点 + 可被 Agent 安装的 `aiwatch-hot` Skill(决策 13):
-
-- `GET /api/public/items`:`mode=selected|all`、语义窗口 `since=today|week|month|all`(服务端解析,客户端不算日期边界)、`level/category/q` 过滤、keyset 游标分页(`take` 默认 20、上限 50,无全量导出)
-- `src/db/queries/public-items.ts`:keyset 分页查询,服务端搜索(Slice 2 用 ILIKE,FTS 留待检索 slice)、只暴露公共契约(snake_case),不泄露评分 breakdown/provenance
-- 防护:CDN 缓存为主(`s-maxage`/`stale-while-revalidate`,selected 比 all 缓存更久)+ 每实例 per-IP 令牌桶(abuse-grade,无 Redis)
-- `GET /aiwatch-skill/SKILL.md`(静态、长缓存、不内嵌任何 feed 数据)+ `/aiwatch-skill` 安装页
-- 校验:11 条单测(query 解析 + 令牌桶)+ 7 条真实 Postgres 集成测试
-
-**Slice 3(报告:日报/周报/月报)已完成并验证。** 报告完全由事件确定性拼装,LLM 不做任何编辑决策;按 APP_TZ 日历键寻址(决策 E):
-
-- `src/core/time.ts`:APP_TZ 日历日 ↔ UTC 区间换算(DST 安全),`/api/public/daily/{date}` 用 `YYYY-MM-DD`
-- `src/reports/build-report.ts` 纯拼装器:三节(今日聚焦 / 值得关注 / 昨日跟进),滚动窗口(日报 24h),golden 测试覆盖
-- `src/db/jobs/generate-report.ts`:加载窗口事件 → 拼装 → 按 `(kind, report_date)` upsert;日报自动发布,周/月报落为 `draft` 待审(规范)
-- 公共只读端点:`GET /api/public/daily`、`/api/public/daily/{date}`、`/api/public/dailies`(仅返回已发布日报;长缓存)
-- reader:`/reports`(最新一期 + 历史)、`/reports/{date}`;`/_admin` 报告列表(类型/日期/状态)
-- worker:08:00 日报、周一 08:00 周报草稿、每月 1 日 08:00 月报草稿(worker 以 `TZ=APP_TZ` 运行)
-- 校验:16 条单测(时间换算 + 拼装器)+ 8 条真实 Postgres 集成测试
-
-**Slice 4–10 已完成并验证(2026-05-25 → 2026-05-27)。** 围绕读者、专家与运营闭环把脊柱拓宽:
-
-- **Slice 4(社区贡献 + RBAC + 审计)**:`contributions` 工单(推荐来源 / 元数据修正 / 标签建议 / 合并 / 纠错 / 文档)+ capability-based RBAC + append-only `audit_log`,后台分诊/批准/拒绝/应用全链可追溯。
-- **Slice 5(读者检索 + 标签筛选)**:服务端 `q`(标题/摘要/来源/标签 ILIKE)+ `tags` 数组重叠;UI 搜索条 + 筛选 chip;一切走 URL 状态,可分享、可 SSR。
-- **Slice 6(RSSHub 硬层连接器 + 来源复核建议)**:`RsshubConnector` + 来源建议复核(60 天无精选贡献 / 30 天精选率偏低),只建议、不自动停用。
-- **Slice 7(点赞 + 收藏 + 时间分段 rank-score)**:读者反应聚合到 `events.like_count` / `star_count`,时间分段 rank-score(SQL ↔ TS parity,golden 测试)。
-- **Slice 8(读者身份 cookie + 反应 UI)**:匿名读者身份 cookie + 反应按钮乐观切换,失败回滚。
-- **Slice 9(评论 + 低质判别器)**:以事件为粒度的评论 + 确定性低质判别器(标题复述 / 广告 / 纯立场);低质评论入库但不公开展示。
-- **Slice 10(事件详情页 + 评论 UI)**:`/event/{id}` 完整详情 + 评论分区(专家观点 / 高质量讨论 / 最新评论)。
-- **Scoring Integrity slice(2026-05-27)**:`base_score` / `promotion_score` 拆分,A/S 闸口改用 `promotion_score`,`recompute-promotion-scores` 定期重算,真实 LLM provider 上线且 fail-closed(`judge_failed` 状态),专家直推绕过 B 级门槛。
-- **Alignment Closeout(2026-05-28)**:LLM 路由 v2(默认路由只走已实现的 OpenAI 兼容适配器,Anthropic / Google instantiate 失败闭合保留为契约),`recompute-promotion-scores` 不再覆盖前一次 `rank_score`(与 rank-score job 顺序无关),增加 `bun run doctor` 诊断脚本。
-- **读者来源类型筛选(2026-05-28)**:首页 chip 多选 `sourceTypes`(official / employee / expert / kol / media / community / open_source_project),URL 状态,服务端 `inArray` 过滤,集成测试覆盖。
-- **spend_guard(2026-05-30)**:LLM 月度预算闸口。`src/llm/pricing.ts` 按厂商**每百万 token** 价目表算成本(`costForUsage`),`src/llm/budget.ts` 给出 ok/warn/block 分档(<80% / ≥80% / ≥100%)。provider 现在回传 `{ value, usage }`,真实调用后把成本写入 append-only `llm_spend_ledger`(按 UTC `month_key` 分桶);每次 `cold_judge` 真实调用**前**先查当月累计(`checkLlmBudget`):100% fail-closed → 该 post 标记 `judge_failed`(原因 `budget_exceeded`),不发起调用、不创建事件;80% 仅告警。cap=0 表示关闭(全新安装默认不拦)。stub / 未定价模型不入账。X API 预算位已就绪(`MAX_MONTHLY_X_API_USD`),待 X 连接器落地后接线。
-
-- **Reader 体验 + 前端体检(2026-05-30)**:信息流按 APP_TZ 日历日**吸顶分组 + 按天折叠**(服务端分组,客户端只持有折叠态,事件数据不过 client 边界);新增 `/changelog`(静态数据驱动)、`/about`、`/feedback`(匿名反馈,zod 校验 + 每 IP 令牌桶 + `feedback` 表)。搜索沿用 Postgres `ILIKE`,**大小写不敏感**(`mimo` / `MiMo` 命中同一批结果),并加集成测试锁定。跑了一轮 `react-doctor`:补 `useSearchParams` 的 `<Suspense>` 边界、`role=status`→`<output>`、按 tz 缓存 `Intl`、补齐各页 metadata、去掉 JSX 文案里的破折号。
-
-**接下来(后续 slice):** 剩余硬层连接器(GitHub / HN / YouTube / HuggingFace / Reddit)、Anthropic / Google 适配器、中文全文检索、Playwright E2E。
-
+- 架构概览：`docs/architecture.md`
+- 信源策略：`docs/source_policy.md`
+- 部署说明：`docs/deploy-ghcr.md`
+- 迭代经验：`docs/iteration-memory.md`
+- Agent 接入页：`src/app/aiwatch-skill/page.tsx`
+- Skill 内容：`src/public/skill-md.ts`

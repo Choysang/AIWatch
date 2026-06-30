@@ -40,9 +40,9 @@ export interface RouteConfig {
 
 // Routing config version: bump when ANY route's provider/model/promptVersion changes so
 // downstream caches (judgments, recomputes) can detect a routing drift.
-// routing-v4: dual-axis taxonomy + single-model degrade — light_judge/deep_extract share one
-// provider+model (default deepseek-chat); they differ only by prompt, not by provider tier.
-export const routingConfigVersion = "routing-v4";
+// routing-v5: all default tasks use one OpenAI-compatible DeepSeek gateway model; they
+// differ only by prompt, caps, and temperature unless env/admin overrides are set.
+export const routingConfigVersion = "routing-v5";
 
 export const PROVIDERS: LlmProviderName[] = [
   "openai",
@@ -54,6 +54,8 @@ export const PROVIDERS: LlmProviderName[] = [
   "stub",
 ];
 const PROVIDER_SET: ReadonlySet<string> = new Set(PROVIDERS);
+const DEFAULT_LLM_PROVIDER: LlmProviderName = "openai_compatible";
+const DEFAULT_LLM_MODEL = "deepseek-ai/deepseek-v4-flash";
 
 // Canonical task order for the routing admin UI (v0.5 C1). Keep in sync with LlmTask.
 export const LLM_TASKS: readonly LlmTask[] = [
@@ -93,26 +95,36 @@ function configuredModelChain(envNames: string[], fallback: string): string {
   return fallback;
 }
 
+function configuredUnifiedProvider(): LlmProviderName {
+  return configuredProviderChain(["LLM_PROVIDER", "LLM_NEWS_PROVIDER"], DEFAULT_LLM_PROVIDER);
+}
+
+function configuredUnifiedModel(): string {
+  return configuredModelChain(["LLM_MODEL", "LLM_NEWS_MODEL"], DEFAULT_LLM_MODEL);
+}
+
 // Default routes only target providers with a real adapter implemented today
 // (openai / deepseek / qwen / openai_compatible — all OpenAI-shape). Anthropic and
 // Google remain in PROVIDER_ENV / LlmProviderName so future routes / overrides can
 // adopt them once dedicated adapters land; until then `instantiateProvider` still
 // fails closed for those names.
 export const llmRouting: Record<LlmTask, RouteConfig> = {
-  prefilter: { provider: "deepseek", model: "deepseek-chat", promptVersion: "prefilter-v1", maxInputTokens: 2000, maxOutputTokens: 200, temperature: 0 },
+  get prefilter() {
+    return { provider: configuredUnifiedProvider(), model: configuredUnifiedModel(), promptVersion: "prefilter-v1", maxInputTokens: 2000, maxOutputTokens: 200, temperature: 0 };
+  },
   // Single-model degrade (2026-06-06 design §4): triage + deep extraction share one provider
   // and model — they differ only by prompt. LLM_PROVIDER / LLM_MODEL are the canonical single
   // knobs; the per-stage (LLM_LIGHT_*/LLM_DEEP_*) and legacy LLM_NEWS_* env vars stay in the
-  // chain for back-compat. Default deepseek-chat: a mid-tier model with good Chinese summaries.
+  // chain for back-compat. The default DeepSeek model runs through the OpenAI-compatible gateway.
   get light_judge() {
     return {
       provider: configuredProviderChain(
         ["LLM_PROVIDER", "LLM_LIGHT_PROVIDER", "LLM_NEWS_PROVIDER"],
-        "deepseek",
+        DEFAULT_LLM_PROVIDER,
       ),
       model: configuredModelChain(
         ["LLM_MODEL", "LLM_LIGHT_MODEL", "LLM_NEWS_MODEL"],
-        "deepseek-chat",
+        DEFAULT_LLM_MODEL,
       ),
       promptVersion: "light-judge-v3",
       maxInputTokens: 3000,
@@ -124,11 +136,11 @@ export const llmRouting: Record<LlmTask, RouteConfig> = {
     return {
       provider: configuredProviderChain(
         ["LLM_PROVIDER", "LLM_DEEP_PROVIDER", "LLM_NEWS_PROVIDER"],
-        "deepseek",
+        DEFAULT_LLM_PROVIDER,
       ),
       model: configuredModelChain(
         ["LLM_MODEL", "LLM_DEEP_MODEL", "LLM_NEWS_MODEL"],
-        "deepseek-chat",
+        DEFAULT_LLM_MODEL,
       ),
       promptVersion: "deep-extract-v3",
       maxInputTokens: 5000,
@@ -138,30 +150,32 @@ export const llmRouting: Record<LlmTask, RouteConfig> = {
   },
   get cold_judge() {
     return {
-      provider: configuredProvider("LLM_NEWS_PROVIDER", "openai"),
-      model: configuredModel("LLM_NEWS_MODEL", "gpt-4.1-mini"),
+      provider: configuredUnifiedProvider(),
+      model: configuredUnifiedModel(),
       promptVersion: "cold-judge-v1",
       maxInputTokens: 4000,
       maxOutputTokens: 800,
       temperature: 0.2,
     };
   },
-  comment_classification: { provider: "deepseek", model: "deepseek-chat", promptVersion: "comment-classify-v1", maxInputTokens: 6000, maxOutputTokens: 1200, temperature: 0 },
-  // merge_detection was google/gemini-2.5-flash; route to deepseek until the Google
-  // adapter ships (decision: Alignment-Closeout slice, 2026-05-28).
-  merge_detection: { provider: "deepseek", model: "deepseek-chat", promptVersion: "merge-v1", maxInputTokens: 4000, maxOutputTokens: 400, temperature: 0 },
-  // s_level_review was anthropic/claude-sonnet-4-6; route to openai gpt-4.1 until the
-  // Anthropic adapter ships. S-tier still uses a stronger model than cold_judge.
-  s_level_review: { provider: "openai", model: "gpt-4.1", promptVersion: "s-review-v1", maxInputTokens: 8000, maxOutputTokens: 1500, temperature: 0.2 },
+  get comment_classification() {
+    return { provider: configuredUnifiedProvider(), model: configuredUnifiedModel(), promptVersion: "comment-classify-v1", maxInputTokens: 6000, maxOutputTokens: 1200, temperature: 0 };
+  },
+  get merge_detection() {
+    return { provider: configuredUnifiedProvider(), model: configuredUnifiedModel(), promptVersion: "merge-v1", maxInputTokens: 4000, maxOutputTokens: 400, temperature: 0 };
+  },
+  get s_level_review() {
+    return { provider: configuredUnifiedProvider(), model: configuredUnifiedModel(), promptVersion: "s-review-v1", maxInputTokens: 8000, maxOutputTokens: 1500, temperature: 0.2 };
+  },
   get translation() {
     return {
       provider: configuredProviderChain(
         ["LLM_PROVIDER", "LLM_DEEP_PROVIDER", "LLM_NEWS_PROVIDER"],
-        "deepseek",
+        DEFAULT_LLM_PROVIDER,
       ),
       model: configuredModelChain(
         ["LLM_MODEL", "LLM_DEEP_MODEL", "LLM_NEWS_MODEL"],
-        "deepseek-chat",
+        DEFAULT_LLM_MODEL,
       ),
       promptVersion: "translation-v1",
       maxInputTokens: 8000,

@@ -118,6 +118,8 @@ export interface FeedFilter {
   /** Custom date range (overrides `since` when either bound is present). See PublicQuery. */
   dateFrom?: Date;
   dateTo?: Date;
+  /** Owner/admin review mode: hide anything already manually labeled to keep triage moving. */
+  hideOwnerAnnotated?: boolean;
 }
 
 /**
@@ -138,12 +140,20 @@ export async function searchEvents(
       : effectiveTime;
 
   const conds: SQL[] = [];
-  conds.push(sql`not exists (
-    select 1 from ${ownerAnnotations}
-    where ${ownerAnnotations.subjectType} = 'event'
-      and ${ownerAnnotations.subjectId} = ${events.id}
-      and ${ownerAnnotations.verdict} = 'not_useful'
-  )`);
+  conds.push(
+    filter.hideOwnerAnnotated
+      ? sql`not exists (
+          select 1 from ${ownerAnnotations}
+          where ${ownerAnnotations.subjectType} = 'event'
+            and ${ownerAnnotations.subjectId} = ${events.id}
+        )`
+      : sql`not exists (
+          select 1 from ${ownerAnnotations}
+          where ${ownerAnnotations.subjectType} = 'event'
+            and ${ownerAnnotations.subjectId} = ${events.id}
+            and ${ownerAnnotations.verdict} = 'not_useful'
+        )`,
+  );
   if (filter.mode === "selected") {
     conds.push(ne(events.selectedLevel, "none"));
     if (filter.level) conds.push(eq(events.selectedLevel, filter.level));

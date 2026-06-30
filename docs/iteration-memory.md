@@ -11,6 +11,7 @@ This file captures recurring operating lessons for future AIWatch updates. Read 
 5. When adding a curated source, import it and immediately connector-smoke-test the latest item. Treat DB insertion and successful crawl as separate facts.
 6. Before every scoring/promotion update, inspect owner/admin `useful` / `not_useful` annotations. Confirm the owner-affinity profile is applied by both `recompute-rank-scores` and `check-promotion-v2`; useful patterns should lift similar cards, not-useful patterns should suppress selection and eventually flag sources for review rather than silently deleting sources.
 7. When many sources cover the same story, verify the fold/canonical-url path found the earliest original post where possible. Repeated reposts should attach as `same_event` sources and lift `source_count`, not create duplicate reader cards.
+8. Treat Loop Engineering as ongoing, not done: before each release, review source fault handling, preference-impact explainability, multi-source event views, source import smoke tests, ops cleanup, markdown export, and the site AI assistant backlog.
 
 ## 2026-06-28 findings
 
@@ -36,6 +37,8 @@ This file captures recurring operating lessons for future AIWatch updates. Read 
 - A small polling component can legitimately use a guarded `useEffect` with cancellation and in-flight protection; React Doctor's fetch-in-effect warning should still be reviewed on each edit, but do not replace it with a broad data-layer refactor during incident work.
 - X/RSSHub outages often appear first as many healthy-looking X sources with `last_error` and `failure_count < degraded threshold`. Platform-level alerts should count this early-failure wave, not wait for every source to become degraded or disabled.
 - `crawl-source` jobs must use a stable per-source job key plus a short retry cap. If the job key includes a time bucket, one slow RSSHub/X source can stack many retry jobs and make the site look like it stopped updating.
+- Do not perform live source fetch probes during admin page SSR. The console should render from stored DB health and provide explicit audit/retest actions; fetching every managed source on page load makes navigation feel broken and can amplify upstream outages.
+- Owner/admin triage is a reader-only workflow: hide all already annotated cards for owner/admin feeds, but public feeds should only suppress owner `not_useful` events so useful content remains visible to ordinary readers.
 
 ## Operational follow-ups
 
@@ -43,3 +46,21 @@ This file captures recurring operating lessons for future AIWatch updates. Read 
 - After fixing RSSHub/X token, run `bun run scripts/reset-source-health.ts x`, then watch the next crawl and import/smoke-test any newly added X sources.
 - After fixing an LLM provider outage, run `bun run scripts/rejudge-failed-posts.ts --hours 168 --limit 200` and confirm new events are created.
 - If the reader says 精选 feels stale, check both `published_at` and `promoted_at`: selected cards are chosen at promotion time, while original articles may be older. The reader selected view should group by promotion time so today's curation is visible even when the original source date is earlier.
+
+## Loop Engineering backlog (ongoing)
+
+- Fault desk: show X token status, RSSHub health, failing sources, last errors, retry counts, suggested actions, and one-click retest.
+- Preference impact: after an owner verdict, explain changed source/category/tag/keyword affinity and the expected scoring delta.
+- Multi-source event view: for a hot event, compare official / English / Chinese / developer / X coverage and surface shared facts versus disagreements.
+- Source import wizard: never mark a newly imported source enabled until the latest-item smoke test succeeds; store the failure reason when it does not.
+- Ops cleanup panel: disk, old Docker images, logs, RSSHub token symptoms, and LLM budget should live in the admin dashboard.
+- Knowledge export: event detail should export Markdown with Obsidian-friendly frontmatter carrying date, source, category, content type, tags, score, selected level, and original URL.
+- Site AI assistant: global assistant should answer how to use AIWatch, summarize current page content, explain filters/boards/reports, and respect public/admin data boundaries.
+
+Recommended rollout order from the 2026-06-30 loop review:
+
+1. Build a source fault desk first, using existing `sources.health_status`, `failure_count`, `last_error`, `last_fetch_at`, `next_fetch_at`, and single-source retest actions.
+2. Add `Why shown?` / preference-impact explanations from deterministic score breakdowns and owner affinity, not ad hoc LLM prose.
+3. Add multi-source event lanes on details: official, developer, X, English media, Chinese media; separate consensus from unconfirmed or lane-specific claims.
+4. Add Markdown / Obsidian export with compact YAML frontmatter and source links in the body rather than huge nested frontmatter arrays.
+5. Add the AI assistant last: read-only first, permission-inherited, citation-first, no write actions without explicit confirmation.
