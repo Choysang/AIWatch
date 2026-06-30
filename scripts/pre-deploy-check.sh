@@ -49,7 +49,7 @@ fi
 env_has() { grep -Eq "^[[:space:]]*$1=[[:space:]]*[^[:space:]]" .env 2>/dev/null; }
 
 REQUIRED=(DATABASE_URL BETTER_AUTH_SECRET BETTER_AUTH_URL CONTRIBUTION_SALT READER_ID_SECRET DATABASE_SSL TRUSTED_PROXY_HOPS)
-RECOMMENDED=(OPENAI_COMPATIBLE_BASE_URL LLM_NEWS_PROVIDER LLM_NEWS_MODEL MAX_MONTHLY_LLM_USD TWITTER_AUTH_TOKEN RSSHUB_BASE_URL SOURCE_ALERT_EMAIL RESEND_API_KEY)
+RECOMMENDED=(OPENAI_COMPATIBLE_BASE_URL LLM_NEWS_PROVIDER LLM_NEWS_MODEL MAX_MONTHLY_LLM_USD TWITTER_AUTH_TOKEN TWITTER_CONSUMER_KEY TWITTER_CONSUMER_SECRET TWITTER_THIRD_PARTY_API RSSHUB_BASE_URL SOURCE_ALERT_EMAIL RESEND_API_KEY)
 
 if [ -f .env ]; then
   echo "--- required .env keys ---"
@@ -60,6 +60,9 @@ if [ -f .env ]; then
   for k in "${RECOMMENDED[@]}"; do
     env_has "$k" && ok "$k set" || warn "$k missing or blank"
   done
+  if env_has TWITTER_AUTH_TOKEN && { ! env_has TWITTER_CONSUMER_KEY || ! env_has TWITTER_CONSUMER_SECRET; }; then
+    warn "TWITTER_AUTH_TOKEN is set but TWITTER_CONSUMER_KEY/SECRET are incomplete; RSSHub X routes can return partial 401/503 failures."
+  fi
 fi
 
 echo "=== summary: $ERRORS error(s), $WARNS warning(s) ==="

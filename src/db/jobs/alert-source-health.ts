@@ -1,9 +1,9 @@
 // Operational alert: when the self-hosted RSSHub X routes start failing en masse, the
-// most common cause is an expired/invalid TWITTER_AUTH_TOKEN — which silently dark-outs
-// every X (Twitter) KOL source as they cross the auto-disable threshold. This hourly job
-// detects that condition and emails the operator so the token can be refreshed before the
-// feed goes stale. Recipient is SOURCE_ALERT_EMAIL (unset → log-only). Deduped via an
-// audit_logs row so an ongoing outage emails at most once per cooldown window.
+// most common cause is expired/incomplete Twitter credentials for RSSHub (auth token plus
+// developer consumer credentials). This hourly job detects that condition and emails the
+// operator so credentials can be refreshed before the feed goes stale. Recipient is
+// SOURCE_ALERT_EMAIL (unset → log-only). Deduped via an audit_logs row so an ongoing outage
+// emails at most once per cooldown window.
 
 import { and, desc, eq, gte, inArray, or, sql } from "drizzle-orm";
 import { db as defaultDb, type DB } from "@/db/client";
@@ -68,13 +68,15 @@ export async function alertSourceHealth(db: DB = defaultDb): Promise<SourceHealt
   }
 
   const names = failing.map((r) => r.name).slice(0, 10).join("、");
-  const subject = `[AIWatch] ${failingXCount} 个 X 信源抓取失败，疑似 Twitter token 失效`;
+  const subject = `[AIWatch] ${failingXCount} 个 X 信源抓取失败，疑似 Twitter 凭据异常`;
   const text =
     `检测到 ${failingXCount} 个 X（Twitter）信源连续抓取失败并被自动停用，最可能的原因是自托管 RSSHub 的 ` +
-    `TWITTER_AUTH_TOKEN 已失效或过期。\n\n受影响信源：${names}\n\n` +
+    `TWITTER_AUTH_TOKEN 失效，或 TWITTER_CONSUMER_KEY / TWITTER_CONSUMER_SECRET 未配置、已失效。\n\n受影响信源：${names}\n\n` +
     `处理：\n1. 重新获取 X 的 auth_token；\n` +
-    `2. 更新 /srv/aiwatch/current/.env 的 TWITTER_AUTH_TOKEN 并重启 rsshub 容器；\n` +
-    `3. 运行 reset-source-health 脚本恢复被停用的 X 信源。`;
+    `2. 检查 Twitter developer consumer key/secret 是否仍可用；\n` +
+    `3. 如有可用的 RSSHub third-party API，也可配置 TWITTER_THIRD_PARTY_API 作为部分端点的临时兜底；\n` +
+    `4. 更新 /srv/aiwatch/current/.env 的 TWITTER_AUTH_TOKEN、TWITTER_CONSUMER_KEY、TWITTER_CONSUMER_SECRET 并重启 rsshub 容器；\n` +
+    `5. 运行 reset-source-health 脚本恢复被停用的 X 信源。`;
 
   const result = await sendEmail({ to: recipient, subject, text });
   if (!result.sent) {

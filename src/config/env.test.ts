@@ -100,6 +100,12 @@ describe("checkEnv", () => {
     expect(result.warnings.join(" ")).toContain("RSSHUB_BASE_URL");
   });
 
+  test("warns when RSSHub X auth token is set without consumer credentials", () => {
+    const result = checkEnv(prodEnv({ TWITTER_AUTH_TOKEN: "token" }));
+    expect(result.ok).toBe(true);
+    expect(result.warnings.join(" ")).toContain("TWITTER_CONSUMER_KEY");
+  });
+
   test("warns when PUBLIC_BASE_URL is missing in production", () => {
     const result = checkEnv(prodEnv({ PUBLIC_BASE_URL: undefined }));
     expect(result.ok).toBe(true);

@@ -155,6 +155,14 @@ export function checkEnv(source: EnvSource = process.env): EnvCheckResult {
   if (!source.RSSHUB_BASE_URL?.trim() && !source.RSSHUB_URL?.trim()) {
     warnings.push("RSSHUB_BASE_URL is not set; rsshub connector sources will fail closed if enabled");
   }
+  if (
+    source.TWITTER_AUTH_TOKEN?.trim() &&
+    (!source.TWITTER_CONSUMER_KEY?.trim() || !source.TWITTER_CONSUMER_SECRET?.trim())
+  ) {
+    warnings.push(
+      "TWITTER_AUTH_TOKEN is set but TWITTER_CONSUMER_KEY/SECRET are incomplete; RSSHub X routes may partially fail with 401/503. TWITTER_THIRD_PARTY_API can be used as a limited fallback when available",
+    );
+  }
 
   const publicBaseUrl = source.PUBLIC_BASE_URL?.trim();
   if (!publicBaseUrl) {
