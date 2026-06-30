@@ -117,10 +117,13 @@ describe("reader home layout", () => {
   test("new-feed indicator reloads the current route and returns readers to the newest card", () => {
     expect(feedRefreshSource).toContain('const LIVE_REFRESH_PARAM = "_live";');
     expect(feedRefreshSource).toContain("const POLL_INTERVAL_MS = 30_000;");
+    expect(feedRefreshSource).toContain("const REFRESH_FEEDBACK_TIMEOUT_MS = 6_000;");
     expect(feedRefreshSource).toContain("usePathname");
     expect(feedRefreshSource).toContain("useSearchParams");
-    expect(feedRefreshSource).toContain("window.scrollTo({ top: 0, behavior: \"smooth\" });");
+    expect(feedRefreshSource).toContain("const reloadingFromKeyRef = useRef<string | null>(null);");
+    expect(feedRefreshSource).toContain("window.scrollTo({ top: 0, behavior: \"auto\" });");
     expect(feedRefreshSource).toContain("router.replace(refreshedHref(pathname, searchParams), { scroll: true });");
+    expect(cssSource).toContain(".feed-refresh-indicator:disabled");
   });
 
   test("covers reader-home interaction surfaces in light theme", () => {

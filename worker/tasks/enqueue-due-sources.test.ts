@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  CRAWL_SOURCE_JOB_KEY_MODE,
   CRAWL_SOURCE_MAX_ATTEMPTS,
   DEFAULT_RSSHUB_X_ENQUEUE_LIMIT,
   DEFAULT_RSSHUB_X_STAGGER_MS,
@@ -17,6 +18,10 @@ describe("enqueue-due-sources scheduling policy", () => {
 
   test("keeps crawl retries short so slow sources cannot dominate the queue", () => {
     expect(CRAWL_SOURCE_MAX_ATTEMPTS).toBe(3);
+  });
+
+  test("dedupes locked source crawl jobs without clearing their job key", () => {
+    expect(CRAWL_SOURCE_JOB_KEY_MODE).toBe("unsafe_dedupe");
   });
 
   test("caps RSSHub X sources per enqueue batch so one token cannot be stampede-tested", () => {

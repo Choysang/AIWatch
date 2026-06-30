@@ -448,6 +448,7 @@ export const zh = {
     reviewReason: {
       no_contribution_60d: "60天无精选贡献",
       low_selected_rate_30d: "30天精选率偏低",
+      permanent_fetch_error: "抓取路由永久失败",
     },
     healthStatus: {
       healthy: "正常",

@@ -20,6 +20,7 @@ const RSSHUB_X_STAGGER_MS = positiveInt(
   DEFAULT_RSSHUB_X_STAGGER_MS,
 );
 export const CRAWL_SOURCE_MAX_ATTEMPTS = 3;
+export const CRAWL_SOURCE_JOB_KEY_MODE = "unsafe_dedupe";
 
 export function crawlSourceJobKey(sourceId: string): string {
   return `crawl-source:${sourceId}`;
@@ -80,7 +81,10 @@ export const enqueueDueSources: Task = async (_payload, helpers) => {
       { sourceId: source.id },
       {
         jobKey: crawlSourceJobKey(source.id),
-        jobKeyMode: "preserve_run_at",
+        // Graphile's preserve_run_at clears the key on locked-key conflicts, which
+        // leaves dead null-key crawl jobs behind. unsafe_dedupe keeps one in-flight
+        // job per source while the source breaker controls retry timing.
+        jobKeyMode: CRAWL_SOURCE_JOB_KEY_MODE,
         maxAttempts: CRAWL_SOURCE_MAX_ATTEMPTS,
         runAt: crawlSourceRunAt(source, xIndex, now),
       },

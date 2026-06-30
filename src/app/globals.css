@@ -677,6 +677,10 @@ canvas {
   color: var(--accent);
   outline: none;
 }
+.feed-refresh-indicator:disabled {
+  cursor: wait;
+  opacity: 0.92;
+}
 /* --- feed --- */
 .feed {
   display: grid;
@@ -2390,15 +2394,16 @@ canvas {
   margin-bottom: 1.5rem;
 }
 
-@media (min-width: 1180px) {
+@media (min-width: 1240px) {
   .report-archive-shell {
     position: fixed;
     top: 5rem;
-    left: max(1rem, calc((100vw - 1440px) / 2 + 1.25rem));
-    width: clamp(12rem, calc((100vw - 960px) / 2 - 2rem), 18rem);
+    left: clamp(0.75rem, 1.4vw, 1.25rem);
+    width: clamp(8rem, calc((100vw - 920px) / 2 - 2rem), 18rem);
     max-height: calc(100vh - 6rem);
     overflow-y: auto;
     padding-right: 0.35rem;
+    overscroll-behavior: contain;
   }
 }
 .report-archive-latest {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { ConnectorType, RawPost, SourceConnector } from "@/connectors/types";
-import type { ManagedSourceRow } from "@/db/queries/sources";
+import { isPermanentSourceError, type ManagedSourceRow } from "@/db/queries/sources";
 import { checkManagedSourceFetchHealth } from "./source-health-check";
 
 function source(overrides: Partial<ManagedSourceRow> = {}): ManagedSourceRow {
@@ -34,6 +34,12 @@ function connector(fetch: SourceConnector["fetch"]): SourceConnector {
 }
 
 describe("checkManagedSourceFetchHealth", () => {
+  test("classifies permanent RSSHub account errors for operator review", () => {
+    expect(isPermanentSourceError("InvalidParameterError: This account doesn't exist")).toBe(true);
+    expect(isPermanentSourceError("InvalidParameterError: User is suspended")).toBe(true);
+    expect(isPermanentSourceError("[rsshub] upstream timeout")).toBe(false);
+  });
+
   test("marks an enabled source unavailable when the actual connector fetch fails", async () => {
     const writes: Array<{ id: string; error: string }> = [];
 
@@ -101,6 +107,32 @@ describe("checkManagedSourceFetchHealth", () => {
       {
         id: "src_tencent_hunyuan",
         error: "[source-health] fetch returned 0 items",
+      },
+    ]);
+  });
+
+  test("returns paused when a fetch proves the source route is permanently invalid", async () => {
+    const writes: Array<{ id: string; error: string }> = [];
+
+    const checked = await checkManagedSourceFetchHealth(source(), {
+      getConnector: (_type: ConnectorType) =>
+        connector(async () => {
+          throw new Error("InvalidParameterError: This account doesn't exist");
+        }),
+      markHealthCheckFailure: async (id, error) => {
+        writes.push({ id, error });
+      },
+      markHealthCheckSuccess: async () => {
+        throw new Error("success writer should not run");
+      },
+    });
+
+    expect(checked.healthStatus).toBe("paused");
+    expect(checked.lastError).toContain("account doesn't exist");
+    expect(writes).toEqual([
+      {
+        id: "src_tencent_hunyuan",
+        error: "InvalidParameterError: This account doesn't exist",
       },
     ]);
   });

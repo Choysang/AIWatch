@@ -2,7 +2,7 @@
 // circuit breaker, and list health for the admin console. Raw SQL is confined here
 // (decision 4); business code never embeds SQL.
 
-import { and, asc, eq, inArray, isNotNull, isNull, lte, ne, or, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, lte, notInArray, or, sql } from "drizzle-orm";
 import type { ConnectorSource, ConnectorType } from "@/connectors/types";
 import { newId } from "@/core/ids";
 import { db as defaultDb, type DB, type Tx } from "@/db/client";
@@ -11,6 +11,17 @@ import type { Platform, SourceLevel } from "@/scoring/types";
 
 const DEGRADE_AFTER = 5; // consecutive failures -> degraded + slower interval
 const DISABLE_AFTER = 20; // consecutive failures -> auto-disable + admin flag
+const PERMANENT_SOURCE_ERROR_PATTERNS = [
+  "invalidparametererror: this account doesn't exist",
+  "invalidparametererror: user is suspended",
+  "this account doesn't exist",
+  "user is suspended",
+] as const;
+
+export function isPermanentSourceError(error: string): boolean {
+  const normalized = error.toLowerCase();
+  return PERMANENT_SOURCE_ERROR_PATTERNS.some((pattern) => normalized.includes(pattern));
+}
 
 /** A due source carries the connector view plus metadata the pipeline needs. */
 export type DueSource = ConnectorSource & {
@@ -20,7 +31,7 @@ export type DueSource = ConnectorSource & {
   lastSeenCursor?: string | null;
 };
 
-/** Sources eligible to crawl now: enabled, not archived, not disabled, and due. */
+/** Sources eligible to crawl now: enabled, not archived, not paused/disabled, and due. */
 export async function getDueSources(limit = 50, db: DB = defaultDb): Promise<DueSource[]> {
   const rows = await db
     .select({
@@ -40,7 +51,7 @@ export async function getDueSources(limit = 50, db: DB = defaultDb): Promise<Due
       and(
         eq(sources.enabled, true),
         isNull(sources.archivedAt),
-        ne(sources.healthStatus, "disabled"),
+        notInArray(sources.healthStatus, ["paused", "disabled"]),
         or(isNull(sources.nextFetchAt), lte(sources.nextFetchAt, sql`now()`)),
       ),
     )
@@ -89,6 +100,24 @@ export async function markSourceFailure(
   error: string,
   db: DB = defaultDb,
 ): Promise<void> {
+  const message = error.slice(0, 1000);
+  if (isPermanentSourceError(message)) {
+    await db
+      .update(sources)
+      .set({
+        lastFetchAt: sql`now()`,
+        failureCount: sql`${sources.failureCount} + 1`,
+        healthStatus: "paused",
+        nextFetchAt: null,
+        lastError: message,
+        reviewSuggestedAt: sql`coalesce(${sources.reviewSuggestedAt}, now())`,
+        reviewReason: "permanent_fetch_error",
+        updatedAt: sql`now()`,
+      })
+      .where(eq(sources.id, sourceId));
+    return;
+  }
+
   // Circuit breaker: degrade (slow down) at 5, auto-disable at 20 consecutive failures.
   await db
     .update(sources)
@@ -102,7 +131,7 @@ export async function markSourceFailure(
       nextFetchAt: sql`case
         when ${sources.failureCount} + 1 >= ${DEGRADE_AFTER} then now() + ${sources.fetchFrequency} * 2
         else now() + ${sources.fetchFrequency} end`,
-      lastError: error.slice(0, 1000),
+      lastError: message,
       updatedAt: sql`now()`,
     })
     .where(eq(sources.id, sourceId));
@@ -126,11 +155,27 @@ export async function markSourceHealthCheckFailure(
   error: string,
   db: DB = defaultDb,
 ): Promise<void> {
+  const message = error.slice(0, 1000);
+  if (isPermanentSourceError(message)) {
+    await db
+      .update(sources)
+      .set({
+        healthStatus: "paused",
+        nextFetchAt: null,
+        lastError: message,
+        reviewSuggestedAt: sql`coalesce(${sources.reviewSuggestedAt}, now())`,
+        reviewReason: "permanent_fetch_error",
+        updatedAt: sql`now()`,
+      })
+      .where(eq(sources.id, sourceId));
+    return;
+  }
+
   await db
     .update(sources)
     .set({
       healthStatus: "degraded",
-      lastError: error.slice(0, 1000),
+      lastError: message,
       updatedAt: sql`now()`,
     })
     .where(eq(sources.id, sourceId));

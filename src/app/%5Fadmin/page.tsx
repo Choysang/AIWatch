@@ -146,7 +146,13 @@ function AdminDashboard({ data }: { data: AdminDashboardData }) {
 
 
 function isBadSource(row: ManagedSourceRow): boolean {
-  return !row.enabled || row.healthStatus === "degraded" || row.healthStatus === "disabled" || Boolean(row.lastError);
+  return (
+    !row.enabled ||
+    row.healthStatus === "degraded" ||
+    row.healthStatus === "paused" ||
+    row.healthStatus === "disabled" ||
+    Boolean(row.lastError)
+  );
 }
 
 function SourceFaultDesk({ rows }: { rows: ManagedSourceRow[] }) {
@@ -209,7 +215,13 @@ function SourceFaultDesk({ rows }: { rows: ManagedSourceRow[] }) {
                 <td>{row.name}</td>
                 <td>{row.platform}</td>
                 <td>{row.healthStatus}</td>
-                <td>{row.connectorType === "rsshub" ? "重测；失败则检查 RSSHub/token" : "重测；失败则检查 feed URL"}</td>
+                <td>
+                  {row.healthStatus === "paused"
+                    ? "先核对账号/路由；确认有效后重测恢复"
+                    : row.connectorType === "rsshub"
+                      ? "重测；失败则检查 RSSHub/token"
+                      : "重测；失败则检查 feed URL"}
+                </td>
                 <td className="admin-soft">{row.lastError ?? "未启用或暂无错误详情"}</td>
               </tr>
             ))}

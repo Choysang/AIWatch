@@ -64,13 +64,14 @@ function computeHotspotScore(candidate: HotspotCandidate, now: Date): number {
   const ageHours = hoursSince(publishedAt, now);
   if (ageHours > HOTSPOT_WINDOW_HOURS) return 0;
 
-  const sourceHeat = Math.log2(Math.max(1, candidate.sourceCount)) * 1.7;
+  const sourceHeat = Math.log2(Math.max(1, candidate.sourceCount)) * 1.9;
+  const multiSourceBoost = candidate.sourceCount >= 3 ? 1 : candidate.sourceCount >= 2 ? 0.5 : 0;
   const officialBoost = Math.min(candidate.officialSourceCount, 3) * 0.38;
   const qualityBoost = Math.max(0, (candidate.qualityScore ?? 60) - 60) / 100;
   const levelBoost = LEVEL_WEIGHT[candidate.selectedLevel];
   const timeDecay = Math.exp(-ageHours / 42);
 
-  return (sourceHeat + officialBoost + qualityBoost + levelBoost) * timeDecay;
+  return (sourceHeat + multiSourceBoost + officialBoost + qualityBoost + levelBoost) * timeDecay;
 }
 
 export function rankCurrentHotspots(

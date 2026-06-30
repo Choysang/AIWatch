@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 interface PublicItemPeek {
   id?: string;
@@ -15,6 +15,7 @@ interface PublicItemsPeek {
 
 const LIVE_REFRESH_PARAM = "_live";
 const POLL_INTERVAL_MS = 30_000;
+const REFRESH_FEEDBACK_TIMEOUT_MS = 6_000;
 
 function keyFor(item: PublicItemPeek | undefined): string | null {
   if (!item?.id) return null;
@@ -40,15 +41,32 @@ export function FeedRefreshIndicator({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [hasNew, setHasNew] = useState(false);
+  const [isReloading, setIsReloading] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const reloadingFromKeyRef = useRef<string | null>(null);
 
   const loadFresh = useCallback(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    reloadingFromKeyRef.current = latestKey;
+    setIsReloading(true);
+    window.scrollTo({ top: 0, behavior: "auto" });
     startTransition(() => {
       router.replace(refreshedHref(pathname, searchParams), { scroll: true });
       router.refresh();
     });
-  }, [pathname, router, searchParams, startTransition]);
+  }, [latestKey, pathname, router, searchParams, startTransition]);
+
+  useEffect(() => {
+    if (!isReloading) return;
+    const timer = window.setTimeout(() => setIsReloading(false), REFRESH_FEEDBACK_TIMEOUT_MS);
+    return () => window.clearTimeout(timer);
+  }, [isReloading]);
+
+  useEffect(() => {
+    if (!isReloading) return;
+    if (!reloadingFromKeyRef.current || latestKey === reloadingFromKeyRef.current) return;
+    setIsReloading(false);
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [latestKey, isReloading]);
 
   useEffect(() => {
     if (!latestKey || !refreshQuery) return;
@@ -86,19 +104,21 @@ export function FeedRefreshIndicator({
     };
   }, [latestKey, refreshQuery, loadFresh]);
 
-  if (!hasNew) return null;
+  const loading = isPending || isReloading;
+
+  if (!hasNew && !loading) return null;
 
   return (
     <button
       type="button"
       className="feed-refresh-indicator"
-      disabled={isPending}
+      disabled={loading}
       onClick={() => {
         setHasNew(false);
         loadFresh();
       }}
     >
-      {isPending ? "正在加载新动态…" : "有新动态，点击加载"}
+      {loading ? "正在加载新动态…" : "有新动态，点击加载"}
     </button>
   );
 }

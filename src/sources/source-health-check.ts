@@ -1,6 +1,7 @@
 import { getConnector as defaultGetConnector } from "@/connectors/registry";
 import type { ConnectorType, SourceConnector } from "@/connectors/types";
 import {
+  isPermanentSourceError,
   markSourceHealthCheckFailure,
   markSourceHealthCheckSuccess,
   type ManagedSourceRow,
@@ -51,7 +52,7 @@ export async function checkManagedSourceFetchHealth(
   } catch (error) {
     const message = errorMessage(error).slice(0, 1000);
     await markFailure(row.id, message);
-    return { ...row, healthStatus: "degraded", lastError: message };
+    return { ...row, healthStatus: isPermanentSourceError(message) ? "paused" : "degraded", lastError: message };
   }
 }
 

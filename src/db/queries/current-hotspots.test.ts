@@ -87,6 +87,28 @@ describe("rankCurrentHotspots", () => {
     expect(ranked).toEqual([]);
   });
 
+  test("promotes a fresh event once two independent sources report it", () => {
+    const ranked = rankCurrentHotspots(
+      [
+        candidate({
+          id: "two_source_event",
+          title: "Official launch picked up by builders",
+          sourceCount: 2,
+          qualityScore: 72,
+          publishedAt: hoursAgo(1),
+          sources: [
+            { name: "Company Blog", type: "official" },
+            { name: "Builder Notes", type: "expert" },
+          ],
+        }),
+      ],
+      NOW,
+    );
+
+    expect(ranked.map((item) => item.id)).toEqual(["two_source_event"]);
+    expect(ranked[0]!.sourceCount).toBe(2);
+  });
+
   test("does not let repeated posts from the same account inflate heat", () => {
     const ranked = rankCurrentHotspots(
       [
