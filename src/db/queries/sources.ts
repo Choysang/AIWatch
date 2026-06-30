@@ -19,7 +19,9 @@ const PERMANENT_SOURCE_ERROR_PATTERNS = [
 ] as const;
 
 export function isPermanentSourceError(error: string): boolean {
-  const normalized = error.toLowerCase();
+  const normalized = error
+    .toLowerCase()
+    .replace(/&(apos|#39|#x27);/g, "'");
   return PERMANENT_SOURCE_ERROR_PATTERNS.some((pattern) => normalized.includes(pattern));
 }
 

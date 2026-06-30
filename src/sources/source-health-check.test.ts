@@ -36,6 +36,8 @@ function connector(fetch: SourceConnector["fetch"]): SourceConnector {
 describe("checkManagedSourceFetchHealth", () => {
   test("classifies permanent RSSHub account errors for operator review", () => {
     expect(isPermanentSourceError("InvalidParameterError: This account doesn't exist")).toBe(true);
+    expect(isPermanentSourceError("InvalidParameterError: This account doesn&#39;t exist")).toBe(true);
+    expect(isPermanentSourceError("InvalidParameterError: This account doesn&apos;t exist")).toBe(true);
     expect(isPermanentSourceError("InvalidParameterError: User is suspended")).toBe(true);
     expect(isPermanentSourceError("[rsshub] upstream timeout")).toBe(false);
   });
