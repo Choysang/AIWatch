@@ -8,20 +8,32 @@
 //   docker compose -p aiwatch -f docker-compose.prod.yml run --rm --no-deps worker \
 //     bun run scripts/reset-source-health.ts x
 
-import { and, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, isNotNull, ne, or, sql } from "drizzle-orm";
 import { newId } from "@/core/ids";
 import { auditLogs, sources } from "@/db/schema";
 import { db, pool } from "@/db/client";
 
 async function main(): Promise<void> {
   const platform = process.argv[2]?.trim();
-  const conds = [inArray(sources.healthStatus, ["disabled", "degraded"])];
+  const conds = [
+    or(
+      inArray(sources.healthStatus, ["disabled", "degraded"]),
+      gt(sources.failureCount, 0),
+      isNotNull(sources.lastError),
+    ),
+  ];
   if (platform) {
     conds.push(eq(sources.platform, platform as (typeof sources.platform.enumValues)[number]));
   }
 
   const stale = await db
-    .select({ id: sources.id, name: sources.name, status: sources.healthStatus })
+    .select({
+      id: sources.id,
+      name: sources.name,
+      status: sources.healthStatus,
+      failureCount: sources.failureCount,
+      lastError: sources.lastError,
+    })
     .from(sources)
     .where(and(...conds, ne(sources.healthStatus, "paused")));
 
@@ -40,6 +52,7 @@ async function main(): Promise<void> {
         failureCount: 0,
         lastError: null,
         nextFetchAt: sql`now()`,
+        updatedAt: sql`now()`,
       })
       .where(eq(sources.id, row.id));
     await db.insert(auditLogs).values({
@@ -48,8 +61,12 @@ async function main(): Promise<void> {
       actorId: null,
       targetType: "source",
       targetId: row.id,
-      before: { healthStatus: row.status },
-      after: { healthStatus: "healthy" },
+      before: {
+        healthStatus: row.status,
+        failureCount: row.failureCount,
+        lastError: row.lastError ? row.lastError.slice(0, 240) : null,
+      },
+      after: { healthStatus: "healthy", failureCount: 0, lastError: null },
       reason: "manual revive after upstream fix",
     });
     // eslint-disable-next-line no-console -- script output
