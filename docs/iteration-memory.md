@@ -47,6 +47,7 @@ This file captures recurring operating lessons for future AIWatch updates. Read 
 - Markdown export should keep the built-in Obsidian/frontmatter path but also offer a local template with simple `{{field}}` placeholders for readers who maintain their own vault conventions.
 - Source connectivity audits should be gentle on RSSHub: use low concurrency plus longer timeout/retry, then probe a known-good X route before blaming `TWITTER_AUTH_TOKEN`; route-level 503 is different from global token failure.
 - X/RSSHub crawling must be paced. With one `TWITTER_AUTH_TOKEN`, a restart that enqueues dozens of X sources at once can turn into widespread `Twitter API error: 401`; keep worker concurrency and enqueue limits conservative unless multiple healthy tokens exist.
+- Some RSSHub routes are simply slow rather than dead (`/anthropic/research` took ~42s in production on 2026-06-30). Probe with a longer timeout before disabling or replacing a source.
 
 ## Operational follow-ups
 

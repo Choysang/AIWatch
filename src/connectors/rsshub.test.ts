@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { RsshubConnector, rsshubAllowHosts, rsshubUrl } from "./rsshub";
+import { RSSHUB_FETCH_TIMEOUT_MS, RsshubConnector, rsshubAllowHosts, rsshubUrl } from "./rsshub";
 import type { ConnectorSource } from "./types";
 
 const FEED = `<?xml version="1.0" encoding="UTF-8"?>
@@ -63,6 +63,10 @@ describe("rsshubAllowHosts", () => {
 });
 
 describe("RsshubConnector", () => {
+  test("allows slow but valid RSSHub routes enough time to finish", () => {
+    expect(RSSHUB_FETCH_TIMEOUT_MS).toBeGreaterThanOrEqual(60_000);
+  });
+
   test("fails closed with a clear message when no base URL is configured", async () => {
     const connector = new RsshubConnector({ baseUrl: "" });
     let message = "";
