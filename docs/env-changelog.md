@@ -7,7 +7,7 @@
 
 | 版本 | 变更 | 必需 | 破坏性 | 备注 |
 |------|------|------|--------|------|
-| v0.5.x | RSSHub X 路由新增 `TWITTER_CONSUMER_KEY` / `TWITTER_CONSUMER_SECRET` / `TWITTER_ACCESS_TOKEN` / `TWITTER_ACCESS_SECRET` / `TWITTER_THIRD_PARTY_API` 透传 | 否 | 否 | 生产当前只有 `TWITTER_AUTH_TOKEN` 时，部分 X 信源会出现 401/503；`predeploy:check` 会提示补齐 consumer key/secret |
+| v0.5.x | RSSHub X 路由统一只使用 `TWITTER_AUTH_TOKEN` | 否 | 否 | 不再配置额外 X 开发者凭据；X 路由 401/503 时刷新 auth token |
 | v0.5.x | 默认 LLM 路由统一为 `openai_compatible` + `deepseek-ai/deepseek-v4-flash` | 是 | 否 | 生产需同时设置 `OPENAI_COMPATIBLE_API_KEY` 与 `OPENAI_COMPATIBLE_BASE_URL`；`LLM_PROVIDER/LLM_MODEL` 可显式改回其他 keyed provider |
 | v0.5.x | `OPENAI_COMPATIBLE_BASE_URL` → `https://newapi.ccspcservices.com/v1` | 是 | 否 | 旧网关 `119.29.65.250:4001` 曾因 FortiGate 自签证 TLS 报错 |
 | v0.4.4 | 新增 `SOURCE_ALERT_EMAIL`（X 源失效邮件告警） | 否 | 否 | 需配 `RESEND_API_KEY` + `AUTH_EMAIL_FROM` 才生效 |
@@ -16,6 +16,6 @@
 
 ## 排错速记
 
-- **X 路由全失败 / RSSHub 503**：`TWITTER_AUTH_TOKEN` 失效或未设，或缺少 `TWITTER_CONSUMER_KEY` / `TWITTER_CONSUMER_SECRET` → 更新后重启 rsshub 容器。
+- **X 路由全失败 / RSSHub 503**：`TWITTER_AUTH_TOKEN` 失效或未设 → 更新后重启 rsshub 容器。
 - **LLM 全失败**：检查 `OPENAI_COMPATIBLE_BASE_URL` 与网关证书。
 - **spend_guard 无记账**：价目表与当前镜像模型不一致。
