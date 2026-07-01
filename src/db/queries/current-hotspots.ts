@@ -105,6 +105,13 @@ function extractHotspotKeywords(candidate: HotspotCandidate): Array<{ key: strin
   const text = `${candidate.title} ${candidate.summary ?? ""}`;
   const labels = new Map<string, string>();
 
+  for (const match of text.matchAll(/\b(?:Claude\s+(?:Sonnet|Opus|Haiku)|GPT|Gemini|Fable|Mythos|GLM|Qwen|DeepSeek|Llama|Mistral|Grok|Veo|Sora|Imagen|Flux)\s*-?\s*\d[\w.+#-]*/gi)) {
+    const raw = match[0] ?? "";
+    const label = raw.replace(/\s*-\s*/g, "-").replace(/\s+/g, "");
+    const key = normalizeKeyword(label);
+    if (key) labels.set(key, labels.get(key) ?? label);
+  }
+
   for (const match of text.matchAll(/\b[A-Za-z][A-Za-z0-9.+#-]*\d[A-Za-z0-9.+#-]*\b/g)) {
     const label = match[0] ?? "";
     const key = normalizeKeyword(label);

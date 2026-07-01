@@ -184,8 +184,8 @@ describe("rankCurrentHotspots", () => {
       [
         candidate({
           id: "official_fable5",
-          title: "Fable launches Fable5 for interactive AI worlds",
-          summary: "Official release notes for the Fable5 model and product family.",
+          title: "Fable launches Fable 5 for interactive AI worlds",
+          summary: "Official release notes for the Fable 5 model and product family.",
           sourceCount: 1,
           officialSourceCount: 1,
           qualityScore: 78,
@@ -194,16 +194,16 @@ describe("rankCurrentHotspots", () => {
         }),
         candidate({
           id: "builder_fable5",
-          title: "Hands-on notes from trying Fable5 scene generation",
-          summary: "A builder highlights Fable5 workflows and limitations.",
+          title: "Hands-on notes from trying Fable 5 scene generation",
+          summary: "A builder highlights Fable 5 workflows and limitations.",
           sourceCount: 1,
           publishedAt: hoursAgo(1),
           sources: [{ name: "Builder Notes", type: "expert" }],
         }),
         candidate({
           id: "media_fable5",
-          title: "Fable5 gets developer attention after launch",
-          summary: "Coverage focuses on the same Fable5 release.",
+          title: "Fable 5 gets developer attention after launch",
+          summary: "Coverage focuses on the same Fable 5 release.",
           sourceCount: 1,
           publishedAt: hoursAgo(0.5),
           sources: [{ name: "AI Daily", type: "media" }],
