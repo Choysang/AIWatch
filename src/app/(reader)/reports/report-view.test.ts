@@ -33,7 +33,7 @@ describe("report reader layout", () => {
     expect(cssSource).toContain("max-width: 920px;");
     expect(cssSource).toContain("@media (min-width: 1240px) {\n  .report-archive-shell {");
     expect(cssSource).toContain("position: fixed;");
-    expect(cssSource).toContain("top: 10.25rem;");
+    expect(cssSource).toContain("top: 13.25rem;");
     expect(cssSource).toContain("left: clamp(1rem, 1.8vw, 1.75rem);");
     expect(cssSource).toContain("width: clamp(7.5rem, calc((100vw - 920px) / 2 - 2.75rem), 14rem);");
     expect(cssSource).toContain("overscroll-behavior: contain;");

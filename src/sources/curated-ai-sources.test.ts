@@ -20,7 +20,7 @@ const prompts = readFileSync(join(root, "src", "pipeline", "prompts.ts"), "utf8"
 
 describe("curated AI source policy", () => {
   test("keeps only scored AI-dense sources in the curated config", () => {
-    expect(curated.length).toBeGreaterThanOrEqual(100);
+    expect(curated.length).toBeGreaterThanOrEqual(90);
     for (const source of curated) {
       expect(source.ai_density_score).toBeGreaterThanOrEqual(6);
       expect(["official", "industry_leader", "technical_share"]).toContain(source.category);
@@ -46,6 +46,20 @@ describe("curated AI source policy", () => {
     expect(names).not.toContain("Open WebUI Releases");
     expect(names).not.toContain("Together AI");
     expect(names).not.toContain("Thomas Wolf");
+    expect(names).not.toContain("MarkTechPost");
+    expect(names).not.toContain("量子位");
+    expect(names).not.toContain("TechCrunch AI");
+    expect(names).not.toContain("Ollama Releases");
+    expect(names).not.toContain("Latent Space");
+    expect(names).not.toContain("ComfyUI Releases");
+    expect(names).not.toContain("Anyscale");
+    expect(names).not.toContain("Jason Liu");
+    expect(names).not.toContain("Replit");
+    expect(names).not.toContain("CrewAI Releases");
+    expect(names).not.toContain("Ars Technica AI");
+    expect(names).not.toContain("MIT Technology Review AI");
+    expect(names).not.toContain("LangGraph Releases");
+    expect(names).not.toContain("Lilian Weng Blog");
   });
 
   test("records explicit exclusion reasons in the source audit report", () => {

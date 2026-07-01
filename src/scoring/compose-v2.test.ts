@@ -77,7 +77,7 @@ describe("composeScoresV2", () => {
     const rich = composeScoresV2({ ...common, hasTextAndMedia: true });
 
     expect(rich.selectionScore).toBeGreaterThan(base.selectionScore);
-    expect(rich.breakdown.selection.mediaTextBonus).toBe(3);
+    expect(rich.breakdown.selection.mediaTextBonus).toBe(4);
   });
 
   test("breakdown carries every layer and the v2 version stamp", () => {

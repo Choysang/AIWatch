@@ -214,7 +214,7 @@ components:
             $ref: "#/components/schemas/HotspotItem"
     HotspotItem:
       type: object
-      required: [id, title, source_count, source_names, score, last_seen_at, permalink]
+      required: [id, title, source_count, mention_count, source_names, score, keywords, last_seen_at, permalink]
       properties:
         id:
           type: string
@@ -222,7 +222,13 @@ components:
           type: string
         source_count:
           type: integer
+        mention_count:
+          type: integer
         source_names:
+          type: array
+          items:
+            type: string
+        keywords:
           type: array
           items:
             type: string

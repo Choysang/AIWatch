@@ -7,6 +7,8 @@ const hoursAgo = (hours: number) => new Date(NOW.getTime() - hours * 60 * 60 * 1
 function candidate(overrides: Partial<HotspotCandidate> & Pick<HotspotCandidate, "id" | "title">): HotspotCandidate {
   return {
     sourceCount: 1,
+    summary: null,
+    tags: [],
     officialSourceCount: 0,
     qualityScore: 70,
     selectedLevel: "none",
@@ -131,7 +133,7 @@ describe("rankCurrentHotspots", () => {
     expect(ranked.map((item) => item.id)).toEqual(["two_independent_sources"]);
   });
 
-  test("keeps a two-source story visible after the first day", () => {
+  test("drops a two-source story after the 24 hour current-hotspot window", () => {
     const ranked = rankCurrentHotspots(
       [
         candidate({
@@ -150,7 +152,7 @@ describe("rankCurrentHotspots", () => {
       NOW,
     );
 
-    expect(ranked.map((item) => item.id)).toEqual(["two_source_day_two"]);
+    expect(ranked).toEqual([]);
   });
 
   test("does not let repeated posts from the same account inflate heat", () => {
@@ -175,5 +177,44 @@ describe("rankCurrentHotspots", () => {
     );
 
     expect(ranked).toEqual([]);
+  });
+
+  test("promotes repeated 24h keyword mentions and points to the official event", () => {
+    const ranked = rankCurrentHotspots(
+      [
+        candidate({
+          id: "official_fable5",
+          title: "Fable launches Fable5 for interactive AI worlds",
+          summary: "Official release notes for the Fable5 model and product family.",
+          sourceCount: 1,
+          officialSourceCount: 1,
+          qualityScore: 78,
+          publishedAt: hoursAgo(2),
+          sources: [{ name: "Fable", type: "official" }],
+        }),
+        candidate({
+          id: "builder_fable5",
+          title: "Hands-on notes from trying Fable5 scene generation",
+          summary: "A builder highlights Fable5 workflows and limitations.",
+          sourceCount: 1,
+          publishedAt: hoursAgo(1),
+          sources: [{ name: "Builder Notes", type: "expert" }],
+        }),
+        candidate({
+          id: "media_fable5",
+          title: "Fable5 gets developer attention after launch",
+          summary: "Coverage focuses on the same Fable5 release.",
+          sourceCount: 1,
+          publishedAt: hoursAgo(0.5),
+          sources: [{ name: "AI Daily", type: "media" }],
+        }),
+      ],
+      NOW,
+    );
+
+    expect(ranked.map((item) => item.id)).toEqual(["official_fable5"]);
+    expect(ranked[0]!.keywords).toContain("Fable5");
+    expect(ranked[0]!.sourceCount).toBe(3);
+    expect(ranked[0]!.mentionCount).toBe(3);
   });
 });

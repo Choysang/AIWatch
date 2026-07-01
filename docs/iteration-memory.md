@@ -62,6 +62,9 @@ This file captures recurring operating lessons for future AIWatch updates. Read 
 - Assistant fallbacks should not expose raw "model channel unavailable" copy to readers. Log provider/budget/generation failure details server-side, then answer with the best available site context.
 - Owner-disabled sources must be removed from curated seed data and disabled/deleted in production together; otherwise a future source sync can silently reintroduce unwanted feeds.
 - Personal-blogger promotion needs a source-type-aware rule: self-promotion, courses, subscriptions, consulting, and waitlists are noise unless they include concrete AI techniques, code, evaluations, workflows, or technical insight.
+- Current hotspots should combine two signals: same-event independent-source coverage and 24h distinctive keyword resonance. Same-source launch follow-ups can be real heat even when `source_count` stays 1, so expose `mention_count` separately and keep the click target on the official/main event.
+- Product-launch folding needs a narrow same-product rule: shared distinctive model/product token plus launch/rollout/preview context may fold short posts together; outage, lawsuit, benchmark, or criticism posts should not merge merely because they mention the same company/model.
+- When removing owner-disabled sources, update all three layers in one release: curated seed JSON, blocklist tests, and production exact-match cleanup. Names absent from seed can still exist as archived/non-curated production leftovers.
 
 ## Operational follow-ups
 

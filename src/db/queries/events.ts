@@ -131,6 +131,12 @@ function isStrongSharedEventToken(token: string): boolean {
   );
 }
 
+function hasLaunchContext(text: string | null | undefined): boolean {
+  return /(release|released|launch|launched|announce|announced|rollout|ships|shipping|preview|beta|发布|推出|上线|开放|预览|内测|公测|更新)/i.test(
+    text ?? "",
+  );
+}
+
 export function eventTextSimilarityForFold(a: string | null | undefined, b: string | null | undefined): {
   score: number;
   shared: number;
@@ -166,6 +172,14 @@ export function isLikelySameEventText(
   threshold = TEXT_SIMILARITY_THRESHOLD,
 ): boolean {
   const similarity = eventTextSimilarityForFold(a, b);
+  if (
+    similarity.strongShared >= 1 &&
+    hasLaunchContext(a) &&
+    hasLaunchContext(b) &&
+    similarity.score > 0
+  ) {
+    return true;
+  }
   if (similarity.shared < MIN_SHARED_EVENT_TOKENS && similarity.strongShared < 2) return false;
   return similarity.score >= threshold;
 }

@@ -19,4 +19,11 @@ describe("semantic event text folding", () => {
 
     expect(isLikelySameEventText(release, outage)).toBe(false);
   });
+
+  test("folds short repeated launch posts that share a distinctive product keyword", () => {
+    const official = "Fable launches Fable5, a new interactive AI world model, with early developer access";
+    const followup = "Fable5 rollout update: preview users can now try the new scene workflow";
+
+    expect(isLikelySameEventText(official, followup)).toBe(true);
+  });
 });

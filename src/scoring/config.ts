@@ -126,7 +126,7 @@ export const scoringV2Config: ScoringV2Config = {
     citationBonusMax: 6,
     viewBonusMax: 4,
     viewSaturation: 200,
-    mediaTextBonusMax: 3,
+    mediaTextBonusMax: 4,
     confidenceCapToBBelow: 40,
   },
   // Owner preference (2026-06-12): AI-coding practice content (howto) ranks alongside

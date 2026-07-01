@@ -67,9 +67,9 @@ describe("search bar responsiveness", () => {
     expect(cssSource).toContain(".search-mode-tab.is-active::after {\n  background: rgb(255 170 24);");
     expect(searchSource).toContain('className="search-category-actions"');
     expect(cssSource).toContain(".search-category-actions {\n  display: flex;");
-    expect(cssSource).toContain(".search-action-row {\n  flex: 0 1 auto;");
+    expect(cssSource).toContain(".search-action-row {\n  flex: 1 1 26rem;");
     expect(cssSource).toContain("margin-left: 0;");
-    expect(cssSource).toContain("width: clamp(8.5rem, 12vw, 12rem);");
+    expect(cssSource).toContain("width: clamp(14rem, 22vw, 22rem);");
     expect(cssSource).toContain("padding: 0.37rem 0.58rem;");
     expect(cssSource).toContain(".search-input:focus,\n.search-action-row:focus-within .search-input");
   });
@@ -85,7 +85,7 @@ describe("search bar responsiveness", () => {
     expect(searchSource).not.toContain('aria-label={m.windowLabel}>\n        <span className="filter-label">{m.windowLabel}</span>');
   });
 
-  test("opens the filter panel as a popover anchored to the filter button", () => {
+  test("opens the filter panel inside the search deck boundaries", () => {
     const actionRowStart = searchSource.indexOf('className="search-row search-action-row"');
     const popoverIndex = searchSource.indexOf('className="search-filter-popover"');
     const panelIndex = searchSource.indexOf('id="reader-search-filter-panel"');
@@ -95,10 +95,12 @@ describe("search bar responsiveness", () => {
     expect(popoverIndex).toBeGreaterThan(actionRowStart);
     expect(panelIndex).toBeGreaterThan(popoverIndex);
     expect(panelIndex).toBeLessThan(formEnd);
-    expect(cssSource).toContain(".search-filter-popover {\n  position: relative;");
+    expect(cssSource).toContain(".search {\n  position: relative;");
+    expect(cssSource).toContain(".search-filter-popover {\n  position: static;");
     expect(cssSource).toContain(".search-filter-panel {\n  position: absolute;");
     expect(cssSource).toContain("top: calc(100% + 0.55rem);");
-    expect(cssSource).toContain("right: 0;");
+    expect(cssSource).toContain("left: 0;\n  right: auto;");
+    expect(cssSource).toContain("width: min(var(--search-filter-panel-width, 820px), 100%);");
     expect(cssSource).toContain("resize: horizontal;");
   });
 

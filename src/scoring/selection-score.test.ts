@@ -104,8 +104,8 @@ describe("computeSelectionScore", () => {
       hasTextAndMedia: true,
       ...neutralSignals,
     });
-    expect(rich.selectionScore).toBeCloseTo(base + 3, 6);
-    expect(rich.breakdown.mediaTextBonus).toBeCloseTo(3, 6);
+    expect(rich.selectionScore).toBeCloseTo(base + 4, 6);
+    expect(rich.breakdown.mediaTextBonus).toBeCloseTo(4, 6);
   });
 
   test("confidence below the cap floor restricts the max tier to B (open point C1)", () => {

@@ -10,6 +10,8 @@ export interface HotspotSource {
 export interface HotspotCandidate {
   id: string;
   title: string;
+  summary: string | null;
+  tags: string[];
   sourceCount: number;
   officialSourceCount: number;
   qualityScore: number | null;
@@ -23,14 +25,17 @@ export interface CurrentHotspot {
   id: string;
   title: string;
   sourceCount: number;
+  mentionCount: number;
   sourceNames: string[];
   score: number;
   lastSeenAt: Date;
+  keywords: string[];
 }
 
-const HOTSPOT_WINDOW_HOURS = 72;
+const HOTSPOT_WINDOW_HOURS = 24;
 const MIN_HOTSPOT_SCORE = 1;
 const MAX_HOTSPOTS = 5;
+const MIN_KEYWORD_SUPPORT = 2;
 
 const LEVEL_WEIGHT: Record<HotspotCandidate["selectedLevel"], number> = {
   none: 0,
@@ -59,6 +64,68 @@ function uniqueSources(sourcesList: HotspotSource[]): HotspotSource[] {
   return out;
 }
 
+const HOTSPOT_KEYWORD_PREFIX_RE =
+  /^(gpt|claude|sonnet|opus|haiku|gemini|veo|sora|imagen|fable|llama|mistral|qwen|deepseek|kimi|doubao|grok|midjourney|stable|flux|seedance|wan|hailuo|hunyuan|glm|ernie|gemma|perplexity|chatgpt)/i;
+
+const HOTSPOT_TAG_STOPWORDS = new Set([
+  "ai",
+  "agent",
+  "agents",
+  "model",
+  "models",
+  "release",
+  "product",
+  "research",
+  "模型",
+  "产品",
+  "发布",
+  "更新",
+  "研究",
+  "论文",
+  "行业",
+  "讨论",
+]);
+
+function normalizeKeyword(token: string): string | null {
+  const cleaned = token
+    .trim()
+    .replace(/^[^\p{Letter}\p{Number}]+|[^\p{Letter}\p{Number}.+#-]+$/gu, "");
+  if (!cleaned) return null;
+  const lower = cleaned.toLowerCase();
+  if (HOTSPOT_TAG_STOPWORDS.has(lower)) return null;
+  if (/^[a-z]{1,3}$/i.test(cleaned)) return null;
+  return lower.replace(/[\s_-]+/g, "").replace(/\.+/g, ".");
+}
+
+function isDistinctiveKeyword(token: string): boolean {
+  return /\d/.test(token) || HOTSPOT_KEYWORD_PREFIX_RE.test(token);
+}
+
+function extractHotspotKeywords(candidate: HotspotCandidate): Array<{ key: string; label: string }> {
+  const text = `${candidate.title} ${candidate.summary ?? ""}`;
+  const labels = new Map<string, string>();
+
+  for (const match of text.matchAll(/\b[A-Za-z][A-Za-z0-9.+#-]*\d[A-Za-z0-9.+#-]*\b/g)) {
+    const label = match[0] ?? "";
+    const key = normalizeKeyword(label);
+    if (key && isDistinctiveKeyword(label)) labels.set(key, labels.get(key) ?? label);
+  }
+
+  for (const match of text.matchAll(/\b(?:GPT|Claude|Sonnet|Opus|Haiku|Gemini|Veo|Sora|Imagen|Fable|Llama|Mistral|Qwen|DeepSeek|Kimi|Doubao|Grok|Midjourney|Flux|Hunyuan|GLM|Ernie|Gemma|Perplexity|ChatGPT)[A-Za-z0-9.+#-]*\b/gi)) {
+    const label = match[0] ?? "";
+    const key = normalizeKeyword(label);
+    if (key && isDistinctiveKeyword(label)) labels.set(key, labels.get(key) ?? label);
+  }
+
+  for (const tag of candidate.tags) {
+    if (!isDistinctiveKeyword(tag)) continue;
+    const key = normalizeKeyword(tag);
+    if (key) labels.set(key, labels.get(key) ?? tag);
+  }
+
+  return [...labels.entries()].map(([key, label]) => ({ key, label }));
+}
+
 function computeHotspotScore(candidate: HotspotCandidate, now: Date): number {
   const publishedAt = effectiveTime(candidate);
   const ageHours = hoursSince(publishedAt, now);
@@ -79,25 +146,113 @@ export function rankCurrentHotspots(
   now: Date = new Date(),
   limit = MAX_HOTSPOTS,
 ): CurrentHotspot[] {
-  return candidates
-    .map((candidate) => {
-      const dedupedSources = uniqueSources(candidate.sources);
-      const sourceCount = dedupedSources.length || candidate.sourceCount;
-      const officialSourceCount =
-        dedupedSources.length > 0
-          ? dedupedSources.filter((source) => source.type === "official").length
-          : candidate.officialSourceCount;
-      const normalized = { ...candidate, sourceCount, officialSourceCount, sources: dedupedSources };
-      return {
-        id: normalized.id,
-        title: normalized.title,
-        sourceCount,
-        sourceNames: dedupedSources.map((source) => source.name),
-        score: computeHotspotScore(normalized, now),
-        lastSeenAt: effectiveTime(normalized),
-      };
-    })
-    .filter((item) => item.sourceCount >= 2 && item.score >= MIN_HOTSPOT_SCORE)
+  const normalized = candidates.map((candidate) => {
+    const dedupedSources = uniqueSources(candidate.sources);
+    const sourceCount = dedupedSources.length || candidate.sourceCount;
+    const officialSourceCount =
+      dedupedSources.length > 0
+        ? dedupedSources.filter((source) => source.type === "official").length
+        : candidate.officialSourceCount;
+    return { ...candidate, sourceCount, officialSourceCount, sources: dedupedSources };
+  });
+
+  const byId = new Map<string, CurrentHotspot>();
+  for (const candidate of normalized) {
+    const score = computeHotspotScore(candidate, now);
+    if (candidate.sourceCount < 2 || score < MIN_HOTSPOT_SCORE) continue;
+    byId.set(candidate.id, {
+      id: candidate.id,
+      title: candidate.title,
+      sourceCount: candidate.sourceCount,
+      mentionCount: candidate.sourceCount,
+      sourceNames: candidate.sources.map((source) => source.name),
+      score,
+      lastSeenAt: effectiveTime(candidate),
+      keywords: [],
+    });
+  }
+
+  const keywordGroups = new Map<
+    string,
+    {
+      label: string;
+      sourceNames: Map<string, HotspotSource>;
+      eventIds: Set<string>;
+      candidates: HotspotCandidate[];
+      lastSeenAt: Date;
+    }
+  >();
+
+  for (const candidate of normalized) {
+    const ageHours = hoursSince(effectiveTime(candidate), now);
+    if (ageHours > HOTSPOT_WINDOW_HOURS) continue;
+    for (const keyword of extractHotspotKeywords(candidate)) {
+      const group =
+        keywordGroups.get(keyword.key) ??
+        {
+          label: keyword.label,
+          sourceNames: new Map<string, HotspotSource>(),
+          eventIds: new Set<string>(),
+          candidates: [],
+          lastSeenAt: effectiveTime(candidate),
+        };
+      group.eventIds.add(candidate.id);
+      group.candidates.push(candidate);
+      for (const source of candidate.sources) group.sourceNames.set(source.name, source);
+      if (effectiveTime(candidate).getTime() > group.lastSeenAt.getTime()) {
+        group.lastSeenAt = effectiveTime(candidate);
+      }
+      keywordGroups.set(keyword.key, group);
+    }
+  }
+
+  for (const group of keywordGroups.values()) {
+    const support = Math.max(group.sourceNames.size, group.eventIds.size);
+    if (support < MIN_KEYWORD_SUPPORT) continue;
+    const target = group.candidates
+      .slice()
+      .sort(
+        (a, b) =>
+          b.officialSourceCount - a.officialSourceCount ||
+          b.sourceCount - a.sourceCount ||
+          (b.qualityScore ?? 0) - (a.qualityScore ?? 0) ||
+          effectiveTime(b).getTime() - effectiveTime(a).getTime(),
+      )[0];
+    if (!target) continue;
+    const sourceNames = [...group.sourceNames.values()].map((source) => source.name);
+    const officialBoost = target.officialSourceCount > 0 ? 0.9 : 0;
+    const mentionHeat =
+      Math.log2(1 + group.sourceNames.size + Math.max(0, group.eventIds.size - 1)) * 1.55 +
+      officialBoost;
+    const score = computeHotspotScore(target, now) + mentionHeat;
+    if (score < MIN_HOTSPOT_SCORE) continue;
+
+    const existing = byId.get(target.id);
+    if (existing) {
+      existing.score += mentionHeat;
+      existing.sourceCount = Math.max(existing.sourceCount, sourceNames.length);
+      existing.mentionCount = Math.max(existing.mentionCount, support);
+      existing.sourceNames = [...new Set([...existing.sourceNames, ...sourceNames])];
+      existing.lastSeenAt =
+        group.lastSeenAt.getTime() > existing.lastSeenAt.getTime()
+          ? group.lastSeenAt
+          : existing.lastSeenAt;
+      existing.keywords = [...new Set([...existing.keywords, group.label])];
+    } else {
+      byId.set(target.id, {
+        id: target.id,
+        title: target.title,
+        sourceCount: Math.max(target.sourceCount, sourceNames.length),
+        mentionCount: support,
+        sourceNames,
+        score,
+        lastSeenAt: group.lastSeenAt,
+        keywords: [group.label],
+      });
+    }
+  }
+
+  return [...byId.values()]
     .sort((a, b) => b.score - a.score || b.lastSeenAt.getTime() - a.lastSeenAt.getTime())
     .slice(0, limit);
 }
@@ -114,6 +269,8 @@ export async function listCurrentHotspots(
     .select({
       id: events.id,
       title: events.title,
+      summary: events.summary,
+      tags: events.tags,
       sourceCount: events.sourceCount,
       qualityScore: events.qualityScore,
       selectedLevel: events.selectedLevel,
@@ -140,6 +297,8 @@ export async function listCurrentHotspots(
     const candidate = byEvent.get(row.id) ?? {
       id: row.id,
       title: row.title,
+      summary: row.summary,
+      tags: row.tags ?? [],
       sourceCount: row.sourceCount,
       officialSourceCount: 0,
       qualityScore: row.qualityScore,

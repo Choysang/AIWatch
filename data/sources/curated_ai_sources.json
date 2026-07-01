@@ -797,20 +797,6 @@
     "recommendReason": "Anthropic 官方新闻源，企业合作、政策观点、安全研究和公司级重大动态。"
   },
   {
-    "name": "Lilian Weng Blog",
-    "handle": null,
-    "url": "https://lilianweng.github.io/",
-    "platform": "blog",
-    "connectorType": "rss",
-    "connectorRef": "https://lilianweng.github.io/index.xml",
-    "category": "technical_share",
-    "sourceType": "expert",
-    "level": "L2",
-    "ai_density_score": 10,
-    "recommendedBy": "owner-20260612",
-    "recommendReason": "AI 领域高质量个人博客，前沿技术理解和大佬认知更新。"
-  },
-  {
     "name": "Shunyu Yao Blog",
     "handle": null,
     "url": "https://ysymyth.github.io/",
@@ -935,20 +921,6 @@
     "ai_density_score": 9,
     "recommendedBy": "owner-20260627",
     "recommendReason": "Perplexity 官方动态，覆盖 AI 搜索、浏览器、行业垂直产品和 Agentic research 场景。"
-  },
-  {
-    "name": "Jason Liu",
-    "handle": "@jxnlco",
-    "url": "https://x.com/jxnlco",
-    "platform": "x",
-    "connectorType": "rsshub",
-    "connectorRef": "/twitter/user/jxnlco",
-    "category": "technical_share",
-    "sourceType": "expert",
-    "level": "L2",
-    "ai_density_score": 9,
-    "recommendedBy": "owner-20260627",
-    "recommendReason": "Instructor 作者，长期分享结构化输出、LLM eval、Agent 工程和真实开发经验，适合技术精选。"
   },
   {
     "name": "Mistral AI",
@@ -1133,20 +1105,6 @@
     "recommendReason": "AI 编程工具官方动态，补充代码 Agent 和 IDE 工作流更新。"
   },
   {
-    "name": "Replit",
-    "handle": "@Replit",
-    "url": "https://x.com/Replit",
-    "platform": "x",
-    "connectorType": "rsshub",
-    "connectorRef": "/twitter/user/Replit",
-    "category": "official",
-    "sourceType": "official",
-    "level": "L2",
-    "ai_density_score": 7,
-    "recommendedBy": "owner-20260627",
-    "recommendReason": "云开发和 AI Agent 产品更新源，筛选保留开发者可直接使用的内容。"
-  },
-  {
     "name": "Lovable",
     "handle": "@lovable_dev",
     "url": "https://x.com/lovable_dev",
@@ -1243,20 +1201,6 @@
     "ai_density_score": 7,
     "recommendedBy": "owner-20260627",
     "recommendReason": "模型服务与推理工程源，偏部署、性能和生产化实践。"
-  },
-  {
-    "name": "Anyscale",
-    "handle": "@anyscalecompute",
-    "url": "https://x.com/anyscalecompute",
-    "platform": "x",
-    "connectorType": "rsshub",
-    "connectorRef": "/twitter/user/anyscalecompute",
-    "category": "technical_share",
-    "sourceType": "official",
-    "level": "L3",
-    "ai_density_score": 7,
-    "recommendedBy": "owner-20260627",
-    "recommendReason": "Ray/分布式 AI 计算生态源，适合补充工程基础设施变化。"
   },
   {
     "name": "Unsloth AI",
@@ -1567,62 +1511,6 @@
     "recommendReason": "Google 官方研究博客，补充 DeepMind 以外的模型、工具和系统研究更新。"
   },
   {
-    "name": "MIT Technology Review AI",
-    "handle": null,
-    "url": "https://www.technologyreview.com/topic/artificial-intelligence/",
-    "platform": "rss",
-    "connectorType": "rss",
-    "connectorRef": "https://www.technologyreview.com/topic/artificial-intelligence/feed",
-    "category": "industry_leader",
-    "sourceType": "media",
-    "level": "L3",
-    "ai_density_score": 7,
-    "recommendedBy": "owner-20260627",
-    "recommendReason": "AI 政策、监管、产品影响和行业趋势报道，适合补充非通稿视角。"
-  },
-  {
-    "name": "Ollama Releases",
-    "handle": null,
-    "url": "https://github.com/ollama/ollama",
-    "platform": "rss",
-    "connectorType": "rss",
-    "connectorRef": "https://github.com/ollama/ollama/releases.atom",
-    "category": "technical_share",
-    "sourceType": "open_source_project",
-    "level": "L2",
-    "ai_density_score": 8,
-    "recommendedBy": "owner-20260627",
-    "recommendReason": "Ollama release feed，补充本地模型运行和开发者工具的实质更新。"
-  },
-  {
-    "name": "ComfyUI Releases",
-    "handle": null,
-    "url": "https://github.com/comfyanonymous/ComfyUI",
-    "platform": "rss",
-    "connectorType": "rss",
-    "connectorRef": "https://github.com/comfyanonymous/ComfyUI/releases.atom",
-    "category": "technical_share",
-    "sourceType": "open_source_project",
-    "level": "L3",
-    "ai_density_score": 7,
-    "recommendedBy": "owner-20260627",
-    "recommendReason": "图像/视频生成工作流核心开源项目 release，适合创作工具生态观察。"
-  },
-  {
-    "name": "LangGraph Releases",
-    "handle": null,
-    "url": "https://github.com/langchain-ai/langgraph",
-    "platform": "rss",
-    "connectorType": "rss",
-    "connectorRef": "https://github.com/langchain-ai/langgraph/releases.atom",
-    "category": "technical_share",
-    "sourceType": "open_source_project",
-    "level": "L2",
-    "ai_density_score": 8,
-    "recommendedBy": "owner-20260627",
-    "recommendReason": "Agent workflow 编排项目 release，补充 LangChain 官方 X 之外的具体工程更新。"
-  },
-  {
     "name": "LlamaIndex Releases",
     "handle": null,
     "url": "https://github.com/run-llama/llama_index",
@@ -1635,20 +1523,6 @@
     "ai_density_score": 8,
     "recommendedBy": "owner-20260627",
     "recommendReason": "RAG/数据智能体框架 release，适合捕捉可直接使用的新能力。"
-  },
-  {
-    "name": "CrewAI Releases",
-    "handle": null,
-    "url": "https://github.com/crewAIInc/crewAI",
-    "platform": "rss",
-    "connectorType": "rss",
-    "connectorRef": "https://github.com/crewAIInc/crewAI/releases.atom",
-    "category": "technical_share",
-    "sourceType": "open_source_project",
-    "level": "L3",
-    "ai_density_score": 7,
-    "recommendedBy": "owner-20260627",
-    "recommendReason": "多 Agent 框架 release，保留架构和可用能力明确的更新。"
   },
   {
     "name": "Cline Releases",

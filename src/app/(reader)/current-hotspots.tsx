@@ -1,6 +1,5 @@
 import type { CurrentHotspot } from "@/db/queries/current-hotspots";
 import { formatRelativeTime } from "@/app/_lib/format";
-import { CurrentHotspotJump } from "./current-hotspot-jump";
 
 export function CurrentHotspots({ items }: { items: CurrentHotspot[] }) {
   return (
@@ -10,7 +9,7 @@ export function CurrentHotspots({ items }: { items: CurrentHotspot[] }) {
           <span className="current-hotspots-flame" aria-hidden="true" />
           当前热点
         </h2>
-        <p>多信源热度 · 随时间消退</p>
+        <p>24 小时关键词 · 官方事件优先</p>
       </div>
 
       {items.length === 0 ? (
@@ -19,8 +18,23 @@ export function CurrentHotspots({ items }: { items: CurrentHotspot[] }) {
         <ol className="current-hotspots-list">
           {items.map((item, index) => (
             <li className="current-hotspots-item" key={item.id}>
-              <CurrentHotspotJump eventId={item.id} rank={index + 1} title={item.title} />
+              <a
+                className="current-hotspots-title"
+                href={`/events/${item.id}`}
+                data-tooltip="打开该热点的站内详情页"
+              >
+                <span className="current-hotspots-rank">{index + 1}</span>
+                <span>{item.title}</span>
+              </a>
               <span className="current-hotspots-meta">
+                {item.keywords.length > 0 && (
+                  <>
+                    <span>{item.keywords.slice(0, 2).join(" / ")}</span>
+                    <span aria-hidden="true">·</span>
+                  </>
+                )}
+                <span>{item.mentionCount} 次提及</span>
+                <span aria-hidden="true">·</span>
                 <button
                   type="button"
                   className="current-hotspots-source-trigger"

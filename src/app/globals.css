@@ -228,6 +228,7 @@ canvas {
 
 /* --- search + filters --- */
 .search {
+  position: relative;
   margin: 0 0 2rem;
   display: grid;
   gap: 0.55rem;
@@ -308,7 +309,7 @@ canvas {
   min-width: 0;
 }
 .search-action-row {
-  flex: 0 1 auto;
+  flex: 1 1 26rem;
   align-items: center;
   justify-content: flex-start;
   margin-left: 0;
@@ -319,8 +320,8 @@ canvas {
   margin-left: 0;
 }
 .search-input {
-  flex: 0 1 auto;
-  width: clamp(8.5rem, 12vw, 12rem);
+  flex: 1 1 14rem;
+  width: clamp(14rem, 22vw, 22rem);
   font: inherit;
   font-size: 0.86rem;
   padding: 0.32rem 0.68rem;
@@ -329,7 +330,6 @@ canvas {
   background: var(--paper-raised);
   color: var(--ink);
   transition:
-    width 180ms ease,
     border-color 150ms ease,
     box-shadow 150ms ease;
 }
@@ -338,7 +338,7 @@ canvas {
 }
 .search-input:focus,
 .search-action-row:focus-within .search-input {
-  width: clamp(12rem, 22vw, 20rem);
+  width: clamp(14rem, 22vw, 22rem);
 }
 .search-input:focus-visible {
   outline: none;
@@ -395,18 +395,19 @@ canvas {
   background: var(--accent);
 }
 .search-filter-popover {
-  position: relative;
+  position: static;
   flex: 0 0 auto;
   display: inline-flex;
 }
 .search-filter-panel {
   position: absolute;
   top: calc(100% + 0.55rem);
-  right: 0;
+  left: 0;
+  right: auto;
   z-index: 90;
-  width: min(var(--search-filter-panel-width, 680px), calc(100vw - 2rem));
-  min-width: min(24rem, calc(100vw - 2rem));
-  max-width: min(58rem, calc(100vw - 2rem));
+  width: min(var(--search-filter-panel-width, 820px), 100%);
+  min-width: min(24rem, 100%);
+  max-width: 100%;
   display: grid;
   gap: 0.85rem;
   padding: 1rem;
@@ -488,7 +489,7 @@ canvas {
 }
 .search-source-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
   gap: 0.35rem;
   max-height: 11rem;
   overflow-y: auto;
@@ -2412,10 +2413,10 @@ canvas {
 @media (min-width: 1240px) {
   .report-archive-shell {
     position: fixed;
-    top: 10.25rem;
+    top: 13.25rem;
     left: clamp(1rem, 1.8vw, 1.75rem);
     width: clamp(7.5rem, calc((100vw - 920px) / 2 - 2.75rem), 14rem);
-    max-height: calc(100vh - 11.25rem);
+    max-height: calc(100vh - 14.25rem);
     overflow-y: auto;
     padding-right: 0.35rem;
     overscroll-behavior: contain;

@@ -4,7 +4,6 @@ import { describe, expect, test } from "bun:test";
 
 const pageSource = readFileSync(join(import.meta.dir, "page.tsx"), "utf8");
 const feedRefreshSource = readFileSync(join(import.meta.dir, "feed-refresh-indicator.tsx"), "utf8");
-const hotspotJumpSource = readFileSync(join(import.meta.dir, "current-hotspot-jump.tsx"), "utf8");
 const hotspotsSource = readFileSync(join(import.meta.dir, "current-hotspots.tsx"), "utf8");
 const cssSource = readFileSync(join(import.meta.dir, "..", "globals.css"), "utf8");
 
@@ -39,12 +38,12 @@ describe("reader home layout", () => {
     expect(cssSource).toContain(".current-hotspots-source-trigger:hover .current-hotspots-source-list");
   });
 
-  test("current hotspots reveal the matching card instead of navigating to detail", () => {
-    expect(hotspotJumpSource).toContain('"use client"');
-    expect(hotspotJumpSource).toContain("aiwatch:reveal-event-card");
-    expect(hotspotJumpSource).toContain("scrollIntoView");
-    expect(hotspotJumpSource).not.toContain("window.location");
-    expect(hotspotJumpSource).not.toContain("/events/");
+  test("current hotspots open the official/main event detail page", () => {
+    expect(hotspotsSource).toContain('href={`/events/${item.id}`}');
+    expect(hotspotsSource).toContain("24 小时关键词 · 官方事件优先");
+    expect(hotspotsSource).toContain("item.keywords.slice(0, 2)");
+    expect(hotspotsSource).toContain("item.mentionCount");
+    expect(hotspotsSource).not.toContain("aiwatch:reveal-event-card");
   });
 
   test("does not render the old homepage masthead between search and cards", () => {
@@ -125,9 +124,9 @@ describe("reader home layout", () => {
   });
 
   test("keeps the source picker usable with many long source names", () => {
-    expect(cssSource).toContain("width: min(var(--search-filter-panel-width, 680px), calc(100vw - 2rem));");
+    expect(cssSource).toContain("width: min(var(--search-filter-panel-width, 820px), 100%);");
     expect(cssSource).toContain("resize: horizontal;");
-    expect(cssSource).toContain("grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));");
+    expect(cssSource).toContain("grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));");
     expect(cssSource).toContain(".search-source-grid .chip {");
     expect(cssSource).toContain("text-overflow: ellipsis;");
   });

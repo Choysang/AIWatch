@@ -17,6 +17,20 @@ const disabledNames = [
   "Open WebUI Releases",
   "Together AI",
   "Thomas Wolf",
+  "MarkTechPost",
+  "量子位",
+  "TechCrunch AI",
+  "Ollama Releases",
+  "Latent Space",
+  "ComfyUI Releases",
+  "Anyscale",
+  "Jason Liu",
+  "Replit",
+  "CrewAI Releases",
+  "Ars Technica AI",
+  "MIT Technology Review AI",
+  "LangGraph Releases",
+  "Lilian Weng Blog",
 ].map((name) => name.toLowerCase());
 
 describe("curated source blocklist", () => {
