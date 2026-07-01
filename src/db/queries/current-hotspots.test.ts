@@ -131,6 +131,28 @@ describe("rankCurrentHotspots", () => {
     expect(ranked.map((item) => item.id)).toEqual(["two_independent_sources"]);
   });
 
+  test("keeps a two-source story visible after the first day", () => {
+    const ranked = rankCurrentHotspots(
+      [
+        candidate({
+          id: "two_source_day_two",
+          title: "Launch keeps getting discussed the next day",
+          sourceCount: 2,
+          officialSourceCount: 1,
+          qualityScore: 59,
+          publishedAt: hoursAgo(36),
+          sources: [
+            { name: "OpenAI Developers", type: "official" },
+            { name: "Builder Notes", type: "expert" },
+          ],
+        }),
+      ],
+      NOW,
+    );
+
+    expect(ranked.map((item) => item.id)).toEqual(["two_source_day_two"]);
+  });
+
   test("does not let repeated posts from the same account inflate heat", () => {
     const ranked = rankCurrentHotspots(
       [

@@ -29,7 +29,7 @@ export interface CurrentHotspot {
 }
 
 const HOTSPOT_WINDOW_HOURS = 72;
-const MIN_HOTSPOT_SCORE = 1.35;
+const MIN_HOTSPOT_SCORE = 1;
 const MAX_HOTSPOTS = 5;
 
 const LEVEL_WEIGHT: Record<HotspotCandidate["selectedLevel"], number> = {
