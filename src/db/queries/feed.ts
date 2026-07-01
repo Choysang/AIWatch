@@ -3,7 +3,7 @@
 
 import { and, arrayOverlaps, desc, eq, gte, inArray, ne, or, sql, type SQL } from "drizzle-orm";
 import { db as defaultDb, type DB } from "@/db/client";
-import { events, ownerAnnotations, posts, sources } from "@/db/schema";
+import { eventPosts, events, ownerAnnotations, posts, sources } from "@/db/schema";
 import {
   EVENT_CATEGORIES,
   windowStart,
@@ -48,7 +48,58 @@ export interface EventCard {
   starCount: number;
   downCount: number;
   viewCount: number;
+  postVariants?: EventPostVariant[];
 }
+
+export interface EventPostVariant {
+  postId: string;
+  sourceName: string | null;
+  sourceType: string | null;
+  platform: string | null;
+  url: string | null;
+  title: string | null;
+  excerpt: string | null;
+  publishedAt: string | null;
+  isMain: boolean;
+}
+
+export const postVariantsColumn = sql<EventPostVariant[]>`
+  coalesce((
+    select jsonb_agg(
+      jsonb_build_object(
+        'postId', variant.post_id,
+        'sourceName', variant.source_name,
+        'sourceType', variant.source_type,
+        'platform', variant.platform,
+        'url', variant.url,
+        'title', variant.title,
+        'excerpt', variant.excerpt,
+        'publishedAt', variant.published_at,
+        'isMain', variant.is_main
+      )
+      order by variant.is_main desc, variant.published_at desc nulls last, variant.created_at desc
+    )
+    from (
+      select
+        p.id as post_id,
+        s.name as source_name,
+        s.source_type as source_type,
+        p.platform as platform,
+        p.url as url,
+        coalesce(p.display_title, p.raw_title) as title,
+        nullif(left(regexp_replace(coalesce(p.raw_content, ''), E'\\s+', ' ', 'g'), 140), '') as excerpt,
+        p.published_at as published_at,
+        p.created_at as created_at,
+        (p.id = ${events.mainPostId}) as is_main
+      from ${eventPosts} ep
+      join ${posts} p on p.id = ep.post_id
+      left join ${sources} s on s.id = p.source_id
+      where ep.event_id = ${events.id}
+      order by (p.id = ${events.mainPostId}) desc, p.published_at desc nulls last, p.created_at desc
+      limit 8
+    ) variant
+  ), '[]'::jsonb)
+`;
 
 // Shared card projection so every reader feed query returns the same shape.
 export const cardColumns = {
@@ -83,6 +134,7 @@ export const cardColumns = {
   starCount: events.starCount,
   downCount: events.downCount,
   viewCount: events.viewCount,
+  postVariants: postVariantsColumn,
 } as const;
 
 // Strict newest-first over the same effective-time chain the reader timeline groups by

@@ -10,7 +10,7 @@ import { formatDateTime } from "@/app/_lib/format";
 import { extractCardMediaGallery, proxiedImageUrl } from "@/app/_lib/media";
 import { AnnotationButtons, type OwnerVerdict } from "./annotation-buttons";
 import { CommentTicker } from "./comment-ticker";
-import { EventCardShell, TrackableDetailLink } from "./event-view-tracker";
+import { EventCardShell, TrackableDetailLink, TrackableOriginalLink } from "./event-view-tracker";
 import { InlineComments } from "./inline-comments";
 import { ReactionButtons } from "./reaction-buttons";
 import { ImageLightbox } from "./image-lightbox";
@@ -86,6 +86,10 @@ export function EventCard({
   const displayTags =
     event.tags.length > 0 ? event.tags.slice(0, MAX_TAGS) : [contentLabel ?? "闲聊"];
   const detailHref = `/events/${event.id}`;
+  const postVariants = (event.postVariants ?? [])
+    .filter((item) => item.postId && (item.title || item.excerpt || item.sourceName))
+    .slice(0, 8);
+  const showPostVariants = postVariants.length > 1;
   // Chinese-first titles can equal the one-line summary (deriveTitle fallback);
   // don't render the same sentence twice.
   const summaryDuplicatesTitle =
@@ -164,6 +168,37 @@ export function EventCard({
 
       {event.summary && !summaryDuplicatesTitle && (
         <p className="summary">{event.summary}</p>
+      )}
+
+      {showPostVariants && (
+        <section className="event-variant-carousel" aria-label="同一事件来源合集">
+          <div className="event-variant-head">
+            <span>同事件合集</span>
+            <small>{postVariants.length} 条来源</small>
+          </div>
+          <div className="event-variant-track">
+            {postVariants.map((item, index) => {
+              const title = item.title ?? item.excerpt ?? item.sourceName ?? "同事件来源";
+              const source = item.sourceName ?? item.platform ?? "来源";
+              return (
+                <article className="event-variant-card" key={item.postId}>
+                  <div className="event-variant-meta">
+                    <span>{item.isMain ? "主线" : `${index + 1}`}</span>
+                    <span>{source}</span>
+                    {item.publishedAt ? <time>{formatDateTime(item.publishedAt)}</time> : null}
+                  </div>
+                  <strong>{title}</strong>
+                  {item.excerpt && item.excerpt !== title ? <p>{item.excerpt}</p> : null}
+                  {item.url ? (
+                    <TrackableOriginalLink eventId={event.id} href={item.url}>
+                      查看来源
+                    </TrackableOriginalLink>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+        </section>
       )}
 
       {showReason && (
