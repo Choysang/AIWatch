@@ -99,6 +99,7 @@ describe("search bar responsiveness", () => {
     expect(cssSource).toContain(".search-filter-panel {\n  position: absolute;");
     expect(cssSource).toContain("top: calc(100% + 0.55rem);");
     expect(cssSource).toContain("right: 0;");
+    expect(cssSource).toContain("resize: horizontal;");
   });
 
   test("filter panel surfaces the recommend-source entry (信源推荐收集 slice A)", () => {
@@ -144,6 +145,7 @@ describe("search bar responsiveness", () => {
     expect(cssSource).toContain(".search-mode-tabs {\n    width: 100%;");
     expect(cssSource).toContain(".search-filter-popover {\n    position: static;");
     expect(cssSource).toContain("left: 0.65rem;\n    right: 0.65rem;\n    width: auto;");
+    expect(cssSource).toContain("resize: none;");
     expect(cssSource).toContain("max-height: min(72vh, 34rem);");
   });
 });

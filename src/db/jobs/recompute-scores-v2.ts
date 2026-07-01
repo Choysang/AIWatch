@@ -28,6 +28,7 @@ import {
   type ScoringConfig,
   type ScoringV2Config,
 } from "@/scoring/config";
+import { hasTextAndMedia } from "@/scoring/media-signal";
 import type { ContentType } from "@/pipeline/judge-schema";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -75,6 +76,9 @@ export async function recomputeScoresV2(
       rankScore: eventScores.rankScore,
       displayScore: eventScores.displayScore,
       viewCount: events.viewCount,
+      title: events.title,
+      summary: events.summary,
+      media: events.media,
     })
     .from(events)
     .innerJoin(eventScores, eq(eventScores.id, events.currentScoreId))
@@ -131,6 +135,11 @@ export async function recomputeScoresV2(
           expertActions: bundle.expertActions,
           validComments: bundle.validComments,
           viewCount: r.viewCount,
+          hasTextAndMedia: hasTextAndMedia({
+            title: r.title,
+            content: r.summary,
+            media: r.media,
+          }),
           contentType: r.contentType as ContentType,
         },
         config,

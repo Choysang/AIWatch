@@ -58,7 +58,124 @@ export async function attachPostToEvent(
     .onConflictDoNothing();
 }
 
-const SIMHASH_HAMMING_THRESHOLD = 8;
+const SIMHASH_HAMMING_THRESHOLD = 12;
+const TEXT_SIMILARITY_THRESHOLD = 0.54;
+const SAME_FOLD_TEXT_SIMILARITY_THRESHOLD = 0.5;
+const MIN_SHARED_EVENT_TOKENS = 4;
+const EVENT_TEXT_STOPWORDS = new Set([
+  "about",
+  "after",
+  "again",
+  "with",
+  "from",
+  "into",
+  "that",
+  "this",
+  "they",
+  "their",
+  "will",
+  "have",
+  "has",
+  "had",
+  "new",
+  "news",
+  "update",
+  "release",
+  "launch",
+  "announces",
+  "announced",
+  "发布",
+  "推出",
+  "上线",
+  "更新",
+  "宣布",
+  "最新",
+  "模型",
+  "产品",
+  "功能",
+]);
+
+function normalizeEventFoldText(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/https?:\/\/\S+/g, " ")
+    .replace(/[@#][\w.-]+/g, " ")
+    .replace(/[^\p{Letter}\p{Number}.+#-]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function eventFoldTokenSet(text: string): Set<string> {
+  const normalized = normalizeEventFoldText(text);
+  const tokens = new Set<string>();
+
+  for (const word of normalized.match(/[a-z0-9][a-z0-9.+#-]{1,}/g) ?? []) {
+    if (!EVENT_TEXT_STOPWORDS.has(word)) tokens.add(word);
+  }
+
+  const cjk = [...normalized.replace(/[^\p{Script=Han}]/gu, "")];
+  for (let i = 0; i < cjk.length - 1; i++) {
+    const token = `${cjk[i]}${cjk[i + 1]}`;
+    if (!EVENT_TEXT_STOPWORDS.has(token)) tokens.add(token);
+  }
+
+  return tokens;
+}
+
+function isStrongSharedEventToken(token: string): boolean {
+  return (
+    /\d/.test(token) ||
+    /^(gpt|claude|gemini|llama|sora|veo|imagen|grok|qwen|deepseek|mistral|midjourney|opus|sonnet|haiku|kimi|hunyuan|doubao)/i.test(
+      token,
+    )
+  );
+}
+
+export function eventTextSimilarityForFold(a: string | null | undefined, b: string | null | undefined): {
+  score: number;
+  shared: number;
+  strongShared: number;
+} {
+  const left = eventFoldTokenSet(a ?? "");
+  const right = eventFoldTokenSet(b ?? "");
+  if (left.size === 0 || right.size === 0) return { score: 0, shared: 0, strongShared: 0 };
+
+  let shared = 0;
+  let strongShared = 0;
+  for (const token of left) {
+    if (!right.has(token)) continue;
+    shared++;
+    if (isStrongSharedEventToken(token)) strongShared++;
+  }
+
+  if (shared === 0) return { score: 0, shared: 0, strongShared: 0 };
+  const smaller = Math.min(left.size, right.size);
+  const union = left.size + right.size - shared;
+  const containment = shared / smaller;
+  const jaccard = shared / union;
+  return {
+    score: containment * 0.8 + jaccard * 0.2,
+    shared,
+    strongShared,
+  };
+}
+
+export function isLikelySameEventText(
+  a: string | null | undefined,
+  b: string | null | undefined,
+  threshold = TEXT_SIMILARITY_THRESHOLD,
+): boolean {
+  const similarity = eventTextSimilarityForFold(a, b);
+  if (similarity.shared < MIN_SHARED_EVENT_TOKENS && similarity.strongShared < 2) return false;
+  return similarity.score >= threshold;
+}
+
+function semanticFoldText(input: { title?: string | null; summary?: string | null }): string {
+  return [input.title, input.summary]
+    .filter((part): part is string => Boolean(part && part.trim()))
+    .join("\n")
+    .slice(0, 1200);
+}
 
 export function shouldReplaceMainPost(input: {
   currentPipelineScore: number | null;
@@ -76,11 +193,12 @@ export function shouldReplaceMainPost(input: {
 }
 
 export async function findEventIdBySemanticFold(
-  input: { foldKey: string; simhash: string; since: Date },
+  input: { foldKey: string; simhash: string; since: Date; title?: string | null; summary?: string | null },
   db: DB = defaultDb,
 ): Promise<string | null> {
+  const incomingText = semanticFoldText(input);
   const exact = await db
-    .select({ id: events.id, simhash: events.simhash })
+    .select({ id: events.id, simhash: events.simhash, title: events.title, summary: events.summary })
     .from(events)
     .where(
       and(
@@ -95,20 +213,45 @@ export async function findEventIdBySemanticFold(
     if (hammingDistanceHex(input.simhash, candidate.simhash) <= SIMHASH_HAMMING_THRESHOLD) {
       return candidate.id;
     }
+    if (
+      incomingText &&
+      isLikelySameEventText(
+        incomingText,
+        semanticFoldText(candidate),
+        SAME_FOLD_TEXT_SIMILARITY_THRESHOLD,
+      )
+    ) {
+      return candidate.id;
+    }
   }
 
   const candidates = await db
-    .select({ id: events.id, simhash: events.simhash })
+    .select({ id: events.id, simhash: events.simhash, foldKey: events.foldKey, title: events.title, summary: events.summary })
     .from(events)
     .where(and(gte(events.createdAt, input.since), sql`${events.simhash} is not null`))
     .orderBy(desc(events.createdAt))
-    .limit(200);
+    .limit(400);
 
-  let best: { id: string; distance: number } | null = null;
+  let best: { id: string; distance: number; similarity: number } | null = null;
   for (const candidate of candidates) {
     const distance = hammingDistanceHex(input.simhash, candidate.simhash);
-    if (distance <= SIMHASH_HAMMING_THRESHOLD && (!best || distance < best.distance)) {
-      best = { id: candidate.id, distance };
+    const candidateText = semanticFoldText(candidate);
+    const threshold =
+      candidate.foldKey === input.foldKey
+        ? SAME_FOLD_TEXT_SIMILARITY_THRESHOLD
+        : TEXT_SIMILARITY_THRESHOLD;
+    const textSimilarity =
+      incomingText && isLikelySameEventText(incomingText, candidateText, threshold)
+        ? eventTextSimilarityForFold(incomingText, candidateText).score
+        : 0;
+    if (distance <= SIMHASH_HAMMING_THRESHOLD || textSimilarity > 0) {
+      if (
+        !best ||
+        textSimilarity > best.similarity ||
+        (textSimilarity === best.similarity && distance < best.distance)
+      ) {
+        best = { id: candidate.id, distance, similarity: textSimilarity };
+      }
     }
   }
   return best?.id ?? null;

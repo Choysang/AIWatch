@@ -54,6 +54,8 @@ export interface ComposeV2Inputs {
   validComments: readonly ValidComment[];
   /** Card/detail/original click count; default 0 for cold-start scoring. */
   viewCount?: number;
+  /** Small selection lift for posts with both readable text and visible media. */
+  hasTextAndMedia?: boolean;
   /** Optional — citations aren't tracked in V1 (defaults to neutral). */
   citations?: readonly Citation[];
   contentType: ContentType;
@@ -118,6 +120,7 @@ export function composeScoresV2(
       commentQualityScore: comment.commentQualityScore,
       citationQualityScore: citation.citationQualityScore,
       viewCount: inputs.viewCount ?? 0,
+      hasTextAndMedia: inputs.hasTextAndMedia ?? false,
       contentType: inputs.contentType,
     },
     config,

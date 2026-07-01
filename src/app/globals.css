@@ -404,7 +404,9 @@ canvas {
   top: calc(100% + 0.55rem);
   right: 0;
   z-index: 90;
-  width: min(560px, calc(100vw - 2rem));
+  width: min(var(--search-filter-panel-width, 680px), calc(100vw - 2rem));
+  min-width: min(24rem, calc(100vw - 2rem));
+  max-width: min(58rem, calc(100vw - 2rem));
   display: grid;
   gap: 0.85rem;
   padding: 1rem;
@@ -412,6 +414,8 @@ canvas {
   border-radius: 12px;
   background: var(--paper-raised);
   box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
+  overflow: auto;
+  resize: horizontal;
 }
 .search-filter-recommend {
   margin: 0;
@@ -484,7 +488,7 @@ canvas {
 }
 .search-source-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
   gap: 0.35rem;
   max-height: 11rem;
   overflow-y: auto;
@@ -2408,10 +2412,10 @@ canvas {
 @media (min-width: 1240px) {
   .report-archive-shell {
     position: fixed;
-    top: 7rem;
+    top: 10.25rem;
     left: clamp(1rem, 1.8vw, 1.75rem);
     width: clamp(7.5rem, calc((100vw - 920px) / 2 - 2.75rem), 14rem);
-    max-height: calc(100vh - 8rem);
+    max-height: calc(100vh - 11.25rem);
     overflow-y: auto;
     padding-right: 0.35rem;
     overscroll-behavior: contain;
@@ -5369,9 +5373,12 @@ html[data-reader-theme="light"] .reader-sidebar-actions a:hover {
     left: 0.65rem;
     right: 0.65rem;
     width: auto;
+    min-width: 0;
     max-height: min(72vh, 34rem);
+    overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
+    resize: none;
   }
   .search-filter-mobile-section {
     display: grid;

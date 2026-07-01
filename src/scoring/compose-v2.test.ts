@@ -63,6 +63,23 @@ describe("composeScoresV2", () => {
     expect(corroborated.selectionScore).toBeGreaterThan(single.selectionScore);
   });
 
+  test("passes text+media signal into selection scoring", () => {
+    const common = {
+      zeroGatePassed: true,
+      dimensions: baseDims,
+      sourceLevel: "L3" as const,
+      sourcePostCount: 1,
+      expertActions: [],
+      validComments: [],
+      contentType: "news" as const,
+    };
+    const base = composeScoresV2({ ...common, hasTextAndMedia: false });
+    const rich = composeScoresV2({ ...common, hasTextAndMedia: true });
+
+    expect(rich.selectionScore).toBeGreaterThan(base.selectionScore);
+    expect(rich.breakdown.selection.mediaTextBonus).toBe(3);
+  });
+
   test("breakdown carries every layer and the v2 version stamp", () => {
     const r = composeScoresV2({
       zeroGatePassed: true,

@@ -87,6 +87,8 @@ export interface SelectionConfig {
   viewBonusMax: number;
   /** View count where the view signal is considered saturated. */
   viewSaturation: number;
+  /** Small deterministic lift for posts that contain both readable text and visible media. */
+  mediaTextBonusMax: number;
   /** confidence_score strictly below this caps an event's promotion at tier B (open point C1). */
   confidenceCapToBBelow: number;
 }
@@ -105,7 +107,7 @@ export interface ScoringV2Config {
 }
 
 export const scoringV2Config: ScoringV2Config = {
-  version: "scoring-v2.2",
+  version: "scoring-v2.3",
   relevanceMin: 50,
   // De-popularized intrinsic quality (externalHeat/userValue removed vs base_score; userValue
   // folds into confidence per open point B1). Re-normalized to sum 1.
@@ -124,6 +126,7 @@ export const scoringV2Config: ScoringV2Config = {
     citationBonusMax: 6,
     viewBonusMax: 4,
     viewSaturation: 200,
+    mediaTextBonusMax: 3,
     confidenceCapToBBelow: 40,
   },
   // Owner preference (2026-06-12): AI-coding practice content (howto) ranks alongside

@@ -89,6 +89,25 @@ describe("computeSelectionScore", () => {
     expect(viewed.breakdown.viewBonus).toBeCloseTo(4, 6);
   });
 
+  test("text plus visible media adds a small selection bonus", () => {
+    const base = computeSelectionScore({
+      qualityScore: 50,
+      confidenceScore: 100,
+      contentType: "news",
+      hasTextAndMedia: false,
+      ...neutralSignals,
+    }).selectionScore;
+    const rich = computeSelectionScore({
+      qualityScore: 50,
+      confidenceScore: 100,
+      contentType: "news",
+      hasTextAndMedia: true,
+      ...neutralSignals,
+    });
+    expect(rich.selectionScore).toBeCloseTo(base + 3, 6);
+    expect(rich.breakdown.mediaTextBonus).toBeCloseTo(3, 6);
+  });
+
   test("confidence below the cap floor restricts the max tier to B (open point C1)", () => {
     expect(
       computeSelectionScore({

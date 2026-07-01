@@ -43,6 +43,9 @@ describe("curated AI source policy", () => {
     expect(names).not.toContain("Simon Willison");
     expect(names).not.toContain("Hugging Face Blog");
     expect(names).not.toContain("Cloudflare Blog");
+    expect(names).not.toContain("Open WebUI Releases");
+    expect(names).not.toContain("Together AI");
+    expect(names).not.toContain("Thomas Wolf");
   });
 
   test("records explicit exclusion reasons in the source audit report", () => {

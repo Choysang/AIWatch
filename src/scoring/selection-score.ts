@@ -10,7 +10,9 @@
 //      push it.
 //   3. Reader view increment: a small log-saturated bonus, counted only after the user opens
 //      the detail page or original source from a card.
-//   4. content_type multiplier (open point D2, locked; retuned 2026-06-12 for owner
+//   4. Text+media increment: a small deterministic lift for posts that include both readable
+//      text and visible media. Owner preference: these are rarely pure low-effort reposts.
+//   5. content_type multiplier (open point D2, locked; retuned 2026-06-12 for owner
 //      preference): release/howto ×1.05, opinion ×0.95, others ×1.0 — classification
 //      influences selection, a core point-8 goal.
 // Final score is clamped to [0,100].
@@ -34,6 +36,8 @@ export interface SelectionScoreInputs {
   citationQualityScore: number;
   /** Reader card-open/original-open count. */
   viewCount?: number;
+  /** True when the raw item has both readable text and visible media. */
+  hasTextAndMedia?: boolean;
   contentType: ContentType;
 }
 
@@ -43,6 +47,7 @@ export interface SelectionScoreBreakdown {
   commentBonus: number;
   citationBonus: number;
   viewBonus: number;
+  mediaTextBonus: number;
   contentTypeMultiplier: number;
   selectionScore: number;
   /** Highest tier this event may reach given its confidence (open point C1). */
@@ -82,6 +87,7 @@ export function computeSelectionScore(
     citationBonusMax,
     viewBonusMax,
     viewSaturation,
+    mediaTextBonusMax,
     confidenceCapToBBelow,
   } = config.selection;
 
@@ -92,10 +98,11 @@ export function computeSelectionScore(
   const commentBonus = signalBonus(inputs.commentQualityScore, commentBonusMax);
   const citationBonus = signalBonus(inputs.citationQualityScore, citationBonusMax);
   const viewBonus = saturateCount(inputs.viewCount ?? 0, viewSaturation) * viewBonusMax;
+  const mediaTextBonus = inputs.hasTextAndMedia ? mediaTextBonusMax : 0;
 
   const contentTypeMultiplier = config.contentTypeSelectionMultiplier[inputs.contentType];
   const selectionScore = clamp0to100(
-    (gated + commentBonus + citationBonus + viewBonus) * contentTypeMultiplier,
+    (gated + commentBonus + citationBonus + viewBonus + mediaTextBonus) * contentTypeMultiplier,
   );
 
   const maxLevel: PromotedLevel = conf < confidenceCapToBBelow ? "B" : "S";
@@ -109,6 +116,7 @@ export function computeSelectionScore(
       commentBonus,
       citationBonus,
       viewBonus,
+      mediaTextBonus,
       contentTypeMultiplier,
       selectionScore,
       maxLevel,

@@ -1203,20 +1203,6 @@
     "recommendReason": "大模型训练/推理硬件与模型服务源，适合补齐基础设施视角。"
   },
   {
-    "name": "Together AI",
-    "handle": "@togethercompute",
-    "url": "https://x.com/togethercompute",
-    "platform": "x",
-    "connectorType": "rsshub",
-    "connectorRef": "/twitter/user/togethercompute",
-    "category": "official",
-    "sourceType": "official",
-    "level": "L2",
-    "ai_density_score": 8,
-    "recommendedBy": "owner-20260627",
-    "recommendReason": "开源模型服务和推理平台动态，偏模型部署与开发者可用能力。"
-  },
-  {
     "name": "Fireworks AI",
     "handle": "@FireworksAI_HQ",
     "url": "https://x.com/FireworksAI_HQ",
@@ -1455,20 +1441,6 @@
     "recommendReason": "fast.ai 与实用机器学习专家源，偏可用方法、开源工具和教育内容。"
   },
   {
-    "name": "Thomas Wolf",
-    "handle": "@Thom_Wolf",
-    "url": "https://x.com/Thom_Wolf",
-    "platform": "x",
-    "connectorType": "rsshub",
-    "connectorRef": "/twitter/user/Thom_Wolf",
-    "category": "industry_leader",
-    "sourceType": "expert",
-    "level": "L2",
-    "ai_density_score": 8,
-    "recommendedBy": "owner-20260627",
-    "recommendReason": "Hugging Face 联合创始人，开源模型、研究和生态动态质量高。"
-  },
-  {
     "name": "GitHub AI & ML Blog",
     "handle": null,
     "url": "https://github.blog/ai-and-ml/",
@@ -1621,20 +1593,6 @@
     "ai_density_score": 8,
     "recommendedBy": "owner-20260627",
     "recommendReason": "Ollama release feed，补充本地模型运行和开发者工具的实质更新。"
-  },
-  {
-    "name": "Open WebUI Releases",
-    "handle": null,
-    "url": "https://github.com/open-webui/open-webui",
-    "platform": "rss",
-    "connectorType": "rss",
-    "connectorRef": "https://github.com/open-webui/open-webui/releases.atom",
-    "category": "technical_share",
-    "sourceType": "open_source_project",
-    "level": "L3",
-    "ai_density_score": 7,
-    "recommendedBy": "owner-20260627",
-    "recommendReason": "本地/私有 AI 工作台 release，保留功能和部署价值明确的更新。"
   },
   {
     "name": "ComfyUI Releases",

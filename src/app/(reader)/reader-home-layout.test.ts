@@ -125,8 +125,9 @@ describe("reader home layout", () => {
   });
 
   test("keeps the source picker usable with many long source names", () => {
-    expect(cssSource).toContain("width: min(560px, calc(100vw - 2rem));");
-    expect(cssSource).toContain("grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));");
+    expect(cssSource).toContain("width: min(var(--search-filter-panel-width, 680px), calc(100vw - 2rem));");
+    expect(cssSource).toContain("resize: horizontal;");
+    expect(cssSource).toContain("grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));");
     expect(cssSource).toContain(".search-source-grid .chip {");
     expect(cssSource).toContain("text-overflow: ellipsis;");
   });

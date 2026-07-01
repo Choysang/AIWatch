@@ -14,6 +14,9 @@ const disabledNames = [
   "Hugging Face Blog",
   "Artificial Intelligence News",
   "Logan Kilpatrick",
+  "Open WebUI Releases",
+  "Together AI",
+  "Thomas Wolf",
 ].map((name) => name.toLowerCase());
 
 describe("curated source blocklist", () => {

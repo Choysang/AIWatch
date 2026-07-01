@@ -28,6 +28,7 @@ import { checkLlmBudget, recordLlmSpend } from "@/db/queries/llm-spend";
 import { computeBaseScore } from "@/scoring/base-score";
 import { composeScoresV2 } from "@/scoring/compose-v2";
 import { scoringConfig } from "@/scoring/config";
+import { hasTextAndMedia } from "@/scoring/media-signal";
 import {
   buildFoldKey,
   deepExtractSchema,
@@ -371,6 +372,11 @@ export async function judgeAndStorePost(
       dimensions,
       externalHeat: 0,
     });
+    const carriesTextAndMedia = hasTextAndMedia({
+      title: raw.rawTitle,
+      content: raw.rawContent,
+      media: raw.media,
+    });
     const v2 = composeScoresV2({
       zeroGatePassed: true,
       dimensions,
@@ -378,6 +384,7 @@ export async function judgeAndStorePost(
       sourcePostCount: 1,
       expertActions: [],
       validComments: [],
+      hasTextAndMedia: carriesTextAndMedia,
       contentType: judgment.contentType,
     });
 
@@ -423,7 +430,13 @@ export async function judgeAndStorePost(
     const existingEventId =
       existingByUrl ??
       await findEventIdBySemanticFold(
-        { foldKey: judgment.fold.foldKey, simhash: judgment.fold.simhash, since },
+        {
+          foldKey: judgment.fold.foldKey,
+          simhash: judgment.fold.simhash,
+          since,
+          title: judgment.title,
+          summary: judgment.summary,
+        },
         db,
       );
 
