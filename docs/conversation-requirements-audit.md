@@ -44,22 +44,32 @@ still needs product work.
 - Ops memory: recurring update checklist lives in `docs/iteration-memory.md`, including README
   sync, RSSHub/X checks, preference review, deployment tag checks, and source smoke testing.
 
-## Data / Production Tasks Pending Server Access
+## Production Tasks Completed On 2026-07-01
 
-- Deploy commit `1ac5ee74d1a56b7107d7e944a946a713e2ae6313` to production.
-- Run Linux `scripts/pre-deploy-check.sh` on the server with the pinned image tag.
-- Disable/archive the newly requested sources in production and delete their related posts/events:
-  llama.cpp Releases, Simon Willison, Harrison Chase, Clement Delangue, swyx, Jerry Liu,
-  Cloudflare Blog, hermes-desktop Releases, Hugging Face Blog, Artificial Intelligence News,
-  Logan Kilpatrick.
-- Re-import curated sources with archive-non-curated behavior after deployment.
-- Recompute rank scores and run promotion check so new owner preference rules affect production.
-- Smoke-test production endpoints: homepage, selected/all feeds, `/api/public/items`,
-  `/api/public/hotspots`, `/api/public/daily`, `/events/{id}/markdown`, assistant, RSS.
-- Confirm production SOURCE_ALERT_EMAIL/RESEND/AUTH_EMAIL_FROM and RSSHub/X token state.
+- Deployed `sha-959f0ac299befee1c6f7534c5dbeed31828d2a4f`, then deployed hotspot fix
+  `sha-6723c07953f8a37e4bf4bcea49721726f0307399` to production.
+- Ran Linux `scripts/pre-deploy-check.sh` on the server with pinned image tags.
+- Re-imported curated sources with `--archive-non-curated`: total 107, updated 107,
+  archived duplicate 1, archived non-curated 11.
+- Disabled/archived the requested noisy sources and deleted their historical content:
+  32 archived sources matched, 202 main events deleted, 230 raw posts deleted.
+- Regenerated daily reports for 2026-07-01, 2026-06-30, and 2026-06-29 after deleting
+  source content, so stored report snapshots no longer carry those removed source events.
+- Recomputed production scoring and promotion after cleanup: rank scores, scoring-v2, and
+  promotion-v2 all ran successfully.
+- Smoke-tested production endpoints: homepage, selected/all feeds, `/api/public/items`,
+  `/api/public/hotspots`, `/api/public/daily`, `/events/{id}/markdown`, and RSS.
+- Fixed the current hotspot threshold so a two-source story after the first day no longer
+  gets filtered into an empty list; `/api/public/hotspots` returned a live item after deploy.
 
-Blocked reason: SSH auth currently rejects `root@8.219.61.189` with the provided password and
-the local `aiwatch_deploy` key.
+## Production Follow-Up
+
+- Production has `SOURCE_ALERT_EMAIL`, `TWITTER_AUTH_TOKEN`, and `RSSHUB_BASE_URL` set.
+  `RESEND_API_KEY` is still missing, so email delivery for alerts cannot fire yet.
+- RSSHub itself is running and many X routes return 200, but audit found 19 unhealthy X
+  sources. Three permanent account errors were paused; 16 Twitter API 401 sources were marked
+  degraded for admin review. These need route replacement or source-level decisions rather
+  than another global token change.
 
 ## Still Product Backlog
 
