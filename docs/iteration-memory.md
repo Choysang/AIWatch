@@ -12,6 +12,7 @@ This file captures recurring operating lessons for future AIWatch updates. Read 
 6. Before every scoring/promotion update, inspect owner/admin `useful` / `not_useful` annotations. Confirm the owner-affinity profile is applied by both `recompute-rank-scores` and `check-promotion-v2`; useful patterns should lift similar cards, not-useful patterns should suppress selection and eventually flag sources for review rather than silently deleting sources.
 7. When many sources cover the same story, verify the fold/canonical-url path found the earliest original post where possible. Repeated reposts should attach as `same_event` sources and lift `source_count`, not create duplicate reader cards.
 8. Treat Loop Engineering as ongoing, not done: before each release, review source fault handling, preference-impact explainability, multi-source event views, source import smoke tests, ops cleanup, markdown export, and the site AI assistant backlog.
+9. Every user-facing release must update `README.md`: put important new capabilities in the top "最新亮点" section and keep quick-start/API examples in sync with shipped endpoints.
 
 ## 2026-06-28 findings
 

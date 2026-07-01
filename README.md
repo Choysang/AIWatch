@@ -4,6 +4,15 @@
 
 [在线体验](https://aiwatch.icu/) · [RSS 精选](https://aiwatch.icu/feed.xml) · [Agent Skill](https://aiwatch.icu/aiwatch-skill/) · [OpenAPI 3.1](https://aiwatch.icu/openapi.yaml)
 
+## 最新亮点
+
+- **实时刷新更稳**：新内容提示现在按信息流真实排序时间 `sort_at` 判断，只在确实有更新的资讯时提示，点击后回到顶部。
+- **热点开放给 Agent**：新增 `GET /api/public/hotspots`，可直接读取多信源同时报道的当前热点。
+- **详情页一键分享**：移动端优先调系统分享面板，桌面端自动复制标题、摘要和站内链接，方便发到微信、知乎、小红书、抖音等平台。
+- **Markdown 导出更适合知识库**：详情页提供稳定的标准 Markdown 下载链接，也支持 Obsidian、JSON 和自定义模板；标准模板包含标题、来源、发布时间、AIWatch 分数、精选标记、站内链接、原文链接、精选理由、AI 摘要和正文。
+- **筛选更动态**：分类和信源筛选只展示当前条件下有内容的选项，指定信源支持搜索，长信源名不会撑坏面板。
+- **精选算法继续降噪**：个人博主自我推广、课程/订阅/咨询导流会降权；有代码、评测、工作流、实践经验的 AI 技术干货会保留。
+
 ## 快速使用
 
 ### 直接看
@@ -51,6 +60,7 @@ AI 圈昨天发生了什么
 curl 'https://aiwatch.icu/api/public/items?mode=selected&since=today'
 curl 'https://aiwatch.icu/api/public/items?mode=all&since=week'
 curl 'https://aiwatch.icu/api/public/items?q=OpenAI'
+curl 'https://aiwatch.icu/api/public/hotspots'
 curl 'https://aiwatch.icu/api/public/daily'
 curl 'https://aiwatch.icu/api/public/dailies?take=10'
 ```
@@ -66,9 +76,10 @@ curl 'https://aiwatch.icu/api/public/dailies?take=10'
 - **富文本正文**：支持标题层级、图片、代码块、表格和链接；图片通过代理展示，减少跳原文。
 - **图片大图查看**：卡片图片保持原始比例，点击后在站内弹窗查看大图，不再跳新页面。
 - **实时刷新提示**：有新内容时出现提示，点击后刷新当前流并回到顶部。
+- **一键转发**：详情页支持系统分享；不支持 Web Share API 的环境会复制分享文案。
 - **移动端适配**：移动端自动收起侧栏和复杂筛选，保留搜索入口、时间线和紧凑卡片。
 - **明暗主题**：首次访问跟随系统深色/浅色；用户手动切换后以用户选择为准。
-- **Markdown / Obsidian 导出**：详情页可导出 Markdown、JSON 或自定义模板，frontmatter 带日期、类型、tags、分数、精选等级、来源和原文链接。
+- **Markdown / Obsidian 导出**：详情页可通过 `/events/{id}/markdown` 下载标准 Markdown，也可导出 JSON 或自定义模板；标准 Markdown 带完整归因，Obsidian 格式保留 frontmatter。
 
 ### 内容质量
 
@@ -111,6 +122,8 @@ curl 'https://aiwatch.icu/api/public/dailies?take=10'
 - **Skill 接入**：一份 `SKILL.md` 可跨 Claude Code、Codex CLI、Cursor、Gemini CLI、OpenCode、Cline、Windsurf 等 Agent 使用。
 - **RSS 全文阅读**：精选和日报 feed 面向阅读器优化，尽量让用户不用跳出阅读器。
 - **公开 API**：匿名、免费、只读、分页、限流，适合个人脚本、Agent 和轻量集成。
+- **热点端点**：`/api/public/hotspots` 输出当前多源热点，适合 Agent 回答“现在 AI 圈都在讨论什么”。
+- **Skill 版本自检**：Agent Skill 可轻量检查远端版本，有更新时提醒重新安装。
 - **AIWatch AI 助手**：站内提供轻量 AI 问答入口，可围绕当前内容和功能流程做总结与解释。
 
 ## 自托管快速启动
@@ -189,6 +202,7 @@ bun run sources:audit
 - [GHCR 部署](docs/deploy-ghcr.md)
 - [环境变更记录](docs/env-changelog.md)
 - [迭代经验](docs/iteration-memory.md)
+- [历史需求核对](docs/conversation-requirements-audit.md)
 
 ## 边界说明
 

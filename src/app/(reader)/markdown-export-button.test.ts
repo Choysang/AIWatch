@@ -5,6 +5,7 @@ import { describe, expect, test } from "bun:test";
 const readerDir = import.meta.dir;
 const buttonPath = join(readerDir, "markdown-export-button.tsx");
 const detailPagePath = join(readerDir, "events", "[id]", "page.tsx");
+const markdownRoutePath = join(readerDir, "events", "[id]", "markdown", "route.ts");
 
 function read(path: string): string {
   return readFileSync(path, "utf8");
@@ -41,6 +42,16 @@ describe("markdown export button", () => {
     expect(pageSource).toContain("MarkdownExportButton");
     expect(pageSource).toContain("bodyText={originalText}");
     expect(pageSource).toContain("ShareButton");
+    expect(pageSource).toContain('/markdown');
     expect(pageSource).toContain('<div className="original-actions">');
+  });
+
+  test("offers a stable server-side standard Markdown download endpoint", () => {
+    expect(existsSync(markdownRoutePath)).toBe(true);
+    const routeSource = read(markdownRoutePath);
+    expect(routeSource).toContain("text/markdown; charset=utf-8");
+    expect(routeSource).toContain("content-disposition");
+    expect(routeSource).toContain("- AIWatch 链接：");
+    expect(routeSource).toContain("## 正文");
   });
 });

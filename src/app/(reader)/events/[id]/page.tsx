@@ -234,6 +234,13 @@ export default async function EventDetailPage({
             text={event.recommendationReason ?? event.summary}
             url={`/events/${event.id}`}
           />
+          <a
+            href={`/events/${event.id}/markdown`}
+            download
+            title="按标准归因模板下载当前资讯 Markdown"
+          >
+            标准 Markdown
+          </a>
           {event.url && (
             <>
               <TrackableOriginalLink eventId={event.id} href={event.url}>
