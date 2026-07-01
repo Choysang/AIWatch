@@ -37,6 +37,7 @@ This file captures recurring operating lessons for future AIWatch updates. Read 
 - Cursor pagination must use the exact same effective timestamp as the SQL ordering. If `mode=all` sorts by `published_at/promoted_at/created_at`, its cursor must also use that fallback order or older promoted-only events can disappear behind the cursor.
 - Reader feed window filters must use the same effective timestamp as the reader ordering. A post created days ago but promoted today should not disappear from `mode=all&since=week`.
 - Client-side feed freshness polling must preserve the active public query. Selected pages should poll selected items, filtered pages should poll the same filters, and personalized pages should skip public polling unless a personalized freshness endpoint exists.
+- Feed freshness polling must compare the same `sort_at` timestamp the visible timeline uses, not only item id. Historical backfills, source cleanup, or owner-hidden cards can change the top id without representing a reader-new item.
 - A small polling component can legitimately use a guarded `useEffect` with cancellation and in-flight protection; React Doctor's fetch-in-effect warning should still be reviewed on each edit, but do not replace it with a broad data-layer refactor during incident work.
 - X/RSSHub outages often appear first as many healthy-looking X sources with `last_error` and `failure_count < degraded threshold`. Platform-level alerts should count this early-failure wave, not wait for every source to become degraded or disabled.
 - After the upstream cause is fixed, `reset-source-health.ts x` should clear both degraded/disabled sources and healthy-looking rows that still carry stale `failure_count` / `last_error`; otherwise the admin console keeps reporting a ghost outage.
@@ -48,6 +49,7 @@ This file captures recurring operating lessons for future AIWatch updates. Read 
 - If `metadata.icons` points to `/icon.svg`, verify the file exists in `public/`; otherwise mobile browsers can fall back to unreadable placeholder icons.
 - Curated-source import smoke tests must change source state, not only print logs: empty/error fetch means disable the newly created source and store `[import-smoke] ...` in `last_error`.
 - Markdown export should keep the built-in Obsidian/frontmatter path but also offer a local template with simple `{{field}}` placeholders for readers who maintain their own vault conventions.
+- Standard Markdown export should be human-readable first: title, source, publish time, score/selection, AIWatch permalink, original URL, selected reason, AI summary, and body. Keep Obsidian/frontmatter as an optional format, not the only default.
 - Source connectivity audits should be gentle on RSSHub: use low concurrency plus longer timeout/retry, then probe a known-good X route before blaming `TWITTER_AUTH_TOKEN`; route-level 503 is different from global token failure.
 - X/RSSHub crawling must be paced. With one `TWITTER_AUTH_TOKEN`, a restart that enqueues dozens of X sources at once can turn into widespread `Twitter API error: 401`; keep worker concurrency and enqueue limits conservative unless multiple healthy tokens exist.
 - Enqueue pacing must live in code, not runbook memory: keep `RSSHUB_X_ENQUEUE_LIMIT` low and stagger X jobs (`RSSHUB_X_STAGGER_MS`) so one token is not hit by parallel `/twitter/user/*` probes after deploy or source-health reset.
@@ -55,6 +57,9 @@ This file captures recurring operating lessons for future AIWatch updates. Read 
 - OPML/blog imports should land in a reviewable curated-source batch. Public RSS usually needs no API authorization, but full-text redistribution may be restricted; default new independent blogs to feed metadata/excerpt plus original links unless the source clearly permits full content reuse.
 - Owner preference learning must include cross dimensions when the product rule is cross-dimensional. Source-only and content-type-only affinity cannot express "this source is good, but this content type from it is repeatedly useless"; keep `source_content_type` parity between TS scoring, SQL recompute, and admin explanations.
 - A fault desk should show runtime configuration and reachability directly, not only infer problems from failed source rows. X token configured state, RSSHub configured/reachable state, and email-alert env completeness need to be visible before the operator starts retesting sources.
+- Assistant fallbacks should not expose raw "model channel unavailable" copy to readers. Log provider/budget/generation failure details server-side, then answer with the best available site context.
+- Owner-disabled sources must be removed from curated seed data and disabled/deleted in production together; otherwise a future source sync can silently reintroduce unwanted feeds.
+- Personal-blogger promotion needs a source-type-aware rule: self-promotion, courses, subscriptions, consulting, and waitlists are noise unless they include concrete AI techniques, code, evaluations, workflows, or technical insight.
 
 ## Operational follow-ups
 

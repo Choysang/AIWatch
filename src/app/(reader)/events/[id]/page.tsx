@@ -23,6 +23,7 @@ import { TrackableOriginalLink } from "../../event-view-tracker";
 import { ReactionButtons } from "../../reaction-buttons";
 import { ImageLightbox } from "../../image-lightbox";
 import { MarkdownExportButton } from "../../markdown-export-button";
+import { ShareButton } from "../../share-button";
 
 export const dynamic = "force-dynamic";
 
@@ -115,6 +116,7 @@ export default async function EventDetailPage({
   const mediaGallery = extractCardMediaGallery(event.media);
   const detailImageProxy =
     cardMedia?.type === "image" ? proxiedImageUrl(cardMedia.url) : null;
+  const originalText = event.rawContent ? htmlToReadableText(event.rawContent) : null;
   const lightboxImages = mediaGallery
     .map((item) => (item.type === "image" ? item.url : item.poster ?? null))
     .filter((url): url is string => Boolean(url))
@@ -222,11 +224,16 @@ export default async function EventDetailPage({
           eventId={event.id}
           summary={event.summary}
           recommendationReason={event.recommendationReason}
-          originalText={event.rawContent ? htmlToReadableText(event.rawContent) : null}
+          originalText={originalText}
           canFetchFull={Boolean(event.url)}
         />
 
         <div className="original-actions">
+          <ShareButton
+            title={event.title}
+            text={event.recommendationReason ?? event.summary}
+            url={`/events/${event.id}`}
+          />
           {event.url && (
             <>
               <TrackableOriginalLink eventId={event.id} href={event.url}>
@@ -250,6 +257,7 @@ export default async function EventDetailPage({
             aiwatchPath={`/events/${event.id}`}
             summary={event.summary}
             recommendationReason={event.recommendationReason}
+            bodyText={originalText}
           />
         </div>
 

@@ -3,6 +3,7 @@
 
 import { listDailies } from "@/db/queries/public-reports";
 import { cacheControl, clientIp, jsonError, publicLimiter } from "../_runtime";
+import { requestOrigin, withDailyArchivePermalinks } from "../_links";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,10 @@ export async function GET(req: Request): Promise<Response> {
 
   try {
     const dailies = await listDailies(take);
-    return Response.json({ dailies }, { headers: { "cache-control": cacheControl(300, 3600) } });
+    return Response.json(
+      { dailies: withDailyArchivePermalinks(dailies, requestOrigin(new URL(req.url))) },
+      { headers: { "cache-control": cacheControl(300, 3600) } },
+    );
   } catch {
     return jsonError(500, "internal_error");
   }

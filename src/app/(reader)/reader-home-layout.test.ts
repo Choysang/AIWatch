@@ -27,7 +27,7 @@ describe("reader home layout", () => {
     const feedIndex = pageSource.indexOf('className="feed"');
 
     expect(pageSource).toContain('import { CurrentHotspots } from "./current-hotspots"');
-    expect(pageSource).toContain("loadHomeData(query, limit, canReviewAnnotations)");
+    expect(pageSource).toContain("loadHomeData(feedQuery, limit, canReviewAnnotations)");
     expect(pageSource).toContain("listCurrentHotspots(recent.map((event) => event.id))");
     expect(searchIndex).toBeGreaterThan(-1);
     expect(hotspotsIndex).toBeGreaterThan(-1);
@@ -106,13 +106,29 @@ describe("reader home layout", () => {
     expect(pageSource).toContain('params.set("mode", query.mode === "selected" ? "selected" : "all");');
     expect(pageSource).toContain('params.set("take", "1");');
     expect(pageSource).toContain('refreshEndpoint={canReviewAnnotations ? "/api/reader/feed-peek" : "/api/public/items"}');
+    expect(pageSource).toContain("const latestSortAt = latestEvent ? timelineTime(latestEvent, query.mode).toISOString() : null;");
+    expect(pageSource).toContain("latestSortAt={latestSortAt}");
     expect(feedRefreshSource).toContain('refreshEndpoint = "/api/public/items"');
+    expect(feedRefreshSource).toContain("nextTime <= latestTime");
   });
 
   test("hides already owner-reviewed events only for owner/admin triage", () => {
     expect(pageSource).toContain("canReviewOwnerAnnotations()");
-    expect(pageSource).toContain("loadHomeData(query, limit, canReviewAnnotations)");
+    expect(pageSource).toContain("loadHomeData(feedQuery, limit, canReviewAnnotations)");
     expect(pageSource).toContain("loadOwnerAnnotations(eventIds, canReviewAnnotations)");
+  });
+
+  test("loads available category chips from the filtered database scope, not only visible cards", () => {
+    expect(pageSource).toContain("listAvailableEventCategories");
+    expect(pageSource).toContain("availableEventCategories");
+    expect(pageSource).not.toContain("function availableCategories(events");
+  });
+
+  test("keeps the source picker usable with many long source names", () => {
+    expect(cssSource).toContain("width: min(560px, calc(100vw - 2rem));");
+    expect(cssSource).toContain("grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));");
+    expect(cssSource).toContain(".search-source-grid .chip {");
+    expect(cssSource).toContain("text-overflow: ellipsis;");
   });
 
   test("new-feed indicator reloads the current route and returns readers to the newest card", () => {

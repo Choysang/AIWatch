@@ -61,6 +61,28 @@ function isPureAutoNoise(text: string): boolean {
   return true;
 }
 
+function isPersonalSource(input: EditorialPreferenceInput): boolean {
+  return input.sourceType === "employee" || input.sourceType === "expert" || input.sourceType === "kol";
+}
+
+function hasPracticalTechnicalEvidence(text: string): boolean {
+  return /(api|sdk|code|github|repo|benchmark|eval|architecture|prompt|workflow|agent|rag|implementation|debug|latency|serving|开源|代码|复现|实测|评测|架构|教程|技巧|工作流|踩坑|部署|实现|提示词|经验|复盘)/i.test(text);
+}
+
+function isPersonalSelfPromo(input: EditorialPreferenceInput, text: string): boolean {
+  if (!isPersonalSource(input)) return false;
+  if (!/(my|i built|i launched|we launched|course|workshop|newsletter|subscribe|sponsor|waitlist|consulting|我的|我写|我做|我上线|发布了我的|课程|训练营|订阅|付费|报名|咨询|限时|优惠|客户|案例)/i.test(text)) {
+    return false;
+  }
+  return !hasPracticalTechnicalEvidence(text);
+}
+
+function isPersonalTechnicalInsight(input: EditorialPreferenceInput, text: string): boolean {
+  if (!isPersonalSource(input)) return false;
+  if (isPersonalSelfPromo(input, text)) return false;
+  return hasPracticalTechnicalEvidence(text) && /(how|guide|pattern|lesson|mistake|pitfall|playbook|我如何|指南|模式|经验|复盘|踩坑|方法|最佳实践|深度解析)/i.test(text);
+}
+
 export function applyEditorialPreference(input: EditorialPreferenceInput): EditorialPreferenceResult {
   const reasons: string[] = [];
   const text = haystack(input);
@@ -71,6 +93,8 @@ export function applyEditorialPreference(input: EditorialPreferenceInput): Edito
   if (isBottomLayerPaper(input, text)) score = apply(score, -16, reasons, "bottom_layer_paper");
   if (isLegalRegulatory(text)) score = apply(score, 14, reasons, "legal_regulatory");
   if (isPureAutoNoise(text)) score = apply(score, -36, reasons, "pure_auto_noise");
+  if (isPersonalSelfPromo(input, text)) score = apply(score, -22, reasons, "personal_self_promo");
+  if (isPersonalTechnicalInsight(input, text)) score = apply(score, 6, reasons, "personal_technical_insight");
 
   return { score: clampScore(score), reasons };
 }

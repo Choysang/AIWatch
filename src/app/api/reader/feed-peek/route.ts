@@ -35,6 +35,11 @@ async function canReviewOwnerAnnotations(): Promise<boolean> {
   }
 }
 
+function feedSortAt(event: Awaited<ReturnType<typeof searchEvents>>[number], mode: PublicQuery["mode"]): Date {
+  if (mode === "selected") return event.promotedAt ?? event.publishedAt ?? event.createdAt;
+  return event.publishedAt ?? event.promotedAt ?? event.createdAt;
+}
+
 export async function GET(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const query = parsePublicQuery(url.searchParams);
@@ -45,6 +50,8 @@ export async function GET(req: Request): Promise<Response> {
         id: event.id,
         published_at: event.publishedAt?.toISOString() ?? null,
         promoted_at: event.promotedAt?.toISOString() ?? null,
+        created_at: event.createdAt.toISOString(),
+        sort_at: feedSortAt(event, query.mode).toISOString(),
       })),
     }, { headers: { "cache-control": "private, no-store" } });
   } catch {

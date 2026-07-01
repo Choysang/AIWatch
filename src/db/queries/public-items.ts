@@ -6,7 +6,7 @@ import { and, arrayOverlaps, desc, eq, gte, inArray, ne, sql, type SQL } from "d
 import { db as defaultDb, type DB } from "@/db/client";
 import { events, ownerAnnotations, posts, sources } from "@/db/schema";
 import type { PublicItem, PublicItemsResponse } from "@/public/item";
-import { encodeCursor, windowStart, type PublicQuery } from "@/public/query";
+import { encodeCursor, windowStart, type PublicMode, type PublicQuery } from "@/public/query";
 
 interface Row {
   id: string;
@@ -32,7 +32,13 @@ interface Row {
   fullText: string | null;
 }
 
-function toItem(r: Row): PublicItem {
+function sortAt(r: Pick<Row, "publishedAt" | "promotedAt" | "createdAt">, mode: PublicMode): Date {
+  if (mode === "selected") return r.promotedAt ?? r.publishedAt ?? r.createdAt;
+  return r.publishedAt ?? r.promotedAt ?? r.createdAt;
+}
+
+function toItem(r: Row, mode: PublicMode): PublicItem {
+  const itemSortAt = sortAt(r, mode);
   return {
     id: r.id,
     title: r.title,
@@ -53,6 +59,8 @@ function toItem(r: Row): PublicItem {
     tags: r.tags,
     published_at: r.publishedAt?.toISOString() ?? null,
     promoted_at: r.promotedAt?.toISOString() ?? null,
+    created_at: r.createdAt.toISOString(),
+    sort_at: itemSortAt.toISOString(),
     media: r.media,
   };
 }
@@ -152,14 +160,12 @@ export async function listPublicItems(
 
   const hasMore = rows.length > q.take;
   const page = hasMore ? rows.slice(0, q.take) : rows;
-  const items = page.map(toItem);
+  const items = page.map((row) => toItem(row, q.mode));
 
   let next_cursor: string | null = null;
   if (hasMore && page.length > 0) {
     const last = page[page.length - 1]!;
-    const t = q.mode === "selected"
-      ? last.promotedAt
-      : (last.publishedAt ?? last.promotedAt ?? last.createdAt);
+    const t = sortAt(last, q.mode);
     if (t) next_cursor = encodeCursor({ t: t.toISOString(), id: last.id });
   }
 

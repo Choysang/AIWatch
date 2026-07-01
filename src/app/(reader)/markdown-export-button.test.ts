@@ -26,11 +26,21 @@ describe("markdown export button", () => {
     expect(source).toContain("Blob");
     expect(source).toContain("URL.createObjectURL");
     expect(source).toContain("download.download = `${slugify(props.title)}.${info.ext}`");
+    expect(source).toContain("- 来源：");
+    expect(source).toContain("- 发布时间：");
+    expect(source).toContain("- AIWatch 分数：");
+    expect(source).toContain("- AIWatch 标记：");
+    expect(source).toContain("- AIWatch 链接：");
+    expect(source).toContain("- 原文链接：");
+    expect(source).toContain("## AI 摘要");
+    expect(source).toContain("## 正文");
   });
 
   test("is wired into the event detail original actions row", () => {
     const pageSource = read(detailPagePath);
     expect(pageSource).toContain("MarkdownExportButton");
+    expect(pageSource).toContain("bodyText={originalText}");
+    expect(pageSource).toContain("ShareButton");
     expect(pageSource).toContain('<div className="original-actions">');
   });
 });

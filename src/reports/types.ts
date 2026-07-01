@@ -27,6 +27,8 @@ export interface ReportItem {
   source_name: string | null;
   source_handle: string | null;
   url: string | null;
+  /** Absolute station detail URL added by public API routes. Stored reports may omit it. */
+  permalink?: string;
 }
 
 export interface ReportSection {

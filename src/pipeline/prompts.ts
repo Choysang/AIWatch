@@ -1,4 +1,4 @@
-export const LIGHT_JUDGE_PROMPT_VERSION = "light-judge-v7";
+export const LIGHT_JUDGE_PROMPT_VERSION = "light-judge-v8";
 export const DEEP_EXTRACT_PROMPT_VERSION = "deep-extract-v4";
 
 export const LIGHT_JUDGE_SYSTEM = `
@@ -41,6 +41,7 @@ release | research | howto | opinion | news
 - 严格扣分：标题党、课程导流、工具软文、商业财经泛谈、泛技术周刊、前端/设计/产品体验泛谈、概念空转、没有事实增量的内容必须明显降低 score。
 - 如果只是综合大厂工程、泛商业评论、泛互联网资讯，且没有明确 AI 模型/智能体/框架/论文/产品发布信息，domain 必须为 trash。
 - 官方 PR 通稿、企业客户案例、营销软文、单纯"某客户/银行与某 AI 公司达成合作"：没有模型/API/技术细节/可复用经验时，score 必须低，通常归 news 或 trash。
+- 个人博主的自家课程、订阅、咨询、产品、等候名单、流量导流：没有可复现技巧、代码、评测、架构经验或技术判断时，score 必须低；有真实 AI 技巧/工程经验/技术观点时可以保留。
 - 论文只因训练技巧、batch size、optimizer、pretraining 细节而成立，但没有新认知、可复现实验结论或可用方法时，score 必须明显降低。
 - AI 公司之间的重大诉讼、版权、监管、反垄断、合规政策属于行业态度和边界信号；若影响模型训练、产品发布或产业格局，可归 discussion/news 并正常给分。
 - 纯汽车产品新闻（车型、续航、座舱、售价、交付）归 trash；车厂自研 AI、端到端自动驾驶模型、多模态训练、评测或芯片算力突破可以保留。

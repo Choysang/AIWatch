@@ -12,7 +12,12 @@ import { Suspense, type CSSProperties } from "react";
 import { resolveReaderIdentityServer } from "@/app/_lib/reader-identity";
 import { getSession } from "@/app/_lib/session";
 import { READER_ID_COOKIE, verifyReaderId } from "@/auth/reader-id";
-import { searchEvents, type EventCard as EventCardData, type FeedFilter } from "@/db/queries/feed";
+import {
+  listAvailableEventCategories,
+  searchEvents,
+  type EventCard as EventCardData,
+  type FeedFilter,
+} from "@/db/queries/feed";
 import { listBoards } from "@/db/queries/topic-boards";
 import { getOwnerAnnotations, type AnnotationVerdict } from "@/db/queries/owner-annotations";
 import { getViewerReactions, type ViewerReactionState } from "@/db/queries/reactions";
@@ -22,7 +27,7 @@ import { listSourceOptions, type SourceOption } from "@/db/queries/sources";
 import { getUserPreference } from "@/db/queries/user-preferences";
 import { messages } from "@/i18n";
 import { log } from "@/log";
-import { EVENT_CATEGORIES, parsePublicQuery, type EventCategory, type PublicQuery } from "@/public/query";
+import { parsePublicQuery, type PublicQuery } from "@/public/query";
 import { formatDateTime, formatTimeOfDay, toIsoAttr } from "@/app/_lib/format";
 import { modelAccent } from "@/app/_lib/model-accent";
 import { buildTimelineTree } from "@/app/_lib/timeline-tree";
@@ -77,7 +82,6 @@ export const metadata = {
 type SearchParams = Record<string, string | string[] | undefined>;
 
 const HOME_LIMIT = 240;
-const EVENT_CATEGORY_SET: ReadonlySet<string> = new Set(EVENT_CATEGORIES);
 // "加载更多" raises the limit in HOME_LIMIT steps via the `limit` URL param (URL-as-state:
 // shareable, SSR-only, no client fetch layer). Capped so a hand-edited URL can't dump
 // the whole table into one render. Raised for the archive fix: history is never deleted, and
@@ -145,16 +149,6 @@ function briefQuery(interests: { tags: string[]; sourceIds: string[] }): URLSear
   if (interests.tags.length) params.set("itags", interests.tags.join(","));
   if (interests.sourceIds.length) params.set("isources", interests.sourceIds.join(","));
   return params;
-}
-
-function availableCategories(events: EventCardData[]): EventCategory[] {
-  const seen = new Set<EventCategory>();
-  for (const event of events) {
-    if (event.category && EVENT_CATEGORY_SET.has(event.category)) {
-      seen.add(event.category as EventCategory);
-    }
-  }
-  return EVENT_CATEGORIES.filter((category) => seen.has(category));
 }
 
 function toFeedFilter(query: PublicQuery, hideOwnerAnnotated = false): FeedFilter {
@@ -239,21 +233,6 @@ async function loadReaderInterests(): Promise<ReaderInterestState> {
     log.warn("[reader] loadReaderInterests failed", handledErrorDetails(error));
     return EMPTY_INTERESTS;
   }
-}
-
-// 推荐 mode (v0.5 B): the reader's boards as one interest (tags ∪ sources), in strict time
-// order like 最新 — just narrowed to what they follow (no behavioral ranking). No boards →
-// recent feed; 推荐 is hidden then, but a hand-typed mode=personalized never shows empty.
-async function loadPersonalizedData(
-  query: PublicQuery,
-  limit: number,
-  reader: ReaderInterestState,
-  hideOwnerAnnotated = false,
-): Promise<EventCardData[]> {
-  const personalized: PublicQuery = reader.hasBoards
-    ? { ...query, mode: "all", interests: reader.interests }
-    : { ...query, mode: "all" };
-  return loadHomeData(personalized, limit, hideOwnerAnnotated);
 }
 
 async function loadViewerReactions(
@@ -373,13 +352,23 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       loadGlobalHotspots(),
       canReviewOwnerAnnotations(),
     ]);
-  const events =
+  const feedQuery: PublicQuery =
     query.mode === "personalized"
-      ? await loadPersonalizedData(query, limit, readerInterests, canReviewAnnotations)
-      : await loadHomeData(query, limit, canReviewAnnotations);
+      ? readerInterests.hasBoards
+        ? { ...query, mode: "all", interests: readerInterests.interests }
+        : { ...query, mode: "all" }
+      : query;
+  const [events, availableEventCategories] = await Promise.all([
+    loadHomeData(feedQuery, limit, canReviewAnnotations),
+    listAvailableEventCategories(toFeedFilter(feedQuery, canReviewAnnotations)).catch((error) => {
+      log.warn("[reader] loadAvailableEventCategories failed", handledErrorDetails(error));
+      return [];
+    }),
+  ]);
   const latestEvent = events[0];
+  const latestSortAt = latestEvent ? timelineTime(latestEvent, query.mode).toISOString() : null;
   const latestKey = latestEvent
-    ? `${latestEvent.id}:${latestEvent.publishedAt?.toISOString() ?? ""}:${latestEvent.promotedAt?.toISOString() ?? ""}`
+    ? `${latestEvent.id}:${latestSortAt ?? ""}`
     : null;
   const refreshQuery = refreshQueryString(sp, query);
   // 精选(mode=selected)显示真实精选集，稀少时如实显示少量/空，不再静默回退最新——
@@ -424,8 +413,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     selectedLabel: event.selectedLabel,
     viewCount: event.viewCount,
   }));
-  const availableEventCategories = availableCategories(events);
-
   return (
     <main className="page reader-home">
       <ParticleBackground />
@@ -437,6 +424,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       <Suspense fallback={null}>
         <FeedRefreshIndicator
           latestKey={latestKey}
+          latestSortAt={latestSortAt}
           refreshQuery={refreshQuery}
           refreshEndpoint={canReviewAnnotations ? "/api/reader/feed-peek" : "/api/public/items"}
         />

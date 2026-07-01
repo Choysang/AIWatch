@@ -4,6 +4,7 @@ import { checkLlmBudget, recordLlmSpend } from "@/db/queries/llm-spend";
 import { readBudgetCaps } from "@/llm/budget";
 import { getRouteConfig, resolveProvider } from "@/llm/routing";
 import { structuredGenerateWithRetry } from "@/llm/structured";
+import { log } from "@/log";
 import { clientIp, jsonError, publicLimiter } from "../public/_runtime";
 
 export const dynamic = "force-dynamic";
@@ -43,10 +44,19 @@ function fallbackAnswer(
     .map((event, index) => `${index + 1}. ${event.title}${event.sourceName ? `（${event.sourceName}）` : ""}`)
     .join("\n");
   return [
-    "模型通道暂时不可用，我先按 AIWatch 最近资讯给你一个保守读法：",
+    "我先按 AIWatch 最近资讯给你一个保守读法：",
     items,
     "建议先点开多信源/高分条目看详情；如果你问的是某家公司，继续用搜索框按公司名过滤会更准。",
   ].join("\n\n");
+}
+
+function assistantErrorDetails(error: unknown): Record<string, string> {
+  if (!(error instanceof Error)) return { message: String(error) };
+  const details: Record<string, string> = { name: error.name };
+  if (error.message) details.message = error.message;
+  const code = (error as { code?: unknown }).code;
+  if (typeof code === "string") details.code = code;
+  return details;
 }
 
 export async function POST(req: Request): Promise<Response> {
@@ -63,6 +73,11 @@ export async function POST(req: Request): Promise<Response> {
   const route = getRouteConfig("translation");
   const provider = resolveProvider("translation");
   if (!provider) {
+    log.warn("[assistant] no configured LLM provider", {
+      task: "translation",
+      provider: route.provider,
+      model: route.model,
+    });
     return Response.json({ answer: fallbackAnswer(parsed.data.question, events) }, {
       headers: { "cache-control": "private, no-store" },
     });
@@ -72,6 +87,11 @@ export async function POST(req: Request): Promise<Response> {
   if (!isStub) {
     const budget = await checkLlmBudget(readBudgetCaps().llmUsd);
     if (budget.status === "block") {
+      log.warn("[assistant] LLM budget blocked", {
+        task: "translation",
+        provider: route.provider,
+        model: route.model,
+      });
       return Response.json({ answer: fallbackAnswer(parsed.data.question, events) }, {
         headers: { "cache-control": "private, no-store" },
       });
@@ -102,7 +122,13 @@ export async function POST(req: Request): Promise<Response> {
       await recordLlmSpend({ task: "translation", provider: route.provider, model: route.model, usage: result.usage });
     }
     return Response.json(result.value, { headers: { "cache-control": "private, no-store" } });
-  } catch {
+  } catch (error) {
+    log.warn("[assistant] LLM generation failed", {
+      task: "translation",
+      provider: route.provider,
+      model: route.model,
+      ...assistantErrorDetails(error),
+    });
     return Response.json({ answer: fallbackAnswer(parsed.data.question, events) }, {
       headers: { "cache-control": "private, no-store" },
     });

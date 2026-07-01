@@ -3,6 +3,7 @@
 
 import { getLatestDaily } from "@/db/queries/public-reports";
 import { cacheControl, clientIp, jsonError, publicLimiter } from "../_runtime";
+import { requestOrigin, withReportItemPermalinks } from "../_links";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,9 @@ export async function GET(req: Request): Promise<Response> {
   try {
     const report = await getLatestDaily();
     if (!report) return jsonError(404, "no_report");
-    return Response.json(report, { headers: { "cache-control": cacheControl(300, 3600) } });
+    return Response.json(withReportItemPermalinks(report, requestOrigin(new URL(req.url))), {
+      headers: { "cache-control": cacheControl(300, 3600) },
+    });
   } catch {
     return jsonError(500, "internal_error");
   }

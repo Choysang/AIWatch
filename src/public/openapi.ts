@@ -1,7 +1,7 @@
 export const OPENAPI_YAML = `openapi: 3.1.0
 info:
   title: AIWatch Public API
-  version: 0.6.0
+  version: 0.6.1
   description: Anonymous read-only access to AIWatch items and daily reports.
 servers:
   - url: https://aiwatch.icu
@@ -104,6 +104,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PublicReport"
+  /api/public/hotspots:
+    get:
+      summary: Current multi-source AIWatch hotspots
+      responses:
+        "200":
+          description: Current hotspot topics ranked by independent source coverage.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicHotspotsResponse"
   /api/public/dailies:
     get:
       summary: List available daily report dates
@@ -187,7 +197,42 @@ components:
         promoted_at:
           type: [string, "null"]
           format: date-time
+        created_at:
+          type: string
+          format: date-time
+        sort_at:
+          type: string
+          format: date-time
         media: {}
+    PublicHotspotsResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/HotspotItem"
+    HotspotItem:
+      type: object
+      required: [id, title, source_count, source_names, score, last_seen_at, permalink]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        source_count:
+          type: integer
+        source_names:
+          type: array
+          items:
+            type: string
+        score:
+          type: number
+        last_seen_at:
+          type: string
+          format: date-time
+        permalink:
+          type: string
     PublicReport:
       type: object
       required: [kind, date, title, summary, sections, generated_at]
@@ -254,6 +299,8 @@ components:
           type: [string, "null"]
         url:
           type: [string, "null"]
+        permalink:
+          type: string
     PublicReportListItem:
       type: object
       required: [date, title, generated_at, item_count]
@@ -269,4 +316,6 @@ components:
           format: date-time
         item_count:
           type: integer
+        permalink:
+          type: string
 `;

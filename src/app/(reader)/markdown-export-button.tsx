@@ -17,6 +17,7 @@ interface MarkdownExportButtonProps {
   aiwatchPath: string;
   summary: string | null;
   recommendationReason: string | null;
+  bodyText?: string | null;
 }
 
 type ExportFormat = "markdown" | "obsidian" | "json" | "custom";
@@ -41,6 +42,9 @@ const DEFAULT_CUSTOM_TEMPLATE = [
   "- 分数：{{score}}",
   "- 原文：{{original_url}}",
   "- AIWatch：{{aiwatch_url}}",
+  "",
+  "## 正文",
+  "{{body}}",
 ].join("\n");
 
 function slugify(input: string): string {
@@ -65,6 +69,23 @@ function markdownList(items: string[]): string {
 
 function buildAiWatchUrl(path: string): string {
   return new URL(path, window.location.origin).toString();
+}
+
+function formatExportDate(value: string | null): string {
+  if (!value) return "未知";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const parts = new Intl.DateTimeFormat("zh-CN", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")} ${part("hour")}:${part("minute")}`;
 }
 
 function metadata(input: MarkdownExportButtonProps): Record<string, unknown> {
@@ -105,24 +126,30 @@ function frontmatter(input: MarkdownExportButtonProps): string {
 }
 
 function bodySections(input: MarkdownExportButtonProps): string[] {
+  const date = formatExportDate(input.publishedAt ?? input.promotedAt);
+  const aiwatchUrl = buildAiWatchUrl(input.aiwatchPath);
+  const body = input.bodyText?.trim() || input.summary?.trim() || "暂无正文。";
   return [
     `# ${input.title}`,
-    "## 摘要",
-    input.summary?.trim() || "暂无摘要。",
+    `- 来源：${input.sourceName ?? "未知"}`,
+    `- 发布时间：${date}`,
+    `- AIWatch 分数：${input.qualityScore ?? "未评分"}`,
+    `- AIWatch 标记：${input.selectedLevel === "none" ? "未精选" : (input.selectedLabel ?? input.selectedLevel)}`,
+    `- AIWatch 链接：${aiwatchUrl}`,
+    `- 原文链接：${input.originalUrl ?? "暂无"}`,
     "## 精选理由",
     input.recommendationReason?.trim() || "暂无精选理由。",
-    "## 链接",
-    input.originalUrl ? `- [打开原文](${input.originalUrl})` : "- 暂无原文链接",
-    input.sourceUrl ? `- [信源主页](${input.sourceUrl})` : "- 暂无信源主页链接",
-    `- [AIWatch 详情](${buildAiWatchUrl(input.aiwatchPath)})`,
+    "## AI 摘要",
+    input.summary?.trim() || "暂无摘要。",
+    "## 正文",
+    body,
   ];
 }
 
 function buildMarkdown(input: MarkdownExportButtonProps, format: ExportFormat = "markdown"): string {
   if (format === "json") return `${JSON.stringify({ ...metadata(input), summary: input.summary, recommendation_reason: input.recommendationReason }, null, 2)}\n`;
-  const intro = format === "obsidian" ? "## AIWatch Capture" : "";
-  const sections = intro ? [intro, ...bodySections(input)] : bodySections(input);
-  return `${frontmatter(input)}\n\n${sections.join("\n\n")}\n`;
+  if (format === "obsidian") return `${frontmatter(input)}\n\n## AIWatch Capture\n\n${bodySections(input).join("\n\n")}\n`;
+  return `${bodySections(input).join("\n\n")}\n`;
 }
 
 function renderTemplate(input: MarkdownExportButtonProps, template: string): string {
@@ -142,6 +169,7 @@ function renderTemplate(input: MarkdownExportButtonProps, template: string): str
     aiwatch_url: String(meta.aiwatch_url ?? ""),
     summary: input.summary?.trim() || "",
     recommendation_reason: input.recommendationReason?.trim() || "",
+    body: input.bodyText?.trim() || input.summary?.trim() || "",
   };
   return `${template.replace(/\{\{([a-z_]+)\}\}/g, (_match, key: string) => values[key] ?? "")}\n`;
 }
@@ -155,7 +183,7 @@ function fileInfo(format: ExportFormat): { ext: string; type: string; label: str
 
 export function MarkdownExportButton(props: MarkdownExportButtonProps) {
   const [state, setState] = useState<"idle" | "exported" | "failed">("idle");
-  const [format, setFormat] = useState<ExportFormat>("obsidian");
+  const [format, setFormat] = useState<ExportFormat>("markdown");
   const [template, setTemplate] = useState(DEFAULT_CUSTOM_TEMPLATE);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

@@ -84,4 +84,29 @@ describe("applyEditorialPreference", () => {
     expect(aiCar.score).toBeGreaterThanOrEqual(74);
     expect(aiCar.reasons).not.toContain("pure_auto_noise");
   });
+
+  test("penalizes personal self-promotion but keeps practical technical insight from builders", () => {
+    const promo = applyEditorialPreference({
+      selectionScore: 78,
+      ownerBoost: 0,
+      title: "I launched my new AI course and newsletter",
+      summary: "Subscribe today for a limited discount and consulting slots.",
+      contentType: "news",
+      sourceType: "expert",
+    });
+    expect(promo.score).toBeLessThan(60);
+    expect(promo.reasons).toContain("personal_self_promo");
+
+    const insight = applyEditorialPreference({
+      selectionScore: 72,
+      ownerBoost: 0,
+      title: "A practical guide to writing reliable Agent workflows",
+      summary: "Includes prompt patterns, implementation notes, debug cases, and repo examples.",
+      contentType: "howto",
+      sourceType: "expert",
+    });
+    expect(insight.score).toBeGreaterThan(76);
+    expect(insight.reasons).toContain("personal_technical_insight");
+    expect(insight.reasons).not.toContain("personal_self_promo");
+  });
 });

@@ -7,6 +7,8 @@ interface PublicItemPeek {
   id?: string;
   published_at?: string | null;
   promoted_at?: string | null;
+  created_at?: string | null;
+  sort_at?: string | null;
 }
 
 interface PublicItemsPeek {
@@ -19,7 +21,13 @@ const REFRESH_FEEDBACK_TIMEOUT_MS = 6_000;
 
 function keyFor(item: PublicItemPeek | undefined): string | null {
   if (!item?.id) return null;
-  return `${item.id}:${item.published_at ?? ""}:${item.promoted_at ?? ""}`;
+  return `${item.id}:${item.sort_at ?? item.published_at ?? item.promoted_at ?? item.created_at ?? ""}`;
+}
+
+function timeMs(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const t = Date.parse(value);
+  return Number.isNaN(t) ? null : t;
 }
 
 function refreshedHref(pathname: string, searchParams: { toString(): string }): string {
@@ -32,10 +40,12 @@ function refreshedHref(pathname: string, searchParams: { toString(): string }): 
 
 export function FeedRefreshIndicator({
   latestKey,
+  latestSortAt,
   refreshQuery,
   refreshEndpoint = "/api/public/items",
 }: {
   latestKey: string | null;
+  latestSortAt: string | null;
   refreshQuery: string | null;
   refreshEndpoint?: string;
 }) {
@@ -84,8 +94,12 @@ export function FeedRefreshIndicator({
         });
         if (!res.ok) return;
         const data = (await res.json()) as PublicItemsPeek;
-        const nextKey = keyFor(data.items?.[0]);
+        const nextItem = data.items?.[0];
+        const nextKey = keyFor(nextItem);
         if (!nextKey || nextKey === latestKey) return;
+        const nextTime = timeMs(nextItem?.sort_at ?? nextItem?.published_at ?? nextItem?.promoted_at ?? nextItem?.created_at);
+        const latestTime = timeMs(latestSortAt);
+        if (nextTime === null || latestTime === null || nextTime <= latestTime) return;
         if (window.scrollY < 160) {
           loadFresh();
         } else {
@@ -104,7 +118,7 @@ export function FeedRefreshIndicator({
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [latestKey, refreshQuery, refreshEndpoint, loadFresh]);
+  }, [latestKey, latestSortAt, refreshQuery, refreshEndpoint, loadFresh]);
 
   const loading = isPending || isReloading;
 

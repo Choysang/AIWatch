@@ -20,7 +20,7 @@ const prompts = readFileSync(join(root, "src", "pipeline", "prompts.ts"), "utf8"
 
 describe("curated AI source policy", () => {
   test("keeps only scored AI-dense sources in the curated config", () => {
-    expect(curated.length).toBeGreaterThanOrEqual(118);
+    expect(curated.length).toBeGreaterThanOrEqual(100);
     for (const source of curated) {
       expect(source.ai_density_score).toBeGreaterThanOrEqual(6);
       expect(["official", "industry_leader", "technical_share"]).toContain(source.category);
@@ -40,6 +40,9 @@ describe("curated AI source policy", () => {
     expect(names).not.toContain("阮一峰的网络日志");
     expect(names).not.toContain("刘润");
     expect(names).not.toContain("吴晓波频道");
+    expect(names).not.toContain("Simon Willison");
+    expect(names).not.toContain("Hugging Face Blog");
+    expect(names).not.toContain("Cloudflare Blog");
   });
 
   test("records explicit exclusion reasons in the source audit report", () => {

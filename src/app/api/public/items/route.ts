@@ -5,12 +5,9 @@
 import { listPublicItems } from "@/db/queries/public-items";
 import { parsePublicQuery } from "@/public/query";
 import { cacheControl, clientIp, jsonError, publicLimiter } from "../_runtime";
+import { requestOrigin } from "../_links";
 
 export const dynamic = "force-dynamic";
-
-function requestOrigin(reqUrl: URL): string {
-  return (process.env.PUBLIC_BASE_URL?.replace(/\/+$/, "") || reqUrl.origin).replace(/\/+$/, "");
-}
 
 export async function GET(req: Request): Promise<Response> {
   const rl = publicLimiter.check(clientIp(req));

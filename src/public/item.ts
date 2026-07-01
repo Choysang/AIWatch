@@ -24,6 +24,8 @@ export interface PublicItem {
   tags: string[];
   published_at: string | null;
   promoted_at: string | null;
+  created_at: string;
+  sort_at: string;
   media: unknown;
 }
 

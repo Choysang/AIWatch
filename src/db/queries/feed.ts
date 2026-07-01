@@ -4,8 +4,16 @@
 import { and, arrayOverlaps, desc, eq, gte, inArray, ne, or, sql, type SQL } from "drizzle-orm";
 import { db as defaultDb, type DB } from "@/db/client";
 import { events, ownerAnnotations, posts, sources } from "@/db/schema";
-import type { ContentType, PublicMode, SemanticWindow, SourceCategory, SourceType } from "@/public/query";
-import { windowStart } from "@/public/query";
+import {
+  EVENT_CATEGORIES,
+  windowStart,
+  type ContentType,
+  type EventCategory,
+  type PublicMode,
+  type SemanticWindow,
+  type SourceCategory,
+  type SourceType,
+} from "@/public/query";
 import type { PromotedLevel } from "@/scoring/types";
 
 export interface EventCard {
@@ -122,23 +130,16 @@ export interface FeedFilter {
   hideOwnerAnnotated?: boolean;
 }
 
-/**
- * Filtered reader feed (search + filter UI). Mirrors `listPublicItems` filter semantics:
- * selected mode windows by promotion time and excludes unselected events; all mode
- * windows by effective publish time. Both modes ORDER by the effective-time chain the
- * timeline groups by (strict newest-first). Search is server-side (ILIKE + tag overlap).
- */
-export async function searchEvents(
-  filter: FeedFilter,
-  limit = 30,
-  now: Date = new Date(),
-  db: DB = defaultDb,
-): Promise<EventCard[]> {
-  const sortKey: SQL =
-    filter.mode === "selected"
-      ? sql`${events.promotedAt}`
-      : effectiveTime;
+function sortKeyFor(filter: Pick<FeedFilter, "mode">): SQL {
+  return filter.mode === "selected" ? sql`${events.promotedAt}` : effectiveTime;
+}
 
+function feedConditions(
+  filter: FeedFilter,
+  sortKey: SQL,
+  now: Date,
+  includeCategory = true,
+): SQL[] {
   const conds: SQL[] = [];
   conds.push(
     filter.hideOwnerAnnotated
@@ -163,7 +164,7 @@ export async function searchEvents(
   const start = customRange ? filter.dateFrom : windowStart(filter.since, now);
   if (start) conds.push(sql`${sortKey} >= ${start}`);
   if (filter.dateTo) conds.push(sql`${sortKey} < ${filter.dateTo}`);
-  if (filter.category) conds.push(eq(events.category, filter.category));
+  if (includeCategory && filter.category) conds.push(eq(events.category, filter.category));
   if (typeof filter.minScore === "number") conds.push(gte(events.qualityScore, filter.minScore));
   if (filter.tags?.length) {
     conds.push(arrayOverlaps(events.tags, filter.tags));
@@ -203,6 +204,23 @@ export async function searchEvents(
     // folds in title/summaries/reco/tags/category; source + author names typically appear there too.
     conds.push(sql`${events.searchText} ilike ${like}`);
   }
+  return conds;
+}
+
+/**
+ * Filtered reader feed (search + filter UI). Mirrors `listPublicItems` filter semantics:
+ * selected mode windows by promotion time and excludes unselected events; all mode
+ * windows by effective publish time. Both modes ORDER by the effective-time chain the
+ * timeline groups by (strict newest-first). Search is server-side (ILIKE + tag overlap).
+ */
+export async function searchEvents(
+  filter: FeedFilter,
+  limit = 30,
+  now: Date = new Date(),
+  db: DB = defaultDb,
+): Promise<EventCard[]> {
+  const sortKey = sortKeyFor(filter);
+  const conds = feedConditions(filter, sortKey, now);
 
   const rows = await db
     .select(cardColumns)
@@ -213,4 +231,25 @@ export async function searchEvents(
     .orderBy(sql`${sortKey} desc nulls last`, sql`${effectiveTime} desc`, desc(events.id))
     .limit(limit);
   return rows as EventCard[];
+}
+
+export async function listAvailableEventCategories(
+  filter: FeedFilter,
+  now: Date = new Date(),
+  db: DB = defaultDb,
+): Promise<EventCategory[]> {
+  const sortKey = sortKeyFor(filter);
+  const conds = feedConditions(filter, sortKey, now, false);
+  conds.push(sql`${events.category} is not null`);
+
+  const rows = await db
+    .select({ category: events.category })
+    .from(events)
+    .leftJoin(sources, eq(sources.id, events.mainSourceId))
+    .leftJoin(posts, eq(posts.id, events.mainPostId))
+    .where(conds.length ? and(...conds) : undefined)
+    .groupBy(events.category);
+
+  const seen = new Set(rows.map((row) => row.category).filter((category): category is string => Boolean(category)));
+  return EVENT_CATEGORIES.filter((category) => seen.has(category));
 }
